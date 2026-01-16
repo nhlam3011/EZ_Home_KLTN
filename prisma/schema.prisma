@@ -1,0 +1,266 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- ENUMS (Danh sách chọn cố định) ---
+enum Role {
+  ADMIN
+  TENANT
+}
+
+enum RoomStatus {
+  AVAILABLE   // Trống
+  RENTED      // Đang thuê
+  MAINTENANCE // Đang sửa
+}
+
+enum AssetStatus {
+  GOOD
+  BROKEN
+  MAINTENANCE
+  LIQUIDATED // Đã thanh lý
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  OVERDUE
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  DONE
+  CANCELLED
+}
+
+// --- MODELS (Bảng dữ liệu) ---
+
+model User {
+  id            Int       @id @default(autoincrement())
+  phone         String    @unique // Tên đăng nhập
+  password      String
+  fullName      String
+  email         String?   @unique
+  avatarUrl     String?
+  
+  // Thông tin nhân khẩu & Định danh chi tiết
+  cccdNumber    String?   @unique
+  cccdDate      DateTime?
+  cccdPlace     String?
+  dob           DateTime?
+  gender        String?   // NAM, NU, KHAC
+  address       String?   // Quê quán / Thường trú
+  job           String?
+  licensePlate  String?   // Biển số xe
+  
+  role          Role      @default(TENANT)
+  isActive      Boolean   @default(true)
+  isFirstLogin  Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Quan hệ
+  contracts     Contract[]
+  issues        Issue[]
+  serviceOrders ServiceOrder[]
+  posts         Post[]
+  documents     Document[]
+}
+
+model Room {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique // VD: P.101
+  floor     Int
+  price     Decimal    @db.Decimal(10, 2)
+  area      Float?
+  maxPeople Int        @default(1)
+  status    RoomStatus @default(AVAILABLE)
+  
+  // Quan hệ
+  assets    Asset[]
+  contracts Contract[]
+  meters    MeterReading[]
+  issues    Issue[]
+}
+
+model Asset {
+  id           Int         @id @default(autoincrement())
+  roomId       Int
+  room         Room        @relation(fields: [roomId], references: [id])
+  name         String      // VD: Điều hòa Daikin
+  category     String?     // Điện máy, Nội thất
+  status       AssetStatus @default(GOOD)
+  purchaseDate DateTime?
+  value        Decimal?    @db.Decimal(10, 2)
+  notes        String?
+  createdAt    DateTime    @default(now())
+}
+
+model Contract {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id])
+  roomId     Int
+  room       Room      @relation(fields: [roomId], references: [id])
+  startDate  DateTime
+  endDate    DateTime?
+  deposit    Decimal   @db.Decimal(10, 2) // Tiền cọc
+  rentPrice  Decimal   @db.Decimal(10, 2) // Giá thuê chốt tại thời điểm ký
+  status     String    @default("ACTIVE") // ACTIVE, TERMINATED
+  
+  invoices   Invoice[]
+  documents  Document[]
+  occupants  ContractOccupant[] // Người ở trong hợp đồng (ngoài người chủ hợp đồng)
+}
+
+model MeterReading {
+  id          Int      @id @default(autoincrement())
+  roomId      Int
+  room        Room     @relation(fields: [roomId], references: [id])
+  month       Int
+  year        Int
+  elecOld     Float
+  elecNew     Float
+  waterOld    Float
+  waterNew    Float
+  recordedDate DateTime @default(now())
+}
+
+model Invoice {
+  id            Int           @id @default(autoincrement())
+  contractId    Int
+  contract      Contract      @relation(fields: [contractId], references: [id])
+  month         Int
+  year          Int
+  amountRoom    Decimal       @db.Decimal(10, 2)
+  amountElec    Decimal       @db.Decimal(10, 2)
+  amountWater   Decimal       @db.Decimal(10, 2)
+  amountService Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  status        InvoiceStatus @default(UNPAID)
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  
+  payments      Payment[]
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  VNPAY
+  MOMO
+  BANK_TRANSFER
+  CASH
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  invoiceId     Int
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       @unique // VNPay transaction ID
+  paymentUrl    String?       // URL để redirect user đến trang thanh toán
+  vnpResponse   String?       // Raw response from VNPay
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  paidAt        DateTime?
+}
+
+model Service {
+  id        Int     @id @default(autoincrement())
+  name      String
+  unitPrice Decimal @db.Decimal(10, 2)
+  unit      String  // Lần, Kg, Bình
+  isActive  Boolean @default(true)
+  
+  orders    ServiceOrder[]
+}
+
+model ServiceOrder {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id])
+  serviceId Int
+  service   Service       @relation(fields: [serviceId], references: [id])
+  quantity  Int
+  total     Decimal       @db.Decimal(10, 2)
+  note      String?
+  orderDate DateTime      @default(now())
+  status    RequestStatus @default(PENDING)
+}
+
+model Issue {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  user        User          @relation(fields: [userId], references: [id])
+  roomId      Int
+  room        Room          @relation(fields: [roomId], references: [id])
+  title       String
+  description String
+  images      String[]      // Mảng link ảnh
+  repairCost  Decimal?      @db.Decimal(10, 2)
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  images    String[]
+  status    String   @default("PENDING") // PENDING, PUBLIC
+  createdAt DateTime @default(now())
+}
+
+model AiForecast {
+  id               Int      @id @default(autoincrement())
+  month            Int
+  year             Int
+  predictedRevenue Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now())
+}
+
+model Document {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  contractId  Int?
+  contract    Contract? @relation(fields: [contractId], references: [id])
+  fileName    String
+  fileUrl     String
+  fileSize    Int?      // Size in bytes
+  fileType    String?   // MIME type
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model ContractOccupant {
+  id         Int       @id @default(autoincrement())
+  contractId Int
+  contract   Contract  @relation(fields: [contractId], references: [id])
+  fullName   String    // Tên người ở
+  cccdNumber String?   // Số CCCD/CMND
+  phone      String?   // Số điện thoại
+  dob        DateTime? // Ngày sinh
+  relationship String? // Quan hệ với người chủ hợp đồng (Vợ/Chồng, Con, Bạn, ...)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
