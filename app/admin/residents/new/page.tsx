@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, X, Loader2, User, Phone, Mail, CreditCard, Calendar, MapPin, Plus, Users } from 'lucide-react'
+import { Save, X, Loader2, User, Plus, Users } from 'lucide-react'
 
 interface Occupant {
   fullName: string
@@ -112,17 +112,17 @@ export default function NewResidentPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Check-in Cư dân mới</h1>
-          <p className="text-gray-600 mt-1">Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Check-in Cư dân mới</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Link
             href="/admin/residents"
-            className="btn-secondary"
+            className="btn-secondary flex items-center justify-center gap-2"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -130,7 +130,7 @@ export default function NewResidentPage() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="btn-primary disabled:opacity-50 flex items-center gap-2"
+            className="btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -140,7 +140,8 @@ export default function NewResidentPage() {
             ) : (
               <>
                 <Save size={18} />
-                <span>Lưu và tạo hợp đồng</span>
+                <span className="hidden sm:inline">Lưu và tạo hợp đồng</span>
+                <span className="sm:hidden">Lưu</span>
               </>
             )}
           </button>
@@ -181,93 +182,78 @@ export default function NewResidentPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Số điện thoại <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                    className="input pl-10"
-                    placeholder="0901234567"
-                  />
-                </div>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                  className="input"
+                  placeholder="0901234567"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="input pl-10"
-                    placeholder="email@example.com"
-                  />
-                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="input"
+                  placeholder="email@example.com"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Số CCCD/CMND <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="text"
-                    name="cccdNumber"
-                    value={formData.cccdNumber}
-                    onChange={handleChange}
-                    required
-                    className="input pl-10"
-                    placeholder="012345678901"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Mật khẩu ban đầu sẽ là số CCCD này
-                  </p>
-                </div>
+                <input
+                  type="text"
+                  name="cccdNumber"
+                  value={formData.cccdNumber}
+                  onChange={handleChange}
+                  required
+                  className="input"
+                  placeholder="012345678901"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Mật khẩu ban đầu sẽ là số CCCD này
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Ngày sinh
                 </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="date"
-                    name="dob"
-                    value={formData.dob}
-                    onChange={handleChange}
-                    className="input pl-10"
-                  />
-                </div>
+                <input
+                  type="date"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleChange}
+                  className="input"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Địa chỉ thường trú
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    className="input pl-10"
-                    placeholder="Nhập địa chỉ"
-                  />
-                </div>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="input"
+                  placeholder="Nhập địa chỉ"
+                />
               </div>
             </div>
           </div>
 
           {/* Contract Information */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin hợp đồng</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Thông tin hợp đồng</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Chọn phòng <span className="text-red-500">*</span>
@@ -346,17 +332,17 @@ export default function NewResidentPage() {
 
           {/* Occupants Section */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <Users size={20} />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Users size={20} className="flex-shrink-0" />
                 <span>Người ở cùng (nếu có)</span>
               </h2>
               <button
                 type="button"
                 onClick={addOccupant}
-                className="px-3 py-1.5 text-sm bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 transition-colors"
+                className="px-3 py-2 text-sm bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center justify-center gap-2 transition-colors"
               >
-                <Plus size={16} />
+                <Plus size={16} className="flex-shrink-0" />
                 <span>Thêm người ở</span>
               </button>
             </div>
@@ -461,10 +447,10 @@ export default function NewResidentPage() {
         </div>
 
         {/* Right Column - Summary */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="card bg-blue-50 border-blue-200">
-            <h3 className="text-sm font-semibold text-blue-900 mb-3">Lưu ý quan trọng</h3>
-            <ul className="space-y-2 text-sm text-blue-800">
+            <h3 className="text-xs sm:text-sm font-semibold text-blue-900 mb-3">Lưu ý quan trọng</h3>
+            <ul className="space-y-2 text-xs sm:text-sm text-blue-800">
               <li className="flex items-start gap-2">
                 <span className="text-blue-600 mt-0.5">•</span>
                 <span>Mật khẩu ban đầu sẽ là số CCCD của cư dân</span>
@@ -489,8 +475,8 @@ export default function NewResidentPage() {
           </div>
           {occupants.length > 0 && (
             <div className="card bg-green-50 border-green-200">
-              <h3 className="text-sm font-semibold text-green-900 mb-2">Tổng số người ở</h3>
-              <p className="text-2xl font-bold text-green-700">{1 + occupants.length} người</p>
+              <h3 className="text-xs sm:text-sm font-semibold text-green-900 mb-2">Tổng số người ở</h3>
+              <p className="text-xl sm:text-2xl font-bold text-green-700">{1 + occupants.length} người</p>
               <p className="text-xs text-green-600 mt-1">
                 (1 người chủ hợp đồng + {occupants.length} người ở)
               </p>

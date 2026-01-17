@@ -49,6 +49,7 @@ export async function PUT(
       amountRoom, 
       amountElec, 
       amountWater, 
+      amountCommonService,
       amountService,
       month,
       year
@@ -76,6 +77,9 @@ export async function PUT(
     if (amountWater !== undefined) {
       updateData.amountWater = parseFloat(amountWater)
     }
+    if (amountCommonService !== undefined) {
+      updateData.amountCommonService = parseFloat(amountCommonService)
+    }
     if (amountService !== undefined) {
       updateData.amountService = parseFloat(amountService)
     }
@@ -88,7 +92,7 @@ export async function PUT(
 
     // Recalculate totalAmount if any amount field is updated
     if (amountRoom !== undefined || amountElec !== undefined || 
-        amountWater !== undefined || amountService !== undefined) {
+        amountWater !== undefined || amountCommonService !== undefined || amountService !== undefined) {
       const currentInvoice = await prisma.invoice.findUnique({
         where: { id: parseInt(resolvedParams.id) }
       })
@@ -97,9 +101,10 @@ export async function PUT(
         const newAmountRoom = amountRoom !== undefined ? parseFloat(amountRoom) : Number(currentInvoice.amountRoom)
         const newAmountElec = amountElec !== undefined ? parseFloat(amountElec) : Number(currentInvoice.amountElec)
         const newAmountWater = amountWater !== undefined ? parseFloat(amountWater) : Number(currentInvoice.amountWater)
+        const newAmountCommonService = amountCommonService !== undefined ? parseFloat(amountCommonService) : Number(currentInvoice.amountCommonService || 0)
         const newAmountService = amountService !== undefined ? parseFloat(amountService) : Number(currentInvoice.amountService)
         
-        updateData.totalAmount = newAmountRoom + newAmountElec + newAmountWater + newAmountService
+        updateData.totalAmount = newAmountRoom + newAmountElec + newAmountWater + newAmountCommonService + newAmountService
       }
     }
 

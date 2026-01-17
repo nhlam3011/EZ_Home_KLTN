@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Download, AlertCircle, QrCode, CreditCard } from 'lucide-react'
+import { Search, Download, AlertCircle, QrCode } from 'lucide-react'
 
 interface Invoice {
   id: number
@@ -58,6 +58,11 @@ export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showQRModal, setShowQRModal] = useState(false)
+  const [qrCode, setQrCode] = useState<string>('')
+  const [qrString, setQrString] = useState<string>('')
+  const [paymentId, setPaymentId] = useState<number | null>(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -183,15 +188,17 @@ export default function InvoicesPage() {
     }
   }
 
-  const handlePayment = async () => {
+
+  const handleVietQRPayment = async () => {
     if (!selectedInvoice || selectedInvoice.status !== 'UNPAID') return
     
     try {
-      const confirmed = confirm(`Bạn có chắc chắn muốn thanh toán hóa đơn ${formatCurrency(Number(selectedInvoice.totalAmount))} qua VNPay?`)
+      const confirmed = confirm(`Bạn có chắc chắn muốn thanh toán hóa đơn ${formatCurrency(Number(selectedInvoice.totalAmount))} qua VietQR?`)
       if (!confirmed) return
 
-      // Create payment and get VNPay URL
-      const response = await fetch('/api/payments/create', {
+      setLoading(true)
+      // Create payment and get QR code
+      const response = await fetch('/api/payments/vietqr/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -202,27 +209,63 @@ export default function InvoicesPage() {
       })
 
       const data = await response.json()
-      if (response.ok && data.paymentUrl) {
-        // Redirect to VNPay payment page
-        window.location.href = data.paymentUrl
+      if (response.ok && data.qrCode) {
+        setQrCode(data.qrCode)
+        setQrString(data.qrString || '')
+        setPaymentId(data.paymentId)
+        setShowQRModal(true)
+        // Start checking payment status
+        startPaymentStatusCheck(data.paymentId)
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi tạo giao dịch thanh toán')
+        alert(data.error || 'Có lỗi xảy ra khi tạo mã QR thanh toán')
       }
     } catch (error) {
-      console.error('Error processing payment:', error)
+      console.error('Error processing VietQR payment:', error)
       alert('Có lỗi xảy ra khi xử lý thanh toán')
+    } finally {
+      setLoading(false)
     }
   }
 
+  const startPaymentStatusCheck = (paymentId: number) => {
+    setCheckingPayment(true)
+    const interval = setInterval(async () => {
+      try {
+        // Check invoice status
+        const response = await fetch(`/api/tenant/invoices`)
+        if (response.ok) {
+          const invoices = await response.json()
+          const updatedInvoice = invoices.find((inv: Invoice) => inv.id === selectedInvoice?.id)
+          if (updatedInvoice && updatedInvoice.status === 'PAID') {
+            clearInterval(interval)
+            setCheckingPayment(false)
+            setShowQRModal(false)
+            setSelectedInvoice(updatedInvoice)
+            setInvoices(invoices)
+            alert('Thanh toán thành công!')
+          }
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error)
+      }
+    }, 3000) // Check every 3 seconds
+
+    // Stop checking after 15 minutes (QR expires)
+    setTimeout(() => {
+      clearInterval(interval)
+      setCheckingPayment(false)
+    }, 15 * 60 * 1000)
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hóa đơn & Thanh toán</h1>
-        <p className="text-gray-600 mt-1">Xem và thanh toán hóa đơn của bạn</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Hóa đơn & Thanh toán</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Xem và thanh toán hóa đơn của bạn</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Panel - Invoice History */}
         <div className="lg:col-span-1 space-y-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -283,20 +326,20 @@ export default function InvoicesPage() {
         {/* Right Panel - Invoice Details */}
         {selectedInvoice && (
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
               {/* Invoice Header */}
-              <div className="border-b border-gray-200 pb-4 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">EZ-Home Management</h2>
-                    <p className="text-m text-gray-600">59 - Ngõ 192 Lê Trọng Tấn, Khương Mai, Thanh Xuân, Hà Nội</p>
-                    <p className="text-m text-gray-600">Hotline: 1900 1234</p>
+              <div className="border-b border-gray-200 pb-4 mb-4 sm:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                  <div className="flex-1">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">EZ-Home Management</h2>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">59 - Ngõ 192 Lê Trọng Tấn, Khương Mai, Thanh Xuân, Hà Nội</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Hotline: 1900 1234</p>
                   </div>
-                  <div className="text-right">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">HÓA ĐƠN</h3>
-                    <p className="text-sm text-gray-600">Mã HĐ: INV-{selectedInvoice.id.toString().padStart(6, '0')}</p>
-                    <p className="text-sm text-gray-600">Ngày lập: {formatDate(selectedInvoice.createdAt)}</p>
-                    <p className={`text-sm font-medium mt-1 ${
+                  <div className="text-left sm:text-right">
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">HÓA ĐƠN</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Mã HĐ: INV-{selectedInvoice.id.toString().padStart(6, '0')}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Ngày lập: {formatDate(selectedInvoice.createdAt)}</p>
+                    <p className={`text-xs sm:text-sm font-medium mt-1 ${
                       selectedInvoice.status === 'UNPAID' ? 'text-red-600' : 'text-gray-600'
                     }`}>
                       Hạn thanh toán: {formatDate(selectedInvoice.createdAt)}
@@ -306,188 +349,195 @@ export default function InvoicesPage() {
               </div>
 
               {/* Tenant Info */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">NGƯỜI NHẬN</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-900 font-medium">{selectedInvoice.contract.user.fullName}</p>
-                  <p className="text-sm text-gray-600">Phòng {selectedInvoice.contract.room.name} - Tầng {selectedInvoice.contract.room.floor}</p>
-                  <p className="text-sm text-gray-600">SĐT: {selectedInvoice.contract.user.phone}</p>
-                  <p className="text-sm text-gray-600">Email: {selectedInvoice.contract.user.email || 'N/A'}</p>
+              <div className="mb-4 sm:mb-6">
+                <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-2">NGƯỜI NHẬN</h4>
+                <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+                  <p className="text-xs sm:text-sm text-gray-900 font-medium">{selectedInvoice.contract.user.fullName}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">Phòng {selectedInvoice.contract.room.name} - Tầng {selectedInvoice.contract.room.floor}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">SĐT: {selectedInvoice.contract.user.phone}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Email: {selectedInvoice.contract.user.email || 'N/A'}</p>
                 </div>
               </div>
 
               {/* Payment Period */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">KỲ THANH TOÁN</h4>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-gray-900">Tháng {selectedInvoice.month} / {selectedInvoice.year}</span>
-                  <span className="text-gray-500">|</span>
-                  <span className="text-gray-600">
-                    Từ ngày: 01/{selectedInvoice.month}/{selectedInvoice.year} Đến ngày: {new Date(selectedInvoice.year, selectedInvoice.month, 0).getDate()}/{selectedInvoice.month}/{selectedInvoice.year}
-                  </span>
-                  <span className={`inline-flex items-center gap-1 ${
-                    selectedInvoice.status === 'UNPAID' ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full ${
-                      selectedInvoice.status === 'UNPAID' ? 'bg-red-500' : 'bg-green-500'
-                    }`}></span>
-                    {selectedInvoice.status === 'UNPAID' ? 'CHƯA THANH TOÁN' : 'ĐÃ THANH TOÁN'}
-                  </span>
+              <div className="mb-4 sm:mb-6">
+                <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">KỲ THANH TOÁN</h4>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                    <span className="font-semibold text-gray-900">Tháng {selectedInvoice.month} / {selectedInvoice.year}</span>
+                    <span className="hidden sm:inline text-gray-500">|</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-gray-600">
+                      <span>Từ ngày: 01/{selectedInvoice.month}/{selectedInvoice.year}</span>
+                      <span>Đến ngày: {new Date(selectedInvoice.year, selectedInvoice.month, 0).getDate()}/{selectedInvoice.month}/{selectedInvoice.year}</span>
+                    </div>
+                    <span className={`inline-flex items-center gap-1.5 mt-2 sm:mt-0 sm:ml-auto ${
+                      selectedInvoice.status === 'UNPAID' ? 'text-red-600' : 'text-green-600'
+                    }`}>
+                      <span className={`w-2.5 h-2.5 rounded-full ${
+                        selectedInvoice.status === 'UNPAID' ? 'bg-red-500' : 'bg-green-500'
+                      }`}></span>
+                      <span className="font-semibold">{selectedInvoice.status === 'UNPAID' ? 'CHƯA • THANH TOÁN' : 'ĐÃ • THANH TOÁN'}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Services Table */}
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">DỊCH VỤ</h4>
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">DỊCH VỤ</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">ĐƠN GIÁ</th>
-                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600">SỐ LƯỢNG</th>
-                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-600">THÀNH TIỀN</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
+              <div className="mb-4 sm:mb-6">
+                <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">DỊCH VỤ</h4>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">DỊCH VỤ</th>
+                          <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">ĐƠN GIÁ</th>
+                          <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">SỐ LƯỢNG</th>
+                          <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-gray-600 whitespace-nowrap">THÀNH TIỀN</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
                     {/* Tiền Thuê Phòng - chỉ hiển thị nếu có giá trị */}
                     {(selectedInvoice.amountRoom || 0) > 0 && (
                       <tr>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Tiền Thuê Phòng</p>
-                            <p className="text-xs text-gray-500">Cố định hàng tháng</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-900">Tiền Thuê Phòng</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Cố định hàng tháng</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">1</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">1</td>
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-900 text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
                       </tr>
                     )}
                     {/* Tiền Điện - chỉ hiển thị nếu có giá trị */}
                     {(selectedInvoice.amountElec || 0) > 0 && (
                       <tr>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Tiền Điện</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs sm:text-sm font-medium text-gray-900">Tiền Điện</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
                               {selectedInvoice.meterReading 
                                 ? `Chỉ số: ${selectedInvoice.meterReading.elecOld} - ${selectedInvoice.meterReading.elecNew} (kWh)`
                                 : 'Chỉ số điện nước'}
                             </p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {selectedInvoice.prices ? formatCurrency(selectedInvoice.prices.elecPrice) : '3.500 ₫'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {selectedInvoice.quantities?.elecConsumption.toFixed(0) || '0'}
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{formatCurrency(Number(selectedInvoice.amountElec))}</td>
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-900 text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountElec))}</td>
                       </tr>
                     )}
                     {/* Tiền Nước - chỉ hiển thị nếu có giá trị */}
                     {(selectedInvoice.amountWater || 0) > 0 && (
                       <tr>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Tiền Nước</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs sm:text-sm font-medium text-gray-900">Tiền Nước</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
                               {selectedInvoice.meterReading 
                                 ? `Chỉ số: ${selectedInvoice.meterReading.waterOld} - ${selectedInvoice.meterReading.waterNew} (m³)`
                                 : 'Định mức theo người'}
                             </p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {selectedInvoice.prices ? formatCurrency(selectedInvoice.prices.waterPrice) : '25.000 ₫'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {selectedInvoice.quantities?.waterConsumption.toFixed(2) || '0'}
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">{formatCurrency(Number(selectedInvoice.amountWater))}</td>
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-900 text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountWater))}</td>
                       </tr>
                     )}
                     {/* Phí xử lý sự cố - hiển thị nếu có */}
                     {(selectedInvoice.issueRepairCost || 0) > 0 && (
                       <tr>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Phí xử lý sự cố</p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs sm:text-sm font-medium text-gray-900">Phí xử lý sự cố</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
                               {selectedInvoice.issueInfo 
                                 ? `Sự cố #${selectedInvoice.issueInfo.id}: ${selectedInvoice.issueInfo.title}`
                                 : 'Chi phí sửa chữa và xử lý sự cố'}
                             </p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {formatCurrency(selectedInvoice.issueRepairCost || 0)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">1</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">1</td>
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-900 text-right whitespace-nowrap">
                           {formatCurrency(selectedInvoice.issueRepairCost || 0)}
                         </td>
                       </tr>
                     )}
-                    {/* Phí Quản Lý & Dịch vụ - hiển thị nếu có */}
+                    {/* Phí Dịch vụ chung - hiển thị nếu có */}
                     {(selectedInvoice.managementFee || 0) > 0 && (
                       <tr>
-                        <td className="px-4 py-3">
+                        <td className="px-3 sm:px-4 py-3">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Phí Quản Lý & Dịch vụ</p>
-                            <p className="text-xs text-gray-500">Vệ sinh, thang máy, bảo vệ (theo đầu người)</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-900">Phí Dịch vụ chung</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Vệ sinh, thang máy, bảo vệ, quản lý (theo đầu người)</p>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {selectedInvoice.prices && selectedInvoice.prices.commonServicePrice > 0
                             ? formatCurrency(selectedInvoice.prices.commonServicePrice)
                             : formatCurrency(selectedInvoice.managementFee || 0)}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-gray-600 whitespace-nowrap">
                           {selectedInvoice.quantities?.numberOfPeople || 1}
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-gray-900 text-right whitespace-nowrap">
                           {formatCurrency(selectedInvoice.managementFee || 0)}
                         </td>
                       </tr>
                     )}
-                  </tbody>
-                </table>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
 
               {/* Footer Actions */}
-              <div className="border-t border-gray-200 pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
+              <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                     <button 
                       onClick={handleDownloadPDF}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                      className="flex-1 sm:flex-none px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2.5 transition-colors text-sm font-medium"
                     >
-                      <Download size={18} />
+                      <Download size={20} className="flex-shrink-0" />
                       <span>Tải PDF</span>
                     </button>
                     <button 
                       onClick={handleComplain}
-                      className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2 transition-colors"
+                      className="flex-1 sm:flex-none px-4 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center justify-center gap-2.5 transition-colors text-sm font-medium"
                     >
-                      <AlertCircle size={18} />
+                      <AlertCircle size={20} className="flex-shrink-0" />
                       <span>Khiếu nại hóa đơn</span>
                     </button>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600 mb-1">Tổng cần thanh toán</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                  <div className="text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-200 sm:border-0">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1">Tổng cần thanh toán</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                       {formatCurrency(Number(selectedInvoice.totalAmount))}
                     </p>
                   </div>
                 </div>
                 {selectedInvoice.status === 'UNPAID' && (
                   <button 
-                    onClick={handlePayment}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center justify-center gap-2 font-semibold transition-all shadow-lg hover:shadow-xl"
+                    onClick={handleVietQRPayment}
+                    className="w-full px-6 py-3.5 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 flex items-center justify-center gap-3 font-semibold transition-all shadow-lg hover:shadow-xl text-sm sm:text-base"
                   >
-                    <CreditCard size={20} />
-                    <span>THANH TOÁN ONLINE QUA VNPAY</span>
+                    <QrCode size={22} className="flex-shrink-0" />
+                    <span>THANH TOÁN QUA VIETQR</span>
                   </button>
                 )}
               </div>
@@ -495,6 +545,76 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+
+      {/* VietQR Modal */}
+      {showQRModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Thanh toán qua VietQR</h2>
+              <button
+                onClick={() => {
+                  setShowQRModal(false)
+                  setCheckingPayment(false)
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="text-center space-y-4">
+              <p className="text-sm text-gray-600">
+                Quét mã QR bằng app ngân hàng để thanh toán
+              </p>
+              <p className="text-lg font-semibold text-gray-900">
+                {selectedInvoice && formatCurrency(Number(selectedInvoice.totalAmount))}
+              </p>
+
+              {qrCode ? (
+                <div className="flex justify-center p-4 bg-white rounded-lg border-2 border-gray-200">
+                  <img 
+                    src={qrCode} 
+                    alt="VietQR Code" 
+                    className="w-64 h-64"
+                  />
+                </div>
+              ) : (
+                <div className="flex justify-center p-4">
+                  <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <p className="text-gray-400">Đang tạo mã QR...</p>
+                  </div>
+                </div>
+              )}
+
+              {qrString && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Hoặc nhập mã:</p>
+                  <p className="text-sm font-mono text-gray-900 break-all">{qrString}</p>
+                </div>
+              )}
+
+              {checkingPayment && (
+                <div className="flex items-center justify-center gap-2 text-blue-600">
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="text-sm">Đang chờ thanh toán...</span>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500">
+                  Mã QR có hiệu lực trong 15 phút. Sau khi thanh toán, hệ thống sẽ tự động cập nhật.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

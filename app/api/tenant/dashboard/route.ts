@@ -76,13 +76,14 @@ export async function GET() {
       const total = Number(currentInvoice.totalAmount || 0)
       if (total > 0) {
         const roomAmount = Number(currentInvoice.amountRoom || 0)
+        const commonServiceAmount = Number(currentInvoice.amountCommonService || 0)
         const serviceAmount = Number(currentInvoice.amountService || 0)
         const utilityAmount = Number(currentInvoice.amountElec || 0) + Number(currentInvoice.amountWater || 0)
-        const otherAmount = total - roomAmount - serviceAmount - utilityAmount
+        const otherAmount = total - roomAmount - commonServiceAmount - serviceAmount - utilityAmount
         
         costStructure = {
           room: Math.round((roomAmount / total) * 100),
-          services: Math.round(((serviceAmount + utilityAmount) / total) * 100),
+          services: Math.round(((commonServiceAmount + serviceAmount + utilityAmount) / total) * 100),
           other: Math.round((otherAmount / total) * 100)
         }
       }

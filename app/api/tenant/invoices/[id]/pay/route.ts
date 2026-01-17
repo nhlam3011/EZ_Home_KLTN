@@ -29,15 +29,14 @@ export async function POST(
       )
     }
 
-    // This endpoint is kept for backward compatibility
-    // For online payment, use /api/payments/create instead
-    // This endpoint now only handles offline/cash payments
+    // This endpoint handles offline/cash payments only
+    // For online payment (VietQR), use /api/payments/vietqr/create instead
     
-    // For online payment, redirect to payment creation
-    if (paymentMethod === 'VNPAY' || paymentMethod === 'ONLINE') {
+    // For online payment, redirect to VietQR payment creation
+    if (paymentMethod === 'VIETQR' || paymentMethod === 'ONLINE') {
       return NextResponse.json({
-        error: 'Please use /api/payments/create for online payments',
-        redirectTo: `/api/payments/create`
+        error: 'Please use /api/payments/vietqr/create for online payments',
+        redirectTo: `/api/payments/vietqr/create`
       }, { status: 400 })
     }
 

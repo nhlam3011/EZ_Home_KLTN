@@ -12,6 +12,7 @@ interface Invoice {
   amountRoom: number
   amountElec: number
   amountWater: number
+  amountCommonService: number
   amountService: number
   totalAmount: number
   status: string
@@ -40,6 +41,7 @@ export default function EditInvoicePage() {
     amountRoom: '0',
     amountElec: '0',
     amountWater: '0',
+    amountCommonService: '0',
     amountService: '0'
   })
 
@@ -61,6 +63,7 @@ export default function EditInvoicePage() {
           amountRoom: data.amountRoom.toString(),
           amountElec: data.amountElec.toString(),
           amountWater: data.amountWater.toString(),
+          amountCommonService: (data.amountCommonService || 0).toString(),
           amountService: data.amountService.toString()
         })
       } else {
@@ -95,6 +98,7 @@ export default function EditInvoicePage() {
           amountRoom: parseFloat(formData.amountRoom),
           amountElec: parseFloat(formData.amountElec),
           amountWater: parseFloat(formData.amountWater),
+          amountCommonService: parseFloat(formData.amountCommonService),
           amountService: parseFloat(formData.amountService)
         })
       })
@@ -118,6 +122,7 @@ export default function EditInvoicePage() {
     parseFloat(formData.amountRoom || 0) +
     parseFloat(formData.amountElec || 0) +
     parseFloat(formData.amountWater || 0) +
+    parseFloat(formData.amountCommonService || 0) +
     parseFloat(formData.amountService || 0)
 
   const formatCurrency = (amount: number) => {
@@ -259,7 +264,22 @@ export default function EditInvoicePage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dịch vụ khác (VND)
+                  Phí dịch vụ chung (VND)
+                </label>
+                <input
+                  type="number"
+                  value={formData.amountCommonService}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amountCommonService: e.target.value }))}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Phí quản lý, vệ sinh, bảo vệ..."
+                />
+                <p className="text-xs text-gray-500 mt-1">Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ, thang máy...)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phí xử lý sự cố & Dịch vụ khác (VND)
                 </label>
                 <input
                   type="number"
@@ -267,7 +287,9 @@ export default function EditInvoicePage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, amountService: e.target.value }))}
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Phí sửa chữa, dịch vụ khác..."
                 />
+                <p className="text-xs text-gray-500 mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
               </div>
             </div>
           </div>
@@ -297,7 +319,13 @@ export default function EditInvoicePage() {
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Dịch vụ khác:</span>
+                <span className="text-sm text-gray-600">Phí dịch vụ chung:</span>
+                <span className="text-sm font-semibold text-gray-900">
+                  {formatCurrency(parseFloat(formData.amountCommonService || 0))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Phí xử lý sự cố & Dịch vụ khác:</span>
                 <span className="text-sm font-semibold text-gray-900">
                   {formatCurrency(parseFloat(formData.amountService || 0))}
                 </span>

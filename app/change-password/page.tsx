@@ -184,18 +184,17 @@ export default function ChangePasswordPage() {
               {currentPasswordLabel} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type={showPasswords.current ? 'text' : 'password'}
                 value={formData.currentPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
                 placeholder={isAdmin ? "Nhập mật khẩu hiện tại" : "Nhập số CCCD"}
-                className={`input pl-10 pr-10 ${errors.currentPassword ? 'input-error' : ''}`}
+                className={`input pr-12 ${errors.currentPassword ? 'input-error' : ''}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
               >
                 {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -210,18 +209,17 @@ export default function ChangePasswordPage() {
               Mật khẩu mới <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type={showPasswords.new ? 'text' : 'password'}
                 value={formData.newPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
                 placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự, có chữ và số)"
-                className={`input pl-10 pr-10 ${errors.newPassword ? 'input-error' : ''}`}
+                className={`input pr-12 ${errors.newPassword ? 'input-error' : ''}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
               >
                 {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -239,18 +237,17 @@ export default function ChangePasswordPage() {
               Xác nhận mật khẩu mới <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type={showPasswords.confirm ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                 placeholder="Nhập lại mật khẩu mới"
-                className={`input pl-10 pr-10 ${errors.confirmPassword ? 'input-error' : ''}`}
+                className={`input pr-12 ${errors.confirmPassword ? 'input-error' : ''}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
               >
                 {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>

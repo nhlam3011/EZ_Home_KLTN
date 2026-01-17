@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       amountRoom,
       amountElec,
       amountWater,
+      amountCommonService,
       amountService
     } = body
 
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
       parseFloat(amountRoom || 0) +
       parseFloat(amountElec || 0) +
       parseFloat(amountWater || 0) +
+      parseFloat(amountCommonService || 0) +
       parseFloat(amountService || 0)
 
     const invoice = await prisma.invoice.create({
@@ -110,6 +112,7 @@ export async function POST(request: NextRequest) {
         amountRoom: parseFloat(amountRoom || 0),
         amountElec: parseFloat(amountElec || 0),
         amountWater: parseFloat(amountWater || 0),
+        amountCommonService: parseFloat(amountCommonService || 0),
         amountService: parseFloat(amountService || 0),
         totalAmount,
         status: 'UNPAID'

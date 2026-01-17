@@ -86,21 +86,26 @@ export async function GET(request: NextRequest) {
           : 0
         const numberOfPeople = 1 + (invoice.contract.occupants?.length || 0)
 
+        // Get amounts from invoice
+        const amountCommonService = Number(invoice.amountCommonService || 0)
+        const amountService = Number(invoice.amountService || 0)
+        
         // Check if this invoice is for issue repair cost only
-        // If amountRoom = 0, amountElec = 0, amountWater = 0 and amountService > 0, it's an issue invoice
+        // If amountRoom = 0, amountElec = 0, amountWater = 0, amountCommonService = 0 and amountService > 0, it's an issue invoice
         const isIssueInvoice = Number(invoice.amountRoom) === 0 && 
                                Number(invoice.amountElec) === 0 && 
                                Number(invoice.amountWater) === 0 && 
-                               Number(invoice.amountService) > 0
+                               amountCommonService === 0 &&
+                               amountService > 0
 
         // Try to find related issue by matching repairCost
         let issueInfo = null
         let issueRepairCost = 0
-        let managementFee = 0
+        let managementFee = amountCommonService // Phí dịch vụ chung từ field riêng
 
         if (isIssueInvoice) {
           // This is a separate invoice for issue repair cost
-          issueRepairCost = Number(invoice.amountService)
+          issueRepairCost = amountService
           managementFee = 0
           
           // Try to find the related issue
@@ -109,7 +114,7 @@ export async function GET(request: NextRequest) {
               userId: invoice.contract.userId,
               roomId: invoice.contract.roomId,
               repairCost: {
-                equals: Number(invoice.amountService)
+                equals: amountService
               },
               status: 'DONE'
             },
@@ -123,12 +128,9 @@ export async function GET(request: NextRequest) {
               title: relatedIssue.title
             }
           }
-        } else if (Number(invoice.amountService) > 0) {
-          // Regular invoice - check if amountService includes issue repair cost
-          const expectedManagementFee = commonServicePrice * numberOfPeople
-          const actualServiceAmount = Number(invoice.amountService)
-          
-          // Try to find issue with repairCost that might be included
+        } else if (amountService > 0) {
+          // Regular invoice - amountService might contain issue repair cost
+          // Try to find issue with repairCost
           const relatedIssue = await prisma.issue.findFirst({
             where: {
               userId: invoice.contract.userId,
@@ -144,23 +146,14 @@ export async function GET(request: NextRequest) {
           
           if (relatedIssue && relatedIssue.repairCost) {
             const repairCost = Number(relatedIssue.repairCost)
-            // If repairCost matches or is part of amountService
-            if (repairCost === actualServiceAmount || 
-                (actualServiceAmount > expectedManagementFee && 
-                 Math.abs(actualServiceAmount - expectedManagementFee - repairCost) < 1000)) {
+            // If repairCost matches amountService
+            if (Math.abs(repairCost - amountService) < 1000) {
               issueInfo = {
                 id: relatedIssue.id,
                 title: relatedIssue.title
               }
               issueRepairCost = repairCost
-              managementFee = actualServiceAmount - repairCost
-            } else {
-              // All is management fee
-              managementFee = actualServiceAmount
             }
-          } else {
-            // No issue found, all is management fee
-            managementFee = actualServiceAmount
           }
         }
 

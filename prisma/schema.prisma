@@ -42,6 +42,19 @@ enum RequestStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  VIETQR
+  CASH
+  BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
 // --- MODELS (Bảng dữ liệu) ---
 
 model User {
@@ -136,50 +149,21 @@ model MeterReading {
 }
 
 model Invoice {
-  id            Int           @id @default(autoincrement())
-  contractId    Int
-  contract      Contract      @relation(fields: [contractId], references: [id])
-  month         Int
-  year          Int
-  amountRoom    Decimal       @db.Decimal(10, 2)
-  amountElec    Decimal       @db.Decimal(10, 2)
-  amountWater   Decimal       @db.Decimal(10, 2)
-  amountService Decimal       @default(0) @db.Decimal(10, 2)
-  totalAmount   Decimal       @db.Decimal(10, 2)
-  status        InvoiceStatus @default(UNPAID)
-  paidAt        DateTime?
-  createdAt     DateTime      @default(now())
-  
-  payments      Payment[]
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  CANCELLED
-}
-
-enum PaymentMethod {
-  VNPAY
-  MOMO
-  BANK_TRANSFER
-  CASH
-}
-
-model Payment {
-  id            Int           @id @default(autoincrement())
-  invoiceId     Int
-  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
-  amount        Decimal       @db.Decimal(10, 2)
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  transactionId String?       @unique // VNPay transaction ID
-  paymentUrl    String?       // URL để redirect user đến trang thanh toán
-  vnpResponse   String?       // Raw response from VNPay
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  paidAt        DateTime?
+  id                 Int           @id @default(autoincrement())
+  contractId         Int
+  contract           Contract      @relation(fields: [contractId], references: [id])
+  month              Int
+  year               Int
+  amountRoom         Decimal       @db.Decimal(10, 2)
+  amountElec         Decimal       @db.Decimal(10, 2)
+  amountWater        Decimal       @db.Decimal(10, 2)
+  amountCommonService Decimal      @default(0) @db.Decimal(10, 2) // Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ)
+  amountService      Decimal       @default(0) @db.Decimal(10, 2) // Phí xử lý sự cố và dịch vụ khác
+  totalAmount        Decimal       @db.Decimal(10, 2)
+  status             InvoiceStatus @default(UNPAID)
+  paidAt             DateTime?
+  payments           Payment[]     // Danh sách các giao dịch thanh toán
+  createdAt          DateTime      @default(now())
 }
 
 model Service {
@@ -263,4 +247,20 @@ model ContractOccupant {
   relationship String? // Quan hệ với người chủ hợp đồng (Vợ/Chồng, Con, Bạn, ...)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  invoiceId     Int
+  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
+  amount        Decimal       @db.Decimal(10, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  transactionId String?       // Transaction ID from payment gateway
+  qrCode        String?       // QR code image (Base64 or URL) for VietQR
+  qrString      String?       // QR code string for VietQR
+  gatewayResponse String?     // Full gateway response (JSON string)
+  paidAt        DateTime?     // When payment was completed
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }

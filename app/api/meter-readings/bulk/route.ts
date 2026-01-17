@@ -204,8 +204,9 @@ export async function POST(request: NextRequest) {
           const amountRoom = Number(activeContract.rentPrice)
           const amountElec = elecConsumption * elecPrice // Số tiêu thụ * giá điện
           const amountWater = waterConsumption * waterPrice // Số tiêu thụ * giá nước
-          const amountService = commonServicePrice * numberOfPeople // Dịch vụ chung * số người
-          const totalAmount = amountRoom + amountElec + amountWater + amountService
+          const amountCommonService = commonServicePrice * numberOfPeople // Phí dịch vụ chung * số người
+          const amountService = 0 // Phí xử lý sự cố và dịch vụ khác (mặc định 0)
+          const totalAmount = amountRoom + amountElec + amountWater + amountCommonService + amountService
 
           // Check if invoice already exists for this contract and period
           const existingInvoice = await prisma.invoice.findFirst({
@@ -218,13 +219,15 @@ export async function POST(request: NextRequest) {
 
           if (existingInvoice) {
             // Cập nhật lại hóa đơn đã tồn tại với số điện nước và dịch vụ chung đúng
+            // Giữ nguyên amountService (phí xử lý sự cố) nếu đã có
+            const existingAmountService = Number(existingInvoice.amountService || 0)
             await prisma.invoice.update({
               where: { id: existingInvoice.id },
               data: {
                 amountElec,
                 amountWater,
-                amountService,
-                totalAmount
+                amountCommonService,
+                totalAmount: amountRoom + amountElec + amountWater + amountCommonService + existingAmountService
               }
             })
           } else {
@@ -239,7 +242,8 @@ export async function POST(request: NextRequest) {
                   amountRoom,
                   amountElec,
                   amountWater,
-                  amountService,
+                  amountCommonService,
+                  amountService: 0,
                   totalAmount,
                   status: 'UNPAID'
                 }
