@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendPaymentSuccessEmail } from '@/lib/email'
 
 export async function POST(
   request: NextRequest,
@@ -40,6 +41,26 @@ export async function POST(
       }, { status: 400 })
     }
 
+    // Get invoice with contract and user for email
+    const invoiceWithDetails = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        contract: {
+          include: {
+            user: true,
+            room: true
+          }
+        }
+      }
+    })
+
+    if (!invoiceWithDetails) {
+      return NextResponse.json(
+        { error: 'Invoice not found' },
+        { status: 404 }
+      )
+    }
+
     // Simulate offline payment (cash, bank transfer without gateway)
     const updatedInvoice = await prisma.invoice.update({
       where: { id: invoiceId },
@@ -59,6 +80,20 @@ export async function POST(
         paidAt: new Date()
       }
     })
+
+    // Send payment success email
+    if (invoiceWithDetails.contract.user.email) {
+      sendPaymentSuccessEmail(invoiceWithDetails.contract.user.email, {
+        id: updatedInvoice.id,
+        month: updatedInvoice.month,
+        year: updatedInvoice.year,
+        totalAmount: Number(updatedInvoice.totalAmount),
+        paidAt: updatedInvoice.paidAt || new Date(),
+        roomName: invoiceWithDetails.contract.room.name
+      }).catch(err => {
+        console.error('Failed to send payment success email:', err)
+      })
+    }
 
     return NextResponse.json({
       success: true,

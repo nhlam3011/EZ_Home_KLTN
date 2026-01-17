@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendMessageNotificationEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
   try {
@@ -107,9 +108,26 @@ export async function POST(request: NextRequest) {
         status: 'PENDING'
       },
       include: {
-        room: true
+        room: true,
+        user: {
+          select: {
+            email: true
+          }
+        }
       }
     })
+
+    // Send email confirmation to tenant
+    if (issue.user.email) {
+      sendMessageNotificationEmail(issue.user.email, {
+        title: `Xác nhận yêu cầu: ${issue.title}`,
+        content: `Yêu cầu của bạn đã được ghi nhận và đang chờ xử lý.\n\nChi tiết:\n- Phòng: ${issue.room.name}\n- Mô tả: ${description}\n- Trạng thái: Đang chờ xử lý\n\nChúng tôi sẽ liên hệ với bạn sớm nhất có thể.`,
+        from: 'EZ-Home Admin',
+        type: 'notification'
+      }).catch(err => {
+        console.error('Failed to send issue confirmation email:', err)
+      })
+    }
 
     // Add mock data for severity and category
     const issueWithExtras = {

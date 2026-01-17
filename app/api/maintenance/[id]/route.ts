@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendMessageNotificationEmail } from '@/lib/email'
 
 export async function GET(
   request: NextRequest,
@@ -144,6 +145,34 @@ export async function PUT(
         }
       }
     })
+
+    // Send email notification to tenant when issue status is updated
+    if (status && updatedIssue.user.email) {
+      const statusLabels: Record<string, string> = {
+        PENDING: 'Đang chờ xử lý',
+        PROCESSING: 'Đang xử lý',
+        DONE: 'Đã hoàn thành',
+        CANCELLED: 'Đã hủy'
+      }
+      
+      const statusLabel = statusLabels[status.toUpperCase()] || status
+      const statusMessage = status === 'DONE' 
+        ? `Yêu cầu "${updatedIssue.title}" của bạn đã được xử lý hoàn tất.`
+        : status === 'PROCESSING'
+        ? `Yêu cầu "${updatedIssue.title}" của bạn đang được xử lý.`
+        : status === 'CANCELLED'
+        ? `Yêu cầu "${updatedIssue.title}" của bạn đã bị hủy.`
+        : `Trạng thái yêu cầu "${updatedIssue.title}" đã được cập nhật thành "${statusLabel}".`
+
+      sendMessageNotificationEmail(updatedIssue.user.email, {
+        title: `Cập nhật trạng thái yêu cầu: ${updatedIssue.title}`,
+        content: `${statusMessage}\n\nPhòng: ${updatedIssue.room.name}\n${adminNotes ? `Ghi chú từ quản trị viên: ${adminNotes}` : ''}`,
+        from: 'EZ-Home Admin',
+        type: 'notification'
+      }).catch(err => {
+        console.error('Failed to send issue status update email:', err)
+      })
+    }
 
     return NextResponse.json(updatedIssue)
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendMessageNotificationEmail } from '@/lib/email'
 
 // POST - Gửi thông báo cho tenant về hóa đơn
 export async function POST(
@@ -47,6 +48,18 @@ export async function POST(
         status: 'PUBLIC' // Mark as public so tenant can see it
       }
     })
+
+    // Send email notification
+    if (invoice.contract.user.email) {
+      sendMessageNotificationEmail(invoice.contract.user.email, {
+        title: `Thông báo về hóa đơn #${invoice.id}`,
+        content: message,
+        from: 'EZ-Home Admin',
+        type: 'invoice'
+      }).catch(err => {
+        console.error('Failed to send message notification email:', err)
+      })
+    }
 
     return NextResponse.json({
       success: true,

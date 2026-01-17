@@ -27,6 +27,21 @@ Tạo file `.env` trong thư mục root:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/ezhome"
 DIRECT_URL="postgresql://user:password@localhost:5432/ezhome"
+
+# Email Configuration (SMTP)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_SECURE="false"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-password"
+
+# App URL (for email links)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# VietQR Configuration (optional)
+VIETQR_ACCOUNT_NO="your-account-number"
+VIETQR_ACCOUNT_NAME="Your Name"
+VIETQR_BANK_CODE="your-bank-code"
 ```
 
 Chạy migrations:
@@ -71,6 +86,14 @@ Truy cập: `http://localhost:3000`
 - Đặt dịch vụ
 - Báo cáo sự cố
 - Cộng đồng
+
+### Email Notifications
+Hệ thống tự động gửi email thông báo cho:
+- **Thanh toán thành công**: Khi khách thuê thanh toán hóa đơn (qua VietQR hoặc offline)
+- **Hóa đơn mới**: Khi admin tạo hóa đơn mới cho khách thuê
+- **Tin nhắn/Thông báo**: Khi admin gửi tin nhắn hoặc thông báo cho khách thuê
+
+**Lưu ý**: Cần cấu hình SMTP trong file `.env` để sử dụng tính năng email. Nếu không cấu hình, hệ thống vẫn hoạt động bình thường nhưng sẽ không gửi email.
 
 ## Authentication
 

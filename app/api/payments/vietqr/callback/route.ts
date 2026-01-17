@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { parseVietQRCallback, verifyVietQRCallback } from '@/lib/vietqr'
+import { sendPaymentSuccessEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -204,13 +205,35 @@ export async function GET(request: NextRequest) {
     })
 
     if (isSuccess) {
-      await prisma.invoice.update({
+      const updatedInvoice = await prisma.invoice.update({
         where: { id: payment.invoiceId },
         data: {
           status: 'PAID',
           paidAt: new Date()
+        },
+        include: {
+          contract: {
+            include: {
+              user: true,
+              room: true
+            }
+          }
         }
       })
+
+      // Send payment success email
+      if (updatedInvoice.contract.user.email) {
+        sendPaymentSuccessEmail(updatedInvoice.contract.user.email, {
+          id: updatedInvoice.id,
+          month: updatedInvoice.month,
+          year: updatedInvoice.year,
+          totalAmount: Number(updatedInvoice.totalAmount),
+          paidAt: updatedInvoice.paidAt || new Date(),
+          roomName: updatedInvoice.contract.room.name
+        }).catch(err => {
+          console.error('Failed to send payment success email:', err)
+        })
+      }
     }
 
     return NextResponse.json({ 

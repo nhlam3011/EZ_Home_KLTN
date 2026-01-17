@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendNewInvoiceEmail } from '@/lib/email'
 
 // Create a separate invoice for issue repair cost
 // This allows multiple invoices for the same period
@@ -68,6 +69,23 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // Send new invoice email notification
+    if (invoice.contract.user.email) {
+      const dueDate = new Date(invoice.createdAt)
+      dueDate.setDate(dueDate.getDate() + 7) // Due date is 7 days from creation
+
+      sendNewInvoiceEmail(invoice.contract.user.email, {
+        id: invoice.id,
+        month: invoice.month,
+        year: invoice.year,
+        totalAmount: Number(invoice.totalAmount),
+        roomName: invoice.contract.room.name,
+        dueDate: dueDate
+      }).catch(err => {
+        console.error('Failed to send new invoice email:', err)
+      })
+    }
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {
