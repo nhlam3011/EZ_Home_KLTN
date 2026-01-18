@@ -62,13 +62,13 @@ export default function NewRoomPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Thêm phòng mới</h1>
-          <p className="text-gray-600 mt-1">Nhập thông tin chi tiết để tạo phòng mới trong hệ thống</p>
+          <h1 className="text-2xl font-bold text-primary">Thêm phòng mới</h1>
+          <p className="text-secondary mt-1">Nhập thông tin chi tiết để tạo phòng mới trong hệ thống</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/admin/rooms"
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            className="btn btn-secondary btn-md"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -76,7 +76,7 @@ export default function NewRoomPage() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50"
+            className="btn btn-primary btn-md"
           >
             <Save size={18} />
             <span>{loading ? 'Đang lưu...' : 'Lưu phòng'}</span>
@@ -89,11 +89,11 @@ export default function NewRoomPage() {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Basic Information */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin cơ bản</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">Thông tin cơ bản</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Số phòng <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -103,12 +103,12 @@ export default function NewRoomPage() {
                     onChange={handleChange}
                     placeholder="VD: P.101"
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Tầng <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -116,7 +116,7 @@ export default function NewRoomPage() {
                     value={formData.floor}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Chọn tầng</option>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(floor => (
@@ -126,7 +126,7 @@ export default function NewRoomPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Diện tích (m²)
                   </label>
                   <div className="relative">
@@ -137,21 +137,21 @@ export default function NewRoomPage() {
                       onChange={handleChange}
                       min="0"
                       step="0.1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">m²</span>
+                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary">m²</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Số người tối đa
                   </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => adjustMaxPeople(-1)}
-                      className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center"
+                      className="w-10 h-10 border border-primary rounded-lg hover:bg-tertiary flex items-center justify-center text-primary transition-colors"
                     >
                       -
                     </button>
@@ -161,12 +161,12 @@ export default function NewRoomPage() {
                       value={formData.maxPeople}
                       onChange={handleChange}
                       min="1"
-                      className="w-20 px-4 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-20 px-4 py-2 border border-primary rounded-lg text-center bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => adjustMaxPeople(1)}
-                      className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center"
+                      className="w-10 h-10 border border-primary rounded-lg hover:bg-tertiary flex items-center justify-center text-primary transition-colors"
                     >
                       +
                     </button>
@@ -176,11 +176,11 @@ export default function NewRoomPage() {
             </div>
 
             {/* Cost & Description */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Chi phí & Mô tả</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">Chi phí & Mô tả</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Giá thuê cơ bản (VND/tháng) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -191,17 +191,17 @@ export default function NewRoomPage() {
                       onChange={handleChange}
                       required
                       min="0"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">₫</span>
+                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary">₫</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-tertiary mt-1">
                     Giá này chưa bao gồm điện, nước và dịch vụ khác.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Mô tả phòng
                   </label>
                   <textarea
@@ -210,7 +210,7 @@ export default function NewRoomPage() {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Nhập mô tả chi tiết về tiện nghi phòng, hướng cửa số, nội thất có sẵn..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -220,15 +220,15 @@ export default function NewRoomPage() {
           {/* Right Column */}
           <div className="space-y-6">
             {/* Classification */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">PHÂN LOẠI</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">PHÂN LOẠI</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Loại phòng <span className="text-red-500">*</span>
                   </label>
                   <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     defaultValue="STANDARD"
                   >
                     <option value="STANDARD">Phòng Tiêu chuẩn</option>
@@ -238,14 +238,14 @@ export default function NewRoomPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Tiện ích đi kèm
                   </label>
                   <div className="space-y-2">
                     {['Điều hòa', 'Nóng lạnh', 'Tủ lạnh', 'Giường tủ', 'Máy giặt chung'].map(amenity => (
                       <label key={amenity} className="flex items-center gap-2">
                         <input type="checkbox" className="rounded" />
-                        <span className="text-sm text-gray-700">{amenity}</span>
+                        <span className="text-sm text-primary">{amenity}</span>
                       </label>
                     ))}
                   </div>
@@ -254,10 +254,10 @@ export default function NewRoomPage() {
             </div>
 
             {/* Initial Status */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">TRẠNG THÁI BAN ĐẦU</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">TRẠNG THÁI BAN ĐẦU</h2>
               <div className="space-y-2">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 p-3 border border-primary rounded-lg hover:bg-tertiary cursor-pointer transition-colors">
                   <input
                     type="radio"
                     name="status"
@@ -266,9 +266,9 @@ export default function NewRoomPage() {
                     onChange={handleChange}
                     className="text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">Trống (Sẵn sàng)</span>
+                  <span className="text-sm text-primary">Trống (Sẵn sàng)</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 p-3 border border-primary rounded-lg hover:bg-tertiary cursor-pointer transition-colors">
                   <input
                     type="radio"
                     name="status"
@@ -277,21 +277,21 @@ export default function NewRoomPage() {
                     onChange={handleChange}
                     className="text-blue-600"
                   />
-                  <span className="text-sm text-gray-700">Đang bảo trì</span>
+                  <span className="text-sm text-primary">Đang bảo trì</span>
                 </label>
               </div>
             </div>
 
             {/* Images */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">HÌNH ẢNH</h2>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">HÌNH ẢNH</h2>
+              <div className="border-2 border-dashed border-primary rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-tertiary rounded-lg flex items-center justify-center">
                     <span className="text-2xl">☁️</span>
                   </div>
-                  <p className="text-sm font-medium text-gray-700">Tải ảnh lên</p>
-                  <p className="text-xs text-gray-500">PNG, JPG tối đa 5MB</p>
+                  <p className="text-sm font-medium text-primary">Tải ảnh lên</p>
+                  <p className="text-xs text-tertiary">PNG, JPG tối đa 5MB</p>
                 </div>
               </div>
             </div>

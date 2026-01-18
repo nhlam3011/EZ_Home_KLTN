@@ -80,33 +80,33 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 dark:from-blue-900/20 via-primary dark:via-secondary to-blue-50 dark:to-blue-900/20 flex items-center justify-center p-4">
       <div className="card max-w-md w-full">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Lock className="text-blue-600" size={32} />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
+            <Lock className="text-blue-600 dark:text-blue-400" size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Mật khẩu Admin</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-primary mb-2">Reset Mật khẩu Admin</h2>
+          <p className="text-secondary">
             Hash lại mật khẩu cho admin user
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
           </div>
         )}
 
         {result && result.success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <div className="flex items-start gap-2">
-              <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
+              <CheckCircle className="text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" size={20} />
               <div>
-                <p className="text-sm font-medium text-green-800">{result.message}</p>
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">{result.message}</p>
                 {result.phone && (
-                  <p className="text-xs text-green-600 mt-1">Số điện thoại: {result.phone}</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">Số điện thoại: {result.phone}</p>
                 )}
               </div>
             </div>
@@ -114,9 +114,9 @@ export default function ResetPasswordPage() {
         )}
 
         {result && !result.success && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">Thông tin user:</h3>
-            <div className="space-y-1 text-sm text-blue-800">
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Thông tin user:</h3>
+            <div className="space-y-1 text-sm text-blue-800 dark:text-blue-300">
               <p><span className="font-medium">Phone:</span> {result.phone}</p>
               <p><span className="font-medium">Tên:</span> {result.fullName}</p>
               <p><span className="font-medium">Role:</span> {result.role}</p>
@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
 
         <form onSubmit={handleReset} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-primary mb-2">
               Số điện thoại Admin
             </label>
             <div className="flex gap-2">
@@ -154,7 +154,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-primary mb-2">
               Mật khẩu mới (để trống = "admin123")
             </label>
             <input
@@ -182,10 +182,10 @@ export default function ResetPasswordPage() {
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">
+        <div className="mt-6 pt-6 border-t border-primary">
+          <p className="text-xs text-tertiary text-center">
             Hoặc sử dụng script: <br />
-            <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+            <code className="bg-tertiary px-2 py-1 rounded text-xs text-primary">
               npx ts-node scripts/hash-admin-password.ts [phone] [password]
             </code>
           </p>

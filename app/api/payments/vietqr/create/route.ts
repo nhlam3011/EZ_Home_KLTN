@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { generateVietQRCode } from '@/lib/vietqr'
+import { VietQRService } from '@/lib/vietqr'
+
+// Get VietQR config from environment variables
+const getVietQRConfig = () => {
+  const clientID = process.env.VIETQR_CLIENT_ID
+  const apiKey = process.env.VIETQR_API_KEY
+  const accountNo = process.env.VIETQR_ACCOUNT_NO
+  const accountName = process.env.VIETQR_ACCOUNT_NAME
+  const bankBIN = process.env.VIETQR_BANK_BIN
+  const template = process.env.VIETQR_TEMPLATE
+
+  if (!clientID || !apiKey || !accountNo || !accountName) {
+    throw new Error('VietQR configuration is incomplete. Please check VIETQR_CLIENT_ID, VIETQR_API_KEY, VIETQR_ACCOUNT_NO, and VIETQR_ACCOUNT_NAME in .env')
+  }
+
+  if (!bankBIN && !/^970\d{3}/.test(accountNo.replace(/\D/g, ''))) {
+    throw new Error('Bank BIN is required. Please provide VIETQR_BANK_BIN in .env (6 digits, e.g., 970415) or include BIN in account number')
+  }
+
+  return {
+    clientID,
+    apiKey,
+    accountNo,
+    accountName,
+    bankBIN,
+    template
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,17 +68,37 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get VietQR configuration from environment
-    const accountNo = process.env.VIETQR_ACCOUNT_NO || ''
-    const accountName = process.env.VIETQR_ACCOUNT_NAME || ''
-    const bankCode = process.env.VIETQR_BANK_CODE || ''
+    // Check if there's already a pending VietQR payment
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        invoiceId: invoice.id,
+        method: 'VIETQR',
+        status: 'PENDING'
+      }
+    })
 
-    if (!accountNo || !accountName) {
-      return NextResponse.json(
-        { error: 'VietQR account configuration is missing. Please configure VIETQR_ACCOUNT_NO and VIETQR_ACCOUNT_NAME in .env' },
-        { status: 500 }
-      )
+    if (existingPayment) {
+      // Return existing payment QR code
+      return NextResponse.json({
+        paymentId: existingPayment.id,
+        qrCode: existingPayment.qrCode,
+        qrString: existingPayment.qrString,
+        amount: Number(existingPayment.amount)
+      })
     }
+
+    // Initialize VietQR service
+    const config = getVietQRConfig()
+    const vietQR = new VietQRService(config)
+
+    // Generate QR code using VietQR API
+    const description = `HD${invoice.id.toString().padStart(6, '0')} ${invoice.contract.user.fullName.substring(0, 20)}`
+    
+    const qrData = await vietQR.generateQR({
+      amount: Number(invoice.totalAmount),
+      description: description.substring(0, 25),
+      invoiceId: invoice.id
+    })
 
     // Create payment record
     const payment = await prisma.payment.create({
@@ -60,69 +107,23 @@ export async function POST(request: NextRequest) {
         amount: invoice.totalAmount,
         method: 'VIETQR',
         status: 'PENDING',
+        qrCode: qrData.qrCode,
+        qrString: qrData.qrString,
+        transactionId: `VIETQR-${Date.now()}-${invoice.id}`
       }
     })
 
-    // Generate unique order ID
-    const orderId = `INV${invoice.id}_${payment.id}_${Date.now()}`
-
-    try {
-      // Generate VietQR code
-      const qrData = await generateVietQRCode({
-        amount: Number(invoice.totalAmount),
-        orderId: orderId,
-        orderDescription: `Thanh toan hoa don #${invoice.id} - ${invoice.contract.room.name} - Thang ${invoice.month}/${invoice.year}`,
-        accountNo: accountNo,
-        accountName: accountName,
-        bankCode: bankCode,
-        qrType: 'dynamic'
-      })
-
-      // Update payment with QR code data and transaction ID
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          transactionId: orderId,
-          qrCode: qrData.qrDataURL || qrData.qrCode,
-          qrString: qrData.qrString
-        }
-      })
-
-      return NextResponse.json({
-        success: true,
-        paymentId: payment.id,
-        orderId: orderId,
-        qrCode: qrData.qrDataURL || qrData.qrCode,
-        qrString: qrData.qrString,
-        amount: Number(invoice.totalAmount),
-        invoiceId: invoice.id
-      })
-    } catch (error: any) {
-      // Update payment status to failed if QR generation fails
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'FAILED',
-          gatewayResponse: JSON.stringify({ error: error.message })
-        }
-      })
-
-      console.error('Error generating VietQR code:', error)
-      return NextResponse.json(
-        { 
-          error: 'Failed to generate QR code',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        },
-        { status: 500 }
-      )
-    }
+    return NextResponse.json({
+      paymentId: payment.id,
+      qrCode: payment.qrCode,
+      qrString: payment.qrString,
+      amount: Number(payment.amount),
+      description: description
+    })
   } catch (error: any) {
     console.error('Error creating VietQR payment:', error)
     return NextResponse.json(
-      { 
-        error: 'Failed to create payment',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      },
+      { error: error.message || 'Failed to create VietQR payment' },
       { status: 500 }
     )
   }

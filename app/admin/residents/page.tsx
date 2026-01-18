@@ -43,18 +43,18 @@ function getInitials(name: string) {
 }
 
 function getDepositStatus(contract: any) {
-  if (!contract) return { label: 'N/A', color: 'gray', className: 'bg-gray-100 text-gray-700' }
+  if (!contract) return { label: 'N/A', color: 'gray', className: 'bg-tertiary text-primary' }
   
   // Check if deposit is paid (assuming deposit equals rentPrice * 2 as standard)
   const expectedDeposit = Number(contract.rentPrice) * 2
   const paidDeposit = Number(contract.deposit) || 0
   
   if (paidDeposit >= expectedDeposit) {
-    return { label: 'Đã đồng đủ', color: 'green', className: 'bg-green-100 text-green-700' }
+    return { label: 'Đã đồng đủ', color: 'green', className: 'badge badge-success' }
   } else if (paidDeposit > 0) {
-    return { label: 'Thiếu cọc', color: 'orange', className: 'bg-orange-100 text-orange-700' }
+    return { label: 'Thiếu cọc', color: 'orange', className: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' }
   } else {
-    return { label: 'Chưa đóng', color: 'red', className: 'bg-red-100 text-red-700' }
+    return { label: 'Chưa đóng', color: 'red', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' }
   }
 }
 
@@ -198,86 +198,89 @@ export default function ResidentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý Cư dân & Hợp đồng</h1>
-          <p className="text-gray-600 mt-1">Quản lý thông tin cư dân và hợp đồng thuê phòng</p>
+          <h1 className="text-2xl font-bold text-primary">Quản lý Cư dân & Hợp đồng</h1>
+          <p className="text-secondary mt-1">Quản lý thông tin cư dân và hợp đồng thuê phòng</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={handleExport}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="btn btn-secondary btn-md"
           >
-            <Download size={18} />
+            <Download size={18} strokeWidth={2} />
             <span>Xuất Excel</span>
           </button>
           <Link
             href="/admin/residents/new"
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 transition-colors"
+            className="btn btn-primary btn-md"
           >
-            <Plus size={18} />
+            <Plus size={20} strokeWidth={3} />
             <span>Check-in Mới</span>
           </Link>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">TỔNG SỐ CƯ DÂN</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Users className="text-blue-600" size={24} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="card stat-card-blue">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
+              <Users className="text-white" size={24} />
             </div>
           </div>
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">ĐANG THUÊ</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.active}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Building2 className="text-green-600" size={24} />
-            </div>
+          <div>
+            <p className="text-sm text-primary mb-1 font-medium">TỔNG SỐ CƯ DÂN</p>
+            <p className="text-2xl font-bold text-primary mb-1">{stats.total}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">ĐÃ CHUYỂN ĐI</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.inactive}</p>
-            </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Users className="text-gray-600" size={24} />
+        <div className="card stat-card-green">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
+              <Building2 className="text-white" size={24} />
             </div>
           </div>
+          <div>
+            <p className="text-sm text-primary mb-1 font-medium">ĐANG THUÊ</p>
+            <p className="text-2xl font-bold text-primary mb-1">{stats.active}</p>
+            <p className="text-xs text-secondary font-medium">
+              {stats.inactive} đã chuyển đi
+            </p>
+          </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">TỔNG TIỀN CỌC</p>
-              <p className="text-lg font-bold text-gray-900 mt-1">{formatCurrency(stats.totalDeposit)}</p>
+        <div className="card stat-card-purple">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
+              <Users className="text-white" size={24} />
             </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Wallet className="text-yellow-600" size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-primary mb-1 font-medium">ĐÃ CHUYỂN ĐI</p>
+            <p className="text-2xl font-bold text-primary mb-1">{stats.inactive}</p>
+          </div>
+        </div>
+        <div className="card stat-card-orange">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
+              <Wallet className="text-white" size={24} />
             </div>
+          </div>
+          <div>
+            <p className="text-sm text-primary mb-1 font-medium">TỔNG TIỀN CỌC</p>
+            <p className="text-2xl font-bold text-primary mb-1">{formatCurrency(stats.totalDeposit)}</p>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="bg-primary rounded-lg shadow-sm border border-primary p-4">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex-1 min-w-[300px] relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary" size={20} />
             <input
               type="text"
               placeholder="Tìm kiếm theo tên, SĐT, email, hoặc phòng..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <select 
@@ -286,7 +289,7 @@ export default function ResidentsPage() {
               setBuildingFilter(e.target.value)
               setCurrentPage(1)
             }}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-primary rounded-lg text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Tòa nhà: Tất cả</option>
             <option value="A">Tòa A</option>
@@ -299,7 +302,7 @@ export default function ResidentsPage() {
               setFloorFilter(e.target.value)
               setCurrentPage(1)
             }}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-primary rounded-lg text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Tầng: Tất cả</option>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(floor => (
@@ -312,7 +315,7 @@ export default function ResidentsPage() {
               setStatusFilter(e.target.value)
               setCurrentPage(1)
             }}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-primary rounded-lg text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Trạng thái: Tất cả</option>
             <option value="ACTIVE">Đang thuê</option>
@@ -324,40 +327,40 @@ export default function ResidentsPage() {
       {/* Residents Table */}
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">Đang tải...</p>
+          <p className="text-tertiary">Đang tải...</p>
         </div>
       ) : residents.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <Users className="mx-auto text-gray-400" size={48} />
-          <p className="text-gray-500 mt-4">Không tìm thấy cư dân nào</p>
+        <div className="card p-12 text-center">
+          <Users className="mx-auto text-tertiary" size={48} />
+          <p className="text-tertiary mt-4">Không tìm thấy cư dân nào</p>
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-tertiary border-b border-primary">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                     CƯ DÂN
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                     PHÒNG
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                     NGÀY VÀO Ở
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                     HẠN HỢP ĐỒNG
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                     TRẠNG THÁI CỌC
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                  <th className="px-6 py-3 text-center text-xs font-semibold text-secondary uppercase">
                     HÀNH ĐỘNG
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-primary">
                 {paginatedResidents.map((resident) => {
                   const contract = resident.contracts?.[0]
                   const depositStatus = getDepositStatus(contract)
@@ -366,22 +369,22 @@ export default function ResidentsPage() {
                   const isContractExpiring = daysRemaining !== null && daysRemaining > 0 && daysRemaining <= 30
 
                   return (
-                    <tr key={resident.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={resident.id} className="hover:bg-secondary transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
                             <span className="text-white font-semibold text-sm">{initials}</span>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{resident.fullName}</p>
+                            <p className="text-sm font-medium text-primary">{resident.fullName}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <Phone size={12} className="text-gray-400" />
-                              <p className="text-xs text-gray-500">{resident.phone}</p>
+                              <Phone size={12} className="text-tertiary" />
+                              <p className="text-xs text-tertiary">{resident.phone}</p>
                             </div>
                             {resident.email && (
                               <div className="flex items-center gap-2 mt-0.5">
-                                <Mail size={12} className="text-gray-400" />
-                                <p className="text-xs text-gray-500">{resident.email}</p>
+                                <Mail size={12} className="text-tertiary" />
+                                <p className="text-xs text-tertiary">{resident.email}</p>
                               </div>
                             )}
                           </div>
@@ -390,36 +393,36 @@ export default function ResidentsPage() {
                       <td className="px-6 py-4">
                         {contract?.room ? (
                           <div>
-                            <span className="text-sm font-medium text-gray-900">{contract.room.name}</span>
-                            <p className="text-xs text-gray-500">Tầng {contract.room.floor}</p>
+                            <span className="text-sm font-medium text-primary">{contract.room.name}</span>
+                            <p className="text-xs text-tertiary">Tầng {contract.room.floor}</p>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">Chưa có phòng</span>
+                          <span className="text-sm text-tertiary">Chưa có phòng</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <Calendar size={14} className="text-gray-400" />
-                          <span className="text-sm text-gray-600">{formatDate(contract?.startDate)}</span>
+                          <Calendar size={14} className="text-tertiary" />
+                          <span className="text-sm text-secondary">{formatDate(contract?.startDate)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         {contract ? (
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">{formatDate(contract.endDate)}</span>
+                              <span className="text-sm text-secondary">{formatDate(contract.endDate)}</span>
                               {isContractExpiring && (
-                                <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs font-medium">
+                                <span className="px-2 py-0.5 bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 rounded text-xs font-semibold">
                                   Còn {daysRemaining} ngày
                                 </span>
                               )}
                             </div>
                             {daysRemaining !== null && daysRemaining < 0 && (
-                              <span className="text-xs text-red-600 mt-1 block">Đã hết hạn</span>
+                              <span className="text-xs text-red-600 dark:text-red-400 mt-1 block">Đã hết hạn</span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">N/A</span>
+                          <span className="text-sm text-tertiary">N/A</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
@@ -429,35 +432,35 @@ export default function ResidentsPage() {
                               {depositStatus.label}
                             </span>
                             {contract.deposit > 0 && (
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-tertiary mt-1">
                                 {formatCurrency(Number(contract.deposit))}
                               </p>
                             )}
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-400">N/A</span>
+                          <span className="text-sm text-tertiary">N/A</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <Link
                             href={`/admin/residents/${resident.id}`}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="btn btn-ghost btn-icon"
                             title="Xem chi tiết"
                           >
-                            <Eye size={18} className="text-gray-600" />
+                            <Eye size={18} strokeWidth={2} />
                           </Link>
                           <Link
                             href={`/admin/residents/${resident.id}/edit`}
-                            className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
+                            className="btn btn-ghost btn-icon"
                             title="Chỉnh sửa"
                           >
-                            <Edit size={18} className="text-blue-600" />
+                            <Edit size={18} strokeWidth={2} />
                           </Link>
                           {contract?.status === 'ACTIVE' && (
                             <button 
                               onClick={() => handleCheckout(resident.id, resident.fullName)}
-                              className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                              className="btn btn-danger btn-sm"
                               title="Check-out cư dân"
                             >
                               Check-out
@@ -474,15 +477,15 @@ export default function ResidentsPage() {
 
           {/* Pagination */}
           {residents.length > 0 && (
-            <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <p className="text-sm text-gray-600">
+            <div className="flex items-center justify-between card p-4">
+              <p className="text-sm text-secondary">
                 Hiển thị {startIndex + 1} đến {Math.min(endIndex, residents.length)} trong tổng số {residents.length} cư dân
               </p>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-secondary btn-sm"
                 >
                   &lt;
                 </button>
@@ -502,8 +505,8 @@ export default function ResidentsPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors ${
-                        currentPage === pageNum ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : ''
+                      className={`btn btn-sm ${
+                        currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
                       }`}
                     >
                       {pageNum}
@@ -511,12 +514,12 @@ export default function ResidentsPage() {
                   )
                 })}
                 {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <span className="px-2 text-gray-500">...</span>
+                  <span className="px-2 text-tertiary">...</span>
                 )}
                 <button 
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-secondary btn-sm"
                 >
                   &gt;
                 </button>

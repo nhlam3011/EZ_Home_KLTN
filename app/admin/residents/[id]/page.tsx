@@ -364,16 +364,16 @@ export default function ResidentDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PAID: { label: 'Đã thanh toán', className: 'bg-green-100 text-green-700' },
-      UNPAID: { label: 'Chưa thanh toán', className: 'bg-red-100 text-red-700' },
-      OVERDUE: { label: 'Quá hạn', className: 'bg-red-100 text-red-700' },
-      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-100 text-yellow-700' },
-      PROCESSING: { label: 'Đang xử lý', className: 'bg-blue-100 text-blue-700' },
-      DONE: { label: 'Hoàn thành', className: 'bg-green-100 text-green-700' },
-      ACTIVE: { label: 'Đang hiệu lực', className: 'bg-green-100 text-green-700' },
-      TERMINATED: { label: 'Đã chấm dứt', className: 'bg-gray-100 text-gray-700' }
+      PAID: { label: 'Đã thanh toán', className: 'badge badge-success' },
+      UNPAID: { label: 'Chưa thanh toán', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' },
+      OVERDUE: { label: 'Quá hạn', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' },
+      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
+      PROCESSING: { label: 'Đang xử lý', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      ACTIVE: { label: 'Đang hiệu lực', className: 'badge badge-success' },
+      TERMINATED: { label: 'Đã chấm dứt', className: 'bg-tertiary text-primary' }
     }
-    return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-700' }
+    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
   }
 
   const getInitials = (name: string) => {
@@ -383,7 +383,7 @@ export default function ResidentDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Đang tải...</p>
+        <p className="text-tertiary">Đang tải...</p>
       </div>
     )
   }
@@ -398,53 +398,53 @@ export default function ResidentDetailPage() {
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <Link href="/admin/residents" className="hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-secondary">
+        <Link href="/admin/residents" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
           Danh sách Cư dân
         </Link>
         <span>/</span>
-        <span className="text-gray-900">Hồ sơ chi tiết</span>
+        <span className="text-primary">Hồ sơ chi tiết</span>
       </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Chi tiết Cư dân</h1>
+        <h1 className="text-2xl font-bold text-primary">Chi tiết Cư dân</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={handleResetPassword}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md"
           >
-            <RefreshCw size={18} />
+            <RefreshCw size={18} strokeWidth={2} />
             <span>Reset mật khẩu</span>
           </button>
           <Link
             href={`/admin/residents/${residentId}/edit`}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md"
           >
-            <Edit size={18} />
+            <Edit size={18} strokeWidth={2} />
             <span>Sửa thông tin</span>
           </Link>
           <Link
             href={`/admin/residents/new?userId=${residentId}`}
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 transition-colors"
+            className="px-5 py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
           >
-            <FileText size={18} />
-            <Plus size={16} />
+            <FileText size={19} strokeWidth={2.5} />
+            <Plus size={16} strokeWidth={2.5} />
             <span>Tạo hợp đồng mới</span>
           </Link>
           <button
             onClick={handleDeleteUser}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
             title="Xóa vĩnh viễn cư dân này"
           >
-            <Trash2 size={18} />
+            <Trash2 size={18} strokeWidth={2} />
             <span>Xóa cư dân</span>
           </button>
         </div>
       </div>
 
       {/* Resident Summary Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="card">
         <div className="flex items-start gap-6">
           <div className="relative">
             {resident.avatarUrl ? (
@@ -460,7 +460,7 @@ export default function ResidentDetailPage() {
                 <span className="text-white font-bold text-2xl">{initials}</span>
               </div>
             )}
-            <label className="absolute bottom-0 right-0 w-8 h-8 bg-[#1e3a5f] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#2a4a6f] transition-colors shadow-lg">
+            <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200 shadow-md">
               <input
                 type="file"
                 accept="image/*"
@@ -477,26 +477,26 @@ export default function ResidentDetailPage() {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold text-gray-900">{resident.fullName}</h2>
+              <h2 className="text-2xl font-bold text-primary">{resident.fullName}</h2>
               {activeContract && (
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                <span className="badge badge-success rounded-full text-sm">
                   Đang thuê
                 </span>
               )}
             </div>
             <div className="flex items-center gap-6 flex-wrap">
-              <div className="flex items-center gap-2 text-gray-600">
+              <div className="flex items-center gap-2 text-secondary">
                 <Phone size={16} />
                 <span>{resident.phone}</span>
               </div>
               {resident.email && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-secondary">
                   <Mail size={16} />
                   <span>{resident.email}</span>
                 </div>
               )}
               {resident.cccdNumber && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-secondary">
                   <CreditCard size={16} />
                   <span>{resident.cccdNumber}</span>
                 </div>
@@ -504,8 +504,8 @@ export default function ResidentDetailPage() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-600 mb-1">CÔNG NỢ HIỆN TẠI</p>
-            <p className="text-2xl font-bold text-gray-900 mb-2">
+            <p className="text-sm text-secondary mb-1">CÔNG NỢ HIỆN TẠI</p>
+            <p className="text-2xl font-bold text-primary mb-2">
               {formatCurrency(resident.currentDebt || 0)}
             </p>
             {resident.currentDebt === 0 ? (
@@ -527,44 +527,44 @@ export default function ResidentDetailPage() {
         {/* Left Column - Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Thông tin cá nhân</h3>
+          <div className="card">
+            <h3 className="text-lg font-semibold text-primary mb-4">Thông tin cá nhân</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">Họ và tên</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{resident.fullName}</p>
+                  <label className="text-xs text-tertiary uppercase">Họ và tên</label>
+                  <p className="text-sm font-medium text-primary mt-1">{resident.fullName}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">Số điện thoại</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{resident.phone}</p>
+                  <label className="text-xs text-tertiary uppercase">Số điện thoại</label>
+                  <p className="text-sm font-medium text-primary mt-1">{resident.phone}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">CCCD/CMND</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{resident.cccdNumber || 'N/A'}</p>
+                  <label className="text-xs text-tertiary uppercase">CCCD/CMND</label>
+                  <p className="text-sm font-medium text-primary mt-1">{resident.cccdNumber || 'N/A'}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">Địa chỉ thường trú</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{resident.address || 'N/A'}</p>
+                  <label className="text-xs text-tertiary uppercase">Địa chỉ thường trú</label>
+                  <p className="text-sm font-medium text-primary mt-1">{resident.address || 'N/A'}</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">Ngày sinh</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(resident.dob)}</p>
+                  <label className="text-xs text-tertiary uppercase">Ngày sinh</label>
+                  <p className="text-sm font-medium text-primary mt-1">{formatDate(resident.dob)}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">Email</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{resident.email || 'N/A'}</p>
+                  <label className="text-xs text-tertiary uppercase">Email</label>
+                  <p className="text-sm font-medium text-primary mt-1">{resident.email || 'N/A'}</p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 uppercase">Nơi cấp</label>
-                  <p className="text-sm font-medium text-gray-900 mt-1">{resident.cccdPlace || 'N/A'}</p>
+                  <label className="text-xs text-tertiary uppercase">Nơi cấp</label>
+                  <p className="text-sm font-medium text-primary mt-1">{resident.cccdPlace || 'N/A'}</p>
                 </div>
                 {resident.job && (
                   <div>
-                    <label className="text-xs text-gray-500 uppercase">Nghề nghiệp</label>
-                    <p className="text-sm font-medium text-gray-900 mt-1">{resident.job}</p>
+                    <label className="text-xs text-tertiary uppercase">Nghề nghiệp</label>
+                    <p className="text-sm font-medium text-primary mt-1">{resident.job}</p>
                   </div>
                 )}
               </div>
@@ -572,35 +572,35 @@ export default function ResidentDetailPage() {
           </div>
 
           {/* Tabs Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="border-b border-gray-200">
+          <div className="card">
+            <div className="border-b border-primary">
               <div className="flex items-center gap-6 px-6">
                 <button
                   onClick={() => setActiveTab('payments')}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
                     activeTab === 'payments'
-                      ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-secondary hover:text-primary hover:border-primary'
                   }`}
                 >
                   Lịch sử thanh toán
                 </button>
                 <button
                   onClick={() => setActiveTab('services')}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
                     activeTab === 'services'
-                      ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-secondary hover:text-primary hover:border-primary'
                   }`}
                 >
                   Yêu cầu dịch vụ
                 </button>
                 <button
                   onClick={() => setActiveTab('history')}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
                     activeTab === 'history'
-                      ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                      : 'border-transparent text-gray-600 hover:text-gray-900'
+                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-secondary hover:text-primary hover:border-primary'
                   }`}
                 >
                   Lịch sử thuê phòng
@@ -613,33 +613,33 @@ export default function ResidentDetailPage() {
               {activeTab === 'payments' && (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-tertiary border-b border-primary">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">MÃ HĐ</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">KỲ THANH TOÁN</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">SỐ TIỀN</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">TRẠNG THÁI</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NGÀY</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">MÃ HĐ</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">KỲ THANH TOÁN</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">SỐ TIỀN</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">NGÀY</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-primary">
                       {resident.invoices && resident.invoices.length > 0 ? (
                         resident.invoices.map((invoice) => {
                           const statusBadge = getStatusBadge(invoice.status)
                           return (
-                            <tr key={invoice.id} className="hover:bg-gray-50">
+                            <tr key={invoice.id} className="hover:bg-secondary transition-colors">
                               <td className="px-4 py-3">
-                                <span className="text-sm font-medium text-gray-900">
+                                <span className="text-sm font-medium text-primary">
                                   INV-{invoice.id.toString().padStart(5, '0')}
                                 </span>
                               </td>
                               <td className="px-4 py-3">
-                                <span className="text-sm text-gray-600">
+                                <span className="text-sm text-secondary">
                                   Tháng {invoice.month}/{invoice.year}
                                 </span>
                               </td>
                               <td className="px-4 py-3">
-                                <span className="text-sm font-semibold text-gray-900">
+                                <span className="text-sm font-semibold text-primary">
                                   {formatCurrency(Number(invoice.totalAmount))}
                                 </span>
                               </td>
@@ -649,39 +649,39 @@ export default function ResidentDetailPage() {
                                 </span>
                               </td>
                               <td className="px-4 py-3">
-                                <span className="text-sm text-gray-600">{formatDate(invoice.createdAt)}</span>
+                                <span className="text-sm text-secondary">{formatDate(invoice.createdAt)}</span>
                               </td>
                             </tr>
                           )
                         })
                       ) : (
                         <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                          <td colSpan={5} className="px-4 py-8 text-center text-tertiary">
                             Chưa có lịch sử thanh toán
                           </td>
                         </tr>
                       )}
                       {/* Deposit entry */}
                       {activeContract && activeContract.deposit > 0 && (
-                        <tr className="hover:bg-gray-50">
+                        <tr className="hover:bg-secondary transition-colors">
                           <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-gray-900">COC-{activeContract.id.toString().padStart(5, '0')}</span>
+                            <span className="text-sm font-medium text-primary">COC-{activeContract.id.toString().padStart(5, '0')}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-sm text-gray-600">Tiền cọc phòng</span>
+                            <span className="text-sm text-secondary">Tiền cọc phòng</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-primary">
                               {formatCurrency(Number(activeContract.deposit))}
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <span className="badge badge-success rounded-full text-xs">
                               Đã thanh toán
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-sm text-gray-600">{formatDate(activeContract.startDate)}</span>
+                            <span className="text-sm text-secondary">{formatDate(activeContract.startDate)}</span>
                           </td>
                         </tr>
                       )}
@@ -697,15 +697,15 @@ export default function ResidentDetailPage() {
                     resident.serviceOrders.map((order) => {
                       const statusBadge = getStatusBadge(order.status)
                       return (
-                        <div key={order.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div key={order.id} className="flex items-center justify-between p-4 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{order.service.name}</p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-sm font-medium text-primary">{order.service.name}</p>
+                            <p className="text-xs text-tertiary mt-1">
                               Số lượng: {order.quantity} | {formatDate(order.orderDate)}
                             </p>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-primary">
                               {formatCurrency(Number(order.total))}
                             </span>
                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}>
@@ -716,7 +716,7 @@ export default function ResidentDetailPage() {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-tertiary">
                       Chưa có yêu cầu dịch vụ nào
                     </div>
                   )}
@@ -730,13 +730,13 @@ export default function ResidentDetailPage() {
                     resident.contracts.map((contract) => {
                       const statusBadge = getStatusBadge(contract.status)
                       return (
-                        <div key={contract.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div key={contract.id} className="p-4 border border-primary rounded-lg hover:bg-tertiary transition-colors">
                           <div className="flex items-start justify-between mb-3">
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="text-sm font-medium text-primary">
                                 {contract.room?.name || 'N/A'} - Tầng {contract.room?.floor || 'N/A'}
                               </p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-tertiary mt-1">
                                 Mã HĐ: HD-{contract.id.toString().padStart(6, '0')}
                               </p>
                             </div>
@@ -746,22 +746,22 @@ export default function ResidentDetailPage() {
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500">Ngày vào ở:</span>
-                              <span className="ml-2 text-gray-900">{formatDate(contract.startDate)}</span>
+                              <span className="text-tertiary">Ngày vào ở:</span>
+                              <span className="ml-2 text-primary">{formatDate(contract.startDate)}</span>
                             </div>
                             <div>
-                              <span className="text-gray-500">Hạn hợp đồng:</span>
-                              <span className="ml-2 text-gray-900">{formatDate(contract.endDate)}</span>
+                              <span className="text-tertiary">Hạn hợp đồng:</span>
+                              <span className="ml-2 text-primary">{formatDate(contract.endDate)}</span>
                             </div>
                             <div>
-                              <span className="text-gray-500">Tiền thuê/tháng:</span>
-                              <span className="ml-2 text-gray-900 font-semibold">
+                              <span className="text-tertiary">Tiền thuê/tháng:</span>
+                              <span className="ml-2 text-primary font-semibold">
                                 {formatCurrency(Number(contract.rentPrice))}
                               </span>
                             </div>
                             <div>
-                              <span className="text-gray-500">Tiền cọc:</span>
-                              <span className="ml-2 text-gray-900 font-semibold">
+                              <span className="text-tertiary">Tiền cọc:</span>
+                              <span className="ml-2 text-primary font-semibold">
                                 {formatCurrency(Number(contract.deposit))}
                               </span>
                             </div>
@@ -770,7 +770,7 @@ export default function ResidentDetailPage() {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-tertiary">
                       Chưa có lịch sử thuê phòng
                     </div>
                   )}
@@ -784,70 +784,70 @@ export default function ResidentDetailPage() {
         <div className="space-y-6">
           {/* Current Contract */}
           {activeContract && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Hợp đồng hiện tại</h3>
+                <h3 className="text-lg font-semibold text-primary">Hợp đồng hiện tại</h3>
                 <Link
                   href={`/admin/contracts/${activeContract.id}`}
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500"
                 >
                   Xem chi tiết
                 </Link>
               </div>
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Đang ở phòng</p>
-                  <p className="text-xl font-bold text-gray-900">{activeContract.room?.name || 'N/A'}</p>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs text-tertiary mb-1">Đang ở phòng</p>
+                  <p className="text-xl font-bold text-primary">{activeContract.room?.name || 'N/A'}</p>
+                  <p className="text-sm text-secondary mt-1">
                     {activeContract.room?.area ? `Studio (${activeContract.room.area}m²)` : 'Studio'}
                   </p>
                 </div>
-                <div className="pt-4 border-t border-gray-200 space-y-3">
+                <div className="pt-4 border-t border-primary space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Mã hợp đồng:</span>
-                    <span className="font-medium text-gray-900">HD-{activeContract.id.toString().padStart(6, '0')}</span>
+                    <span className="text-secondary">Mã hợp đồng:</span>
+                    <span className="font-medium text-primary">HD-{activeContract.id.toString().padStart(6, '0')}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Ngày vào ở:</span>
-                    <span className="font-medium text-gray-900">{formatDate(activeContract.startDate)}</span>
+                    <span className="text-secondary">Ngày vào ở:</span>
+                    <span className="font-medium text-primary">{formatDate(activeContract.startDate)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Hạn hợp đồng:</span>
-                    <span className="font-medium text-gray-900">{formatDate(activeContract.endDate)}</span>
+                    <span className="text-secondary">Hạn hợp đồng:</span>
+                    <span className="font-medium text-primary">{formatDate(activeContract.endDate)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tiền thuê/tháng:</span>
-                    <span className="font-semibold text-gray-900">{formatCurrency(Number(activeContract.rentPrice))}</span>
+                    <span className="text-secondary">Tiền thuê/tháng:</span>
+                    <span className="font-semibold text-primary">{formatCurrency(Number(activeContract.rentPrice))}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tiền cọc:</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="text-secondary">Tiền cọc:</span>
+                    <span className="font-semibold text-primary">
                       {formatCurrency(Number(activeContract.deposit))}
-                      <span className="ml-2 text-xs text-green-600">(Đã đóng)</span>
+                      <span className="ml-2 text-xs text-green-600 dark:text-green-400">(Đã đóng)</span>
                     </span>
                   </div>
                   {activeContract.room && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Số người ở:</span>
-                      <span className="font-semibold text-gray-900">
+                      <span className="text-secondary">Số người ở:</span>
+                      <span className="font-semibold text-primary">
                         {1 + (activeContract.occupants?.length || 0)} / {activeContract.room.maxPeople} người
                       </span>
                     </div>
                   )}
                 </div>
                 {activeContract.occupants && activeContract.occupants.length > 0 && (
-                  <div className="pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <div className="pt-4 border-t border-primary">
+                    <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                       <Users size={16} />
                       <span>Người ở cùng ({activeContract.occupants.length})</span>
                     </h4>
                     <div className="space-y-2">
                       {activeContract.occupants.map((occupant) => (
-                        <div key={occupant.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <div className="flex items-start justify-between">
+                        <div key={occupant.id} className="p-3 bg-tertiary rounded-lg border border-primary">
+                              <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">{occupant.fullName}</p>
-                              <div className="flex items-center gap-4 mt-1 text-xs text-gray-600">
+                              <p className="text-sm font-medium text-primary">{occupant.fullName}</p>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-secondary">
                                 {occupant.relationship && (
                                   <span>Quan hệ: {occupant.relationship}</span>
                                 )}
@@ -868,16 +868,16 @@ export default function ResidentDetailPage() {
                     </div>
                   </div>
                 )}
-                <div className="pt-4 border-t border-gray-200 flex gap-2">
+                <div className="pt-4 border-t border-primary flex gap-2">
                   <button
                     onClick={handleRenewContract}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm transition-colors"
+                    className="flex-1 px-4 py-2.5 border border-primary rounded-lg hover:bg-tertiary text-sm transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md"
                   >
                     Gia hạn
                   </button>
                   <button
                     onClick={handleTerminateContract}
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
+                    className="flex-1 px-4 py-2.5 bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 text-white rounded-lg text-sm transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
                   >
                     Thanh lý
                   </button>
@@ -887,26 +887,26 @@ export default function ResidentDetailPage() {
           )}
 
           {/* Attached Files */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Hồ sơ đính kèm</h3>
+              <h3 className="text-lg font-semibold text-primary">Hồ sơ đính kèm</h3>
               <button 
                 onClick={() => setShowUploadDoc(!showUploadDoc)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                 title="Tải lên hồ sơ"
               >
-                <Plus size={18} className="text-gray-600" />
+                <Plus size={18} className="text-secondary" />
               </button>
             </div>
 
             {/* Upload Document Form */}
             {showUploadDoc && (
-              <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="mb-4 p-4 border border-primary rounded-lg bg-tertiary">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Tải lên hồ sơ mới</label>
+                  <label className="text-sm font-medium text-primary">Tải lên hồ sơ mới</label>
                   <button
                     onClick={() => setShowUploadDoc(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-tertiary hover:text-primary"
                   >
                     <X size={16} />
                   </button>
@@ -915,10 +915,10 @@ export default function ResidentDetailPage() {
                   type="file"
                   onChange={handleDocumentUpload}
                   disabled={uploadingDoc}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#1e3a5f] file:text-white hover:file:bg-[#2a4a6f] disabled:opacity-50"
+                  className="w-full text-sm text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:btn-primary file:text-white hover:file:bg-[#2a4a6f] disabled:opacity-50"
                 />
                 {uploadingDoc && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                  <div className="mt-2 flex items-center gap-2 text-sm text-secondary">
                     <Loader2 size={16} className="animate-spin" />
                     <span>Đang tải lên...</span>
                   </div>
@@ -931,18 +931,18 @@ export default function ResidentDetailPage() {
                 documents.map((doc) => {
                   const isImage = doc.fileType?.startsWith('image/')
                   const Icon = isImage ? ImageIcon : FileText
-                  const iconBg = isImage ? 'bg-green-100' : 'bg-blue-100'
-                  const iconColor = isImage ? 'text-green-600' : 'text-blue-600'
+                  const iconBg = isImage ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  const iconColor = isImage ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
 
                   return (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div key={doc.id} className="flex items-center justify-between p-3 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
                           <Icon className={iconColor} size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{doc.fileName}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm font-medium text-primary truncate">{doc.fileName}</p>
+                          <p className="text-xs text-tertiary">
                             {formatFileSize(doc.fileSize)} • {formatDate(doc.createdAt)}
                           </p>
                         </div>
@@ -951,25 +951,25 @@ export default function ResidentDetailPage() {
                         <a
                           href={doc.fileUrl}
                           download
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                           title="Tải xuống"
                         >
-                          <Download size={16} className="text-gray-600" />
+                          <Download size={16} className="text-secondary" />
                         </a>
                         <button
                           onClick={() => handleDeleteDocument(doc.id)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                           title="Xóa"
                         >
-                          <X size={16} className="text-red-600" />
+                          <X size={16} className="text-red-600 dark:text-red-400" />
                         </button>
                       </div>
                     </div>
                   )
                 })
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText size={32} className="mx-auto mb-2 text-gray-400" />
+                <div className="text-center py-8 text-tertiary">
+                  <FileText size={32} className="mx-auto mb-2 text-tertiary" />
                   <p className="text-sm">Chưa có hồ sơ đính kèm</p>
                   <p className="text-xs mt-1">Nhấn nút + để tải lên hồ sơ</p>
                 </div>

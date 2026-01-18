@@ -109,21 +109,21 @@ export default function NewIssuePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gửi báo cáo sự cố mới</h1>
-          <p className="text-gray-600 mt-1">Mô tả chi tiết sự cố bạn gặp phải</p>
+          <h1 className="text-2xl font-bold text-primary">Gửi báo cáo sự cố mới</h1>
+          <p className="text-secondary mt-1">Mô tả chi tiết sự cố bạn gặp phải</p>
         </div>
         <Link
           href="/tenant/issues"
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          className="btn btn-secondary btn-md"
         >
           <X size={18} />
           <span>Hủy</span>
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="card space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-primary mb-1">
             Tiêu đề sự cố <span className="text-red-500">*</span>
           </label>
           <input
@@ -133,19 +133,19 @@ export default function NewIssuePage() {
             onChange={handleChange}
             required
             placeholder="VD: Hỏng điều hòa phòng ngủ"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input w-full"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-primary mb-1">
             Loại sự cố
           </label>
           <select
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input w-full"
           >
             <option value="">Chọn loại sự cố</option>
             <option value="Điện & Máy lạnh">Điện & Máy lạnh</option>
@@ -157,14 +157,14 @@ export default function NewIssuePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-primary mb-1">
             Mức độ nghiêm trọng
           </label>
           <select
             name="severity"
             value={formData.severity}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input w-full"
           >
             <option value="LOW">Thấp</option>
             <option value="MEDIUM">Trung bình</option>
@@ -173,7 +173,7 @@ export default function NewIssuePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-primary mb-1">
             Mô tả chi tiết <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -183,16 +183,16 @@ export default function NewIssuePage() {
             required
             rows={6}
             placeholder="Mô tả chi tiết về sự cố bạn gặp phải..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input w-full"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-primary mb-1">
             Hình ảnh (nếu có)
           </label>
           <div className="space-y-3">
-            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
+            <label className="block border-2 border-dashed border-primary rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer">
               <input
                 type="file"
                 multiple
@@ -202,10 +202,10 @@ export default function NewIssuePage() {
                 className="hidden"
               />
               <Upload className={`mx-auto mb-2 ${uploading ? 'text-gray-400' : 'text-gray-400'}`} size={32} />
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-primary">
                 {uploading ? 'Đang tải lên...' : 'Tải ảnh lên'}
               </p>
-              <p className="text-xs text-gray-500 mt-1">PNG, JPG tối đa 5MB mỗi ảnh</p>
+              <p className="text-xs text-tertiary mt-1">PNG, JPG tối đa 5MB mỗi ảnh</p>
             </label>
             
             {formData.images.length > 0 && (
@@ -215,7 +215,7 @@ export default function NewIssuePage() {
                     <img
                       src={imageUrl}
                       alt={`Upload ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                      className="w-full h-32 object-cover rounded-lg border border-primary"
                     />
                     <button
                       type="button"
@@ -231,17 +231,17 @@ export default function NewIssuePage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-primary">
           <Link
             href="/tenant/issues"
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="btn btn-secondary btn-md"
           >
             Hủy
           </Link>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50"
+            className="btn btn-primary btn-md"
           >
             <Save size={18} />
             <span>{loading ? 'Đang gửi...' : 'Gửi báo cáo'}</span>

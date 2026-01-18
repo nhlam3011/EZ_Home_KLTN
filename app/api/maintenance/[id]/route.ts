@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendMessageNotificationEmail } from '@/lib/email'
+import { sendIssueStatusUpdateEmail } from '@/lib/email'
 
 export async function GET(
   request: NextRequest,
@@ -156,22 +156,13 @@ export async function PUT(
       }
       
       const statusLabel = statusLabels[status.toUpperCase()] || status
-      const statusMessage = status === 'DONE' 
-        ? `Yêu cầu "${updatedIssue.title}" của bạn đã được xử lý hoàn tất.`
-        : status === 'PROCESSING'
-        ? `Yêu cầu "${updatedIssue.title}" của bạn đang được xử lý.`
-        : status === 'CANCELLED'
-        ? `Yêu cầu "${updatedIssue.title}" của bạn đã bị hủy.`
-        : `Trạng thái yêu cầu "${updatedIssue.title}" đã được cập nhật thành "${statusLabel}".`
-
-      sendMessageNotificationEmail(updatedIssue.user.email, {
-        title: `Cập nhật trạng thái yêu cầu: ${updatedIssue.title}`,
-        content: `${statusMessage}\n\nPhòng: ${updatedIssue.room.name}\n${adminNotes ? `Ghi chú từ quản trị viên: ${adminNotes}` : ''}`,
-        from: 'EZ-Home Admin',
-        type: 'notification'
-      }).catch(err => {
-        console.error('Failed to send issue status update email:', err)
-      })
+      await sendIssueStatusUpdateEmail(
+        updatedIssue.user.email,
+        updatedIssue.title,
+        status.toUpperCase(),
+        statusLabel,
+        updatedIssue.user.fullName
+      )
     }
 
     return NextResponse.json(updatedIssue)

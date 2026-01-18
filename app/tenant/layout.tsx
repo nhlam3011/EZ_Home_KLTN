@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, 
@@ -12,11 +13,11 @@ import {
   Bell,
   LogOut,
   MessageSquare,
-  ChevronRight,
   Menu,
   X
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { DarkModeToggle } from '../components/DarkModeToggle'
 
 const menuItems = [
   { href: '/tenant', label: 'Tổng quan', icon: LayoutDashboard },
@@ -24,11 +25,6 @@ const menuItems = [
   { href: '/tenant/services', label: 'Dịch vụ', icon: Grid3x3 },
   { href: '/tenant/issues', label: 'Báo hỏng', icon: Wrench },
   { href: '/tenant/community', label: 'Cộng đồng', icon: Users },
-]
-
-const accountItems = [
-  { href: '/tenant/profile', label: 'Hồ sơ cá nhân' },
-  { href: '/tenant/settings', label: 'Cài đặt' },
 ]
 
 export default function TenantLayout({
@@ -43,7 +39,6 @@ export default function TenantLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
-    // Check authentication
     const userData = localStorage.getItem('user')
     if (!userData) {
       router.push('/login')
@@ -56,7 +51,6 @@ export default function TenantLayout({
       return
     }
 
-    // Check if first login - redirect to change password
     if (parsedUser.isFirstLogin) {
       router.push('/change-password')
       return
@@ -64,7 +58,6 @@ export default function TenantLayout({
 
     setUser(parsedUser)
 
-    // Fetch unread messages count
     fetch('/api/messages/unread-count')
       .then(res => res.json())
       .then(data => setUnreadMessages(data.count || 0))
@@ -82,172 +75,325 @@ export default function TenantLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"
+          className="fixed inset-0 z-40 lg:hidden transition-opacity"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-72 bg-gradient-to-b from-[#1e3a5f] to-[#152d47] text-white flex flex-col shadow-2xl
-        transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Logo & User Info */}
-        <div className="p-6 border-b border-[#2a4a6f]">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg flex-shrink-0">
-              {user.fullName?.charAt(0) || 'T'}
+      {/* Sidebar - Beautiful Design */}
+      <aside 
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50
+          w-64 flex flex-col
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          shadow-2xl lg:shadow-none
+        `}
+        style={{ 
+          backgroundColor: 'var(--bg-primary)',
+          borderRight: '1px solid var(--border-primary)'
+        }}
+      >
+        {/* Logo Section */}
+        <div 
+          className="h-16 px-5 flex items-center justify-between"
+          style={{ borderBottom: '1px solid var(--border-primary)' }}
+        >
+          <Link 
+            href="/tenant" 
+            className="flex items-center gap-3 group"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <div className="w-15 h-10 rounded-sm bg-white flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 border border-gray-200">
+              <Image
+                src="/logo_final.png"
+                alt="Logo"
+                width={50}
+                height={50}
+                className="object-contain"
+                priority
+              />
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold truncate">Tenant Portal</h1>
-              <p className="text-sm text-blue-200 truncate mt-0.5">{user.room?.name || 'Căn hộ'}</p>
+            <div>
+              <h1 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
+                EZ-Home
+              </h1>
+              <p className="text-[10px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                Tenant Portal
+              </p>
             </div>
-            {/* Close button for mobile */}
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg transition-colors"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Main Menu */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <p className="text-xs uppercase text-blue-300 px-4 py-3 font-semibold tracking-wider">
-            MENU
-          </p>
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            // Fix: For /tenant, only match exactly. For other routes, match exact or sub-routes
-            const isActive = item.href === '/tenant' 
-              ? pathname === '/tenant'
-              : pathname === item.href || pathname?.startsWith(item.href + '/')
-            return (
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {/* Main Menu */}
+          <div className="mb-5">
+            <p 
+              className="px-3 mb-3 text-[10px] font-bold uppercase tracking-wider"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Menu
+            </p>
+            <div className="space-y-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon
+                const isActive = item.href === '/tenant' 
+                  ? pathname === '/tenant'
+                  : pathname === item.href || pathname?.startsWith(item.href + '/')
+                
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`
+                      group relative flex items-center gap-3 px-3 py-2.5 rounded-lg
+                      transition-all duration-200
+                      ${isActive ? 'shadow-sm' : ''}
+                    `}
+                    style={{
+                      backgroundColor: isActive ? '#3b82f6' : 'transparent',
+                      color: isActive ? '#ffffff' : 'var(--text-primary)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }
+                    }}
+                  >
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></div>
+                    )}
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                      style={{
+                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
+                        color: isActive ? '#ffffff' : 'var(--text-secondary)'
+                      }}
+                    >
+                      <Icon size={18} />
+                    </div>
+                    <span className="flex-1 text-sm font-semibold">
+                      {item.label}
+                    </span>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Communication Menu */}
+          <div 
+            className="pt-5"
+            style={{ borderTop: '1px solid var(--border-primary)' }}
+          >
+            <p 
+              className="px-3 mb-3 text-[10px] font-bold uppercase tracking-wider"
+              style={{ color: 'var(--text-tertiary)' }}
+            >
+              Giao tiếp
+            </p>
+            <div className="space-y-1">
               <Link
-                key={item.href}
-                href={item.href}
+                href="/tenant/messages"
                 onClick={() => setSidebarOpen(false)}
-                className={`group flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-white text-[#1e3a5f] shadow-lg scale-[1.02]'
-                    : 'text-blue-100 hover:bg-white/10 hover:text-white hover:scale-[1.01]'
-                }`}
+                className={`
+                  group relative flex items-center gap-3 px-3 py-2.5 rounded-lg
+                  transition-all duration-200
+                  ${pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/') ? 'shadow-sm' : ''}
+                `}
+                style={{
+                  backgroundColor: (pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) ? '#3b82f6' : 'transparent',
+                  color: (pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) ? '#ffffff' : 'var(--text-primary)'
+                }}
+                onMouseEnter={(e) => {
+                  if (pathname !== '/tenant/messages' && !pathname?.startsWith('/tenant/messages/')) {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (pathname !== '/tenant/messages' && !pathname?.startsWith('/tenant/messages/')) {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }
+                }}
               >
-                <Icon size={22} className={`flex-shrink-0 ${isActive ? 'text-[#1e3a5f]' : ''}`} />
-                <span className="flex-1 font-medium text-base">{item.label}</span>
-                {isActive && (
-                  <ChevronRight size={18} className="text-[#1e3a5f] flex-shrink-0" />
+                {(pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></div>
+                )}
+                <div 
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                  style={{
+                    backgroundColor: (pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
+                    color: (pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) ? '#ffffff' : 'var(--text-secondary)'
+                  }}
+                >
+                  <MessageSquare size={18} />
+                </div>
+                <span className="flex-1 text-sm font-semibold">
+                  Tin nhắn
+                </span>
+                {unreadMessages > 0 && (
+                  <span 
+                    className="min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{
+                      backgroundColor: (pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) ? 'rgba(255, 255, 255, 0.25)' : '#ef4444'
+                    }}
+                  >
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
                 )}
               </Link>
-            )
-          })}
-
-          <div className="pt-6 mt-6 border-t border-[#2a4a6f]">
-            <p className="text-xs uppercase text-blue-300 px-4 py-3 font-semibold tracking-wider">
-              GIAO TIẾP
-            </p>
-            <Link
-              href="/tenant/messages"
-              onClick={() => setSidebarOpen(false)}
-              className={`group flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 relative ${
-                pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')
-                  ? 'bg-white text-[#1e3a5f] shadow-lg scale-[1.02]'
-                  : 'text-blue-100 hover:bg-white/10 hover:text-white hover:scale-[1.01]'
-              }`}
-            >
-              <MessageSquare size={22} className={`flex-shrink-0 ${pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/') ? 'text-[#1e3a5f]' : ''}`} />
-              <span className="flex-1 font-medium text-base">Tin nhắn</span>
-              {unreadMessages > 0 && (
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-md flex-shrink-0 ${
-                  pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')
-                    ? 'bg-red-500 text-white'
-                    : 'bg-red-500 text-white'
-                }`}>
-                  {unreadMessages > 9 ? '9+' : unreadMessages}
+              <Link
+                href="/tenant/settings"
+                onClick={() => setSidebarOpen(false)}
+                className={`
+                  group relative flex items-center gap-3 px-3 py-2.5 rounded-lg
+                  transition-all duration-200
+                  ${pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/') ? 'shadow-sm' : ''}
+                `}
+                style={{
+                  backgroundColor: (pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')) ? '#3b82f6' : 'transparent',
+                  color: (pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')) ? '#ffffff' : 'var(--text-primary)'
+                }}
+                onMouseEnter={(e) => {
+                  if (pathname !== '/tenant/settings' && !pathname?.startsWith('/tenant/settings/')) {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (pathname !== '/tenant/settings' && !pathname?.startsWith('/tenant/settings/')) {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }
+                }}
+              >
+                {(pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')) && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></div>
+                )}
+                <div 
+                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
+                  style={{
+                    backgroundColor: (pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')) ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
+                    color: (pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')) ? '#ffffff' : 'var(--text-secondary)'
+                  }}
+                >
+                  <Settings size={18} />
+                </div>
+                <span className="flex-1 text-sm font-semibold">
+                  Cài đặt
                 </span>
-              )}
-              {(pathname === '/tenant/messages' || pathname?.startsWith('/tenant/messages/')) && (
-                <ChevronRight size={18} className="text-[#1e3a5f] flex-shrink-0" />
-              )}
-            </Link>
-            <Link
-              href="/tenant/settings"
-              onClick={() => setSidebarOpen(false)}
-              className={`group flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 mt-2 ${
-                pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')
-                  ? 'bg-white text-[#1e3a5f] shadow-lg scale-[1.02]'
-                  : 'text-blue-100 hover:bg-white/10 hover:text-white hover:scale-[1.01]'
-              }`}
-            >
-              <Settings size={22} className={`flex-shrink-0 ${pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/') ? 'text-[#1e3a5f]' : ''}`} />
-              <span className="flex-1 font-medium text-base">Cài đặt</span>
-              {(pathname === '/tenant/settings' || pathname?.startsWith('/tenant/settings/')) && (
-                <ChevronRight size={18} className="text-[#1e3a5f] flex-shrink-0" />
-              )}
-            </Link>
+              </Link>
+            </div>
           </div>
         </nav>
 
-        {/* User Profile */}
-        <div className="p-4 border-t border-[#2a4a6f] bg-[#152d47]">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors mb-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0">
+        {/* User Section */}
+        <div 
+          className="p-4 space-y-2"
+          style={{ 
+            borderTop: '1px solid var(--border-primary)',
+            backgroundColor: 'var(--bg-tertiary)'
+          }}
+        >
+          <div 
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg border shadow-sm"
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderColor: 'var(--border-primary)'
+            }}
+          >
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-md">
               {user.fullName?.charAt(0) || 'T'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{user.fullName || 'Tenant'}</p>
-              <p className="text-xs text-blue-200 truncate mt-0.5">{user.room?.name || 'P.000'}</p>
+              <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                {user.fullName || 'Tenant'}
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-tertiary)' }}>
+                {user.room?.name || 'P.000'}
+              </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full px-4 py-2.5 text-sm text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-3 font-medium"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-white text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
+            style={{ backgroundColor: '#ef4444' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
           >
-            <LogOut size={18} className="flex-shrink-0" />
+            <LogOut size={16} />
             <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 shadow-sm sticky top-0 z-30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Hamburger Menu Button */}
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Toggle menu"
-              >
-                <Menu size={24} className="text-gray-700" />
-              </button>
-              <h2 className="text-lg sm:text-xl font-bold text-gray-900">EZ-Home</h2>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <Link
-                href="/tenant/notifications"
-                className="relative p-2.5 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Bell size={20} className="text-gray-600" />
-                {unreadMessages > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                )}
-              </Link>
-            </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Header */}
+        <header 
+          className="h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm"
+          style={{
+            backgroundColor: 'var(--bg-primary)',
+            borderBottom: '1px solid var(--border-primary)'
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              aria-label="Toggle menu"
+            >
+              <Menu size={20} />
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <DarkModeToggle />
+            <Link
+              href="/tenant/notifications"
+              className="relative p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <Bell size={20} />
+              {unreadMessages > 0 && (
+                <span 
+                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2"
+                  style={{ 
+                    backgroundColor: '#ef4444',
+                    borderColor: 'var(--bg-primary)'
+                  }}
+                ></span>
+              )}
+            </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
           {children}
         </main>
       </div>

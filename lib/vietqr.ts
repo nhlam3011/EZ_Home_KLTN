@@ -1,177 +1,140 @@
-import crypto from 'crypto'
-
-// VietQR Configuration
-const VIETQR_API_URL = process.env.VIETQR_API_URL || 'https://api.vietqr.io/v2'
-const VIETQR_CLIENT_ID = process.env.VIETQR_CLIENT_ID || ''
-const VIETQR_API_KEY = process.env.VIETQR_API_KEY || ''
-const VIETQR_CALLBACK_URL = process.env.VIETQR_CALLBACK_URL || 'http://localhost:3000/api/payments/vietqr/callback'
-
-export interface VietQRPaymentParams {
-  amount: number // Amount in VND
-  orderId: string // Unique order ID (invoice ID)
-  orderDescription: string // Description
-  accountNo: string // Bank account number
-  accountName: string // Bank account name
-  bankCode?: string // Bank code (optional, default: '')
-  qrType?: 'static' | 'dynamic' // QR type, default: 'dynamic'
-}
-
-export interface VietQRTokenResponse {
-  code: string
-  desc: string
-  data: {
-    access_token: string
-    expires_in: number
-  }
-}
-
-export interface VietQRGenerateResponse {
-  code: string
-  desc: string
-  data: {
-    qrCode: string // Base64 encoded QR code image
-    qrDataURL: string // QR code data URL
-    qrString: string // QR code string to display
-  }
-}
-
 /**
- * Get VietQR access token
+ * VietQR API Integration
+ * Documentation: https://developer.vietqr.io/
  */
-export async function getVietQRToken(): Promise<string> {
-  if (!VIETQR_CLIENT_ID || !VIETQR_API_KEY) {
-    throw new Error('VietQR configuration is missing. Please check VIETQR_CLIENT_ID and VIETQR_API_KEY in .env')
-  }
 
-  const credentials = Buffer.from(`${VIETQR_CLIENT_ID}:${VIETQR_API_KEY}`).toString('base64')
-
-  const response = await fetch(`${VIETQR_API_URL}/generate-token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Basic ${credentials}`
-    }
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Failed to get VietQR token: ${errorText}`)
-  }
-
-  const data: VietQRTokenResponse = await response.json()
-  
-  if (data.code !== '00') {
-    throw new Error(`VietQR token error: ${data.desc}`)
-  }
-
-  return data.data.access_token
-}
-
-/**
- * Generate VietQR code
- */
-export async function generateVietQRCode(params: VietQRPaymentParams): Promise<VietQRGenerateResponse['data']> {
-  const {
-    amount,
-    orderId,
-    orderDescription,
-    accountNo,
-    accountName,
-    bankCode = '',
-    qrType = 'dynamic'
-  } = params
-
-  // Validate configuration
-  if (!VIETQR_CLIENT_ID || !VIETQR_API_KEY) {
-    throw new Error('VietQR configuration is missing. Please check VIETQR_CLIENT_ID and VIETQR_API_KEY in .env')
-  }
-
-  // Get access token
-  const accessToken = await getVietQRToken()
-
-  // Prepare request body
-  const requestBody: any = {
-    accountNo: accountNo,
-    accountName: accountName,
-    acqId: bankCode, // Bank code
-    amount: amount,
-    addInfo: orderDescription,
-    format: 'text', // or 'compact', 'qr_only'
-    template: 'compact' // or 'compact2', 'compact3'
-  }
-
-  // For dynamic QR, add order ID and callback
-  if (qrType === 'dynamic') {
-    requestBody.orderId = orderId
-    requestBody.callbackUrl = VIETQR_CALLBACK_URL
-  }
-
-  const response = await fetch(`${VIETQR_API_URL}/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`
-    },
-    body: JSON.stringify(requestBody)
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Failed to generate VietQR code: ${errorText}`)
-  }
-
-  const data: VietQRGenerateResponse = await response.json()
-
-  if (data.code !== '00') {
-    throw new Error(`VietQR generate error: ${data.desc}`)
-  }
-
-  return data.data
-}
-
-/**
- * Verify VietQR callback signature
- * Note: VietQR may use different signature methods (MD5, SHA1, SHA256, HMAC)
- * This is a basic implementation - adjust based on VietQR documentation
- */
-export function verifyVietQRCallback(params: Record<string, string>, signature: string): boolean {
-  // VietQR signature verification logic
-  // This depends on VietQR's specific implementation
-  // For now, we'll verify the signature exists
-  if (!signature) return false
-
-  // TODO: Implement actual signature verification based on VietQR docs
-  // Example: const calculatedHash = crypto.createHash('sha256').update(...).digest('hex')
-  // return calculatedHash === signature
-
-  return true // Placeholder - implement based on VietQR requirements
-}
-
-/**
- * Parse VietQR callback data
- */
-export interface VietQRCallbackData {
-  orderId: string
-  amount: number
-  transactionId: string
-  bankCode: string
+interface VietQRConfig {
+  clientID: string
+  apiKey: string
   accountNo: string
   accountName: string
-  description: string
-  timestamp: string
-  status: 'success' | 'failed'
+  bankBIN?: string // 6-digit bank BIN code (e.g., 970415, 970418)
+  template?: string
 }
 
-export function parseVietQRCallback(params: Record<string, string>): VietQRCallbackData {
-  return {
-    orderId: params.orderId || '',
-    amount: parseFloat(params.amount || '0'),
-    transactionId: params.transactionId || params.transId || '',
-    bankCode: params.bankCode || params.acqId || '',
-    accountNo: params.accountNo || '',
-    accountName: params.accountName || '',
-    description: params.description || params.addInfo || '',
-    timestamp: params.timestamp || new Date().toISOString(),
-    status: params.status === 'success' || params.status === '00' ? 'success' : 'failed'
+interface CreateQRRequest {
+  accountNo: string
+  accountName: string
+  acqId: string
+  amount: number
+  addInfo: string
+  format?: 'text' | 'compact' | 'qr_only'
+  template?: string
+}
+
+interface VietQRResponse {
+  code: string
+  desc: string
+  data?: {
+    qrCode: string
+    qrDataURL: string
+  }
+}
+
+export class VietQRService {
+  private clientID: string
+  private apiKey: string
+  private accountNo: string
+  private accountName: string
+  private bankBIN: string
+  private template: string
+  private baseURL = 'https://api.vietqr.io/v2'
+
+  constructor(config: VietQRConfig) {
+    this.clientID = config.clientID
+    this.apiKey = config.apiKey
+    this.accountName = config.accountName
+    this.template = config.template || 'compact2'
+    
+    // Handle account number and BIN
+    if (config.bankBIN) {
+      // If BIN is provided separately, use it
+      this.bankBIN = config.bankBIN
+      this.accountNo = config.accountNo
+    } else {
+      // Try to extract BIN from account number (first 6 digits if starts with 970)
+      const cleanAccount = config.accountNo.replace(/\D/g, '')
+      if (cleanAccount.length >= 6 && /^970\d{3}/.test(cleanAccount)) {
+        // Account number includes BIN
+        this.bankBIN = cleanAccount.substring(0, 6)
+        this.accountNo = cleanAccount.substring(6)
+      } else {
+        throw new Error('Bank BIN is required. Please provide VIETQR_BANK_BIN in .env or include BIN in account number (e.g., 9704151234567890)')
+      }
+    }
+  }
+
+  /**
+   * Get bank code (acqId) - must be 6 digits
+   */
+  private getAcqId(): string {
+    if (this.bankBIN.length !== 6) {
+      throw new Error(`Bank BIN must be 6 digits, got: ${this.bankBIN}`)
+    }
+    return this.bankBIN
+  }
+
+  /**
+   * Generate QR code for payment using VietQR API
+   */
+  async generateQR(data: {
+    amount: number
+    description: string
+    invoiceId: number
+  }): Promise<{ qrCode: string; qrString: string }> {
+    try {
+      const acqId = this.getAcqId()
+
+      const requestData: CreateQRRequest = {
+        accountNo: this.accountNo,
+        accountName: this.accountName,
+        acqId: acqId,
+        amount: data.amount,
+        addInfo: data.description.substring(0, 25), // Max 25 chars
+        format: 'text',
+        template: this.template
+      }
+
+      const response = await fetch(`${this.baseURL}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': this.clientID,
+          'x-api-key': this.apiKey
+        },
+        body: JSON.stringify(requestData)
+      })
+
+      const result: VietQRResponse = await response.json()
+
+      if (result.code !== '00') {
+        throw new Error(result.desc || 'Failed to generate QR code')
+      }
+
+      if (!result.data) {
+        throw new Error('No QR code data returned')
+      }
+
+      // Extract QR string from qrDataURL or use qrCode
+      const qrString = result.data.qrCode || this.extractQRString(result.data.qrDataURL)
+
+      return {
+        qrCode: result.data.qrDataURL || result.data.qrCode,
+        qrString: qrString
+      }
+    } catch (error) {
+      console.error('VietQR API Error:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Extract QR string from data URL if needed
+   */
+  private extractQRString(qrDataURL: string): string {
+    // If it's a data URL, we can't extract the string
+    // The API should return qrCode field with the string
+    // For now, return empty and let API handle it
+    return ''
   }
 }

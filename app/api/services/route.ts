@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       where.isActive = isActive === 'true'
     }
 
-    // Nếu là cho tenant, loại trừ điện, nước, phí dịch vụ chung
+    // Nếu là cho tenant, loại trừ điện, nước, phí dịch vụ chung (các dịch vụ tự động tính trong hóa đơn)
     if (forTenant) {
       where.NOT = {
         OR: [
@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
           { name: { contains: 'Dịch vụ chung', mode: 'insensitive' } },
           { name: { contains: 'Phí quản lý', mode: 'insensitive' } },
           { name: { contains: 'Phí dịch vụ', mode: 'insensitive' } },
-          { name: { contains: 'Quản lý', mode: 'insensitive' } }
+          { name: { contains: 'Quản lý', mode: 'insensitive' } },
+          { name: { contains: 'dịch vụ chung', mode: 'insensitive' } }
         ]
       }
     }

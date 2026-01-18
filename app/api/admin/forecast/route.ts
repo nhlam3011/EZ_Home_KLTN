@@ -39,37 +39,87 @@ export async function GET() {
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0
     const n = revenueHistory.length
     
-    revenueHistory.forEach((item, index) => {
-      const x = index + 1
-      const y = item.revenue
-      sumX += x
-      sumY += y
-      sumXY += x * y
-      sumX2 += x * x
-    })
+    // Nếu không có dữ liệu lịch sử, tính dự đoán dựa trên hợp đồng hiện tại
+    let slope = 0
+    let intercept = 0
     
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
-    const intercept = (sumY - slope * sumX) / n
+    if (n > 0) {
+      revenueHistory.forEach((item, index) => {
+        const x = index + 1
+        const y = item.revenue
+        sumX += x
+        sumY += y
+        sumXY += x * y
+        sumX2 += x * x
+      })
+      
+      const denominator = n * sumX2 - sumX * sumX
+      if (denominator !== 0) {
+        slope = (n * sumXY - sumX * sumY) / denominator
+        intercept = (sumY - slope * sumX) / n
+      } else {
+        // Nếu không thể tính slope, dùng giá trị trung bình
+        intercept = sumY / n
+      }
+    } else {
+      // Nếu không có dữ liệu lịch sử, tính dựa trên hợp đồng hiện tại
+      const activeContracts = await prisma.contract.findMany({
+        where: { status: 'ACTIVE' },
+        include: { room: true }
+      })
+      
+      const estimatedMonthlyRevenue = activeContracts.reduce((sum, contract) => {
+        return sum + Number(contract.rentPrice || 0)
+      }, 0)
+      
+      // Thêm ước tính cho điện nước và dịch vụ (khoảng 30% giá thuê)
+      const estimatedTotalRevenue = estimatedMonthlyRevenue * 1.3
+      
+      intercept = estimatedTotalRevenue
+      // Giả định tăng trưởng 0% nếu không có dữ liệu
+      slope = 0
+    }
     
     // Dự đoán doanh thu 6 tháng tới
     const revenueForecast = []
+    const avgRevenue = n > 0 
+      ? revenueHistory.reduce((sum, item) => sum + item.revenue, 0) / n 
+      : intercept
+    
+    // Tính độ biến động (volatility) dựa trên độ lệch chuẩn
+    let stdDev = 0
+    if (n > 1) {
+      const variance = revenueHistory.reduce((sum, item) => {
+        return sum + Math.pow(item.revenue - avgRevenue, 2)
+      }, 0) / n
+      stdDev = Math.sqrt(variance)
+    } else {
+      // Nếu không có dữ liệu, ước tính độ lệch chuẩn = 20% của trung bình
+      stdDev = avgRevenue * 0.2
+    }
+    
     for (let i = 1; i <= 6; i++) {
       const date = new Date(currentYear, currentMonth - 1 + i, 1)
       const month = date.getMonth() + 1
       const year = date.getFullYear()
       
       // Dự đoán dựa trên xu hướng
-      const predictedRevenue = slope * (n + i) + intercept
+      const predictedRevenue = n > 0 
+        ? Math.max(0, slope * (n + i) + intercept)
+        : intercept // Nếu không có lịch sử, dùng giá trị ước tính
       
-      // Tính độ biến động (volatility) dựa trên độ lệch chuẩn
-      const avgRevenue = revenueHistory.reduce((sum, item) => sum + item.revenue, 0) / n
-      const variance = revenueHistory.reduce((sum, item) => {
-        return sum + Math.pow(item.revenue - avgRevenue, 2)
-      }, 0) / n
-      const stdDev = Math.sqrt(variance)
+      // Dự đoán với khoảng tin cậy ±30% (dựa trên độ biến động)
+      const confidenceInterval = stdDev * 0.3
       
-      // Dự đoán với khoảng tin cậy ±20% (dựa trên độ biến động)
-      const confidenceInterval = stdDev * 0.3 // 30% của độ lệch chuẩn
+      // Xác định độ tin cậy
+      let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW'
+      if (n >= 6) {
+        confidence = stdDev < avgRevenue * 0.2 ? 'HIGH' : stdDev < avgRevenue * 0.4 ? 'MEDIUM' : 'LOW'
+      } else if (n > 0) {
+        confidence = 'MEDIUM'
+      } else {
+        confidence = 'LOW' // Không có dữ liệu lịch sử
+      }
       
       revenueForecast.push({
         month,
@@ -78,14 +128,18 @@ export async function GET() {
         predictedRevenue: Math.max(0, predictedRevenue),
         minRevenue: Math.max(0, predictedRevenue - confidenceInterval),
         maxRevenue: predictedRevenue + confidenceInterval,
-        confidence: stdDev < avgRevenue * 0.2 ? 'HIGH' : stdDev < avgRevenue * 0.4 ? 'MEDIUM' : 'LOW'
+        confidence
       })
     }
 
     // Tính tổng doanh thu dự đoán 6 tháng tới
     const totalForecastRevenue = revenueForecast.reduce((sum, item) => sum + item.predictedRevenue, 0)
-    const avgMonthlyRevenue = revenueHistory.reduce((sum, item) => sum + item.revenue, 0) / n
-    const growthRate = slope > 0 ? (slope / avgMonthlyRevenue) * 100 : 0
+    const calculatedAvgMonthlyRevenue = n > 0 
+      ? revenueHistory.reduce((sum, item) => sum + item.revenue, 0) / n 
+      : avgRevenue
+    const growthRate = calculatedAvgMonthlyRevenue > 0 && slope > 0 
+      ? (slope / calculatedAvgMonthlyRevenue) * 100 
+      : 0
 
     // ============================================
     // 2. DỰ ĐOÁN RỦI RO TRỐNG PHÒNG (Vacancy Risk)
@@ -205,7 +259,7 @@ export async function GET() {
         history: revenueHistory,
         forecast: revenueForecast,
         totalForecastRevenue,
-        avgMonthlyRevenue,
+        avgMonthlyRevenue: calculatedAvgMonthlyRevenue,
         growthRate: growthRate.toFixed(2),
         summary: {
           nextMonth: revenueForecast[0],

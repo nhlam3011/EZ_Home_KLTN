@@ -262,19 +262,19 @@ export default function FinancePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tài chính</h1>
-        <p className="text-gray-600 mt-1">Quản lý hóa đơn và chốt điện nước</p>
+        <h1 className="text-2xl font-bold text-primary">Tài chính</h1>
+        <p className="text-secondary mt-1">Quản lý hóa đơn và chốt điện nước</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-primary">
         <div className="flex items-center gap-6">
           <Link
             href="/admin/invoices"
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               pathname === '/admin/invoices'
-                ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
             <FileText size={18} className="inline mr-2" />
@@ -284,8 +284,8 @@ export default function FinancePage() {
             href="/admin/finance"
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
               pathname === '/admin/finance'
-                ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
             <Zap size={18} className="inline mr-2" />
@@ -298,10 +298,10 @@ export default function FinancePage() {
       {pathname === '/admin/finance' && (
         <div className="space-y-6">
           {/* Action Bar */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="card">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Kỳ chốt số:</label>
+                <label className="text-sm font-medium text-primary">Kỳ chốt số:</label>
                 <select
                   value={`${selectedMonth}/${selectedYear}`}
                   onChange={(e) => {
@@ -309,7 +309,7 @@ export default function FinancePage() {
                     setSelectedMonth(parseInt(month))
                     setSelectedYear(parseInt(year))
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border border-primary rounded-lg text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   {generateMonthYearOptions().map(opt => (
                     <option key={opt.value} value={opt.value}>
@@ -319,19 +319,19 @@ export default function FinancePage() {
                 </select>
               </div>
               <div className="flex-1 relative max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary" size={18} />
                 <input
                   type="text"
                   placeholder="Tìm kiếm phòng..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <button
                 onClick={handleSaveReadings}
                 disabled={saving}
-                className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 transition-colors disabled:opacity-50"
+                className="btn btn-primary btn-md"
               >
                 {saving ? (
                   <>
@@ -345,11 +345,11 @@ export default function FinancePage() {
                   </>
                 )}
               </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors">
+              <button className="btn btn-secondary btn-md">
                 <Download size={18} />
                 <span>Xuất Excel</span>
               </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors">
+              <button className="btn btn-secondary btn-md">
                 <Upload size={18} />
                 <span>Upload Excel</span>
               </button>
@@ -359,29 +359,49 @@ export default function FinancePage() {
           {/* Table */}
           {loading ? (
             <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-600 mx-auto mb-2" size={32} />
-              <p className="text-gray-500">Đang tải...</p>
+              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
+              <p className="text-tertiary">Đang tải...</p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="card overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-tertiary border-b border-primary">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">PHÒNG</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ĐIỆN CŨ</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">ĐIỆN MỚI</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">TIÊU THỤ</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NƯỚC CŨ</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NƯỚC MỚI</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">TIÊU THỤ</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">TRẠNG THÁI</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">PHÒNG</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                        <div className="flex items-center gap-2">
+                          <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                          ĐIỆN CŨ
+                        </div>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                        <div className="flex items-center gap-2">
+                          <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                          ĐIỆN MỚI
+                        </div>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                        <div className="flex items-center gap-2">
+                          <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                          NƯỚC CŨ
+                        </div>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                        <div className="flex items-center gap-2">
+                          <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                          NƯỚC MỚI
+                        </div>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-primary">
                     {filteredRooms.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                        <td colSpan={8} className="px-4 py-8 text-center text-tertiary">
                           Không có phòng nào
                         </td>
                       </tr>
@@ -400,102 +420,120 @@ export default function FinancePage() {
                         return (
                           <tr 
                             key={room.id} 
-                            className={`hover:bg-gray-50 transition-colors ${hasError ? 'bg-red-50' : ''}`}
+                            className={`hover:bg-tertiary transition-colors ${
+                              hasError ? 'bg-red-50 dark:bg-red-900/20' : ''
+                            }`}
                           >
                             <td className="px-4 py-3">
                               <div>
-                                <p className="text-sm font-medium text-gray-900">{room.name}</p>
+                                <p className="text-sm font-medium text-primary">{room.name}</p>
                                 {room.contract && (
-                                  <p className="text-xs text-gray-500">{room.contract.user.fullName}</p>
+                                  <p className="text-xs text-tertiary">{room.contract.user.fullName}</p>
                                 )}
                               </div>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="text-sm text-gray-600">{room.elecOld.toLocaleString('vi-VN')}</span>
+                              <div className="flex items-center gap-2">
+                                <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                                <span className="text-sm text-secondary font-medium">{room.elecOld.toLocaleString('vi-VN')}</span>
+                              </div>
                             </td>
                             <td className="px-4 py-3">
-                              <input
-                                type="number"
-                                min={room.elecOld}
-                                step="1"
-                                value={reading.elecNew}
-                                onChange={(e) => handleReadingChange(room.id, 'elecNew', e.target.value)}
-                                onBlur={(e) => {
-                                  const val = parseFloat(e.target.value)
-                                  if (val < room.elecOld) {
-                                    handleReadingChange(room.id, 'elecNew', e.target.value)
-                                  }
-                                }}
-                                placeholder="Nhập số mới"
-                                className={`w-24 px-2 py-1 text-sm border rounded ${
-                                  hasError && elecNewNum !== null && elecNewNum < room.elecOld
-                                    ? 'border-red-500 bg-red-50'
-                                    : 'border-gray-300 focus:ring-2 focus:ring-blue-500'
-                                }`}
-                              />
+                              <div className="flex items-center gap-2">
+                                <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                                <input
+                                  type="number"
+                                  min={room.elecOld}
+                                  step="1"
+                                  value={reading.elecNew}
+                                  onChange={(e) => handleReadingChange(room.id, 'elecNew', e.target.value)}
+                                  onBlur={(e) => {
+                                    const val = parseFloat(e.target.value)
+                                    if (val < room.elecOld) {
+                                      handleReadingChange(room.id, 'elecNew', e.target.value)
+                                    }
+                                  }}
+                                  placeholder="Nhập số mới"
+                                  className={`w-24 px-2 py-1 text-sm border rounded bg-primary text-primary ${
+                                    hasError && elecNewNum !== null && elecNewNum < room.elecOld
+                                      ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
+                                      : 'border-primary focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400'
+                                  }`}
+                                />
+                              </div>
                               {hasError && elecNewNum !== null && elecNewNum < room.elecOld && (
-                                <p className="text-xs text-red-600 mt-1">Tối thiểu: {room.elecOld}</p>
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.elecOld}</p>
                               )}
                             </td>
                             <td className="px-4 py-3">
                               {elecConsumption !== null ? (
                                 <span className={`text-sm font-medium ${
-                                  elecConsumption < 0 ? 'text-red-600' : 'text-blue-600'
+                                  elecConsumption < 0 
+                                    ? 'text-red-600 dark:text-red-400' 
+                                    : 'text-yellow-600 dark:text-yellow-400'
                                 }`}>
                                   {elecConsumption.toLocaleString('vi-VN')}
                                 </span>
                               ) : (
-                                <span className="text-sm text-gray-400">-</span>
+                                <span className="text-sm text-tertiary">-</span>
                               )}
                             </td>
                             <td className="px-4 py-3">
-                              <span className="text-sm text-gray-600">{room.waterOld.toLocaleString('vi-VN')}</span>
+                              <div className="flex items-center gap-2">
+                                <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                                <span className="text-sm text-secondary font-medium">{room.waterOld.toLocaleString('vi-VN')}</span>
+                              </div>
                             </td>
                             <td className="px-4 py-3">
-                              <input
-                                type="number"
-                                min={room.waterOld}
-                                step="1"
-                                value={reading.waterNew}
-                                onChange={(e) => handleReadingChange(room.id, 'waterNew', e.target.value)}
-                                onBlur={(e) => {
-                                  const val = parseFloat(e.target.value)
-                                  if (val < room.waterOld) {
-                                    handleReadingChange(room.id, 'waterNew', e.target.value)
-                                  }
-                                }}
-                                placeholder="Nhập số mới"
-                                className={`w-24 px-2 py-1 text-sm border rounded ${
-                                  hasError && waterNewNum !== null && waterNewNum < room.waterOld
-                                    ? 'border-red-500 bg-red-50'
-                                    : 'border-gray-300 focus:ring-2 focus:ring-blue-500'
-                                }`}
-                              />
+                              <div className="flex items-center gap-2">
+                                <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                                <input
+                                  type="number"
+                                  min={room.waterOld}
+                                  step="1"
+                                  value={reading.waterNew}
+                                  onChange={(e) => handleReadingChange(room.id, 'waterNew', e.target.value)}
+                                  onBlur={(e) => {
+                                    const val = parseFloat(e.target.value)
+                                    if (val < room.waterOld) {
+                                      handleReadingChange(room.id, 'waterNew', e.target.value)
+                                    }
+                                  }}
+                                  placeholder="Nhập số mới"
+                                  className={`w-24 px-2 py-1 text-sm border rounded bg-primary text-primary ${
+                                    hasError && waterNewNum !== null && waterNewNum < room.waterOld
+                                      ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
+                                      : 'border-primary focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400'
+                                  }`}
+                                />
+                              </div>
                               {hasError && waterNewNum !== null && waterNewNum < room.waterOld && (
-                                <p className="text-xs text-red-600 mt-1">Tối thiểu: {room.waterOld}</p>
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.waterOld}</p>
                               )}
                             </td>
                             <td className="px-4 py-3">
                               {waterConsumption !== null ? (
                                 <span className={`text-sm font-medium ${
-                                  waterConsumption < 0 ? 'text-red-600' : 'text-blue-600'
+                                  waterConsumption < 0 
+                                    ? 'text-red-600 dark:text-red-400' 
+                                    : 'text-blue-600 dark:text-blue-400'
                                 }`}>
                                   {waterConsumption.toLocaleString('vi-VN')}
                                 </span>
                               ) : (
-                                <span className="text-sm text-gray-400">-</span>
+                                <span className="text-sm text-tertiary">-</span>
                               )}
                             </td>
                             <td className="px-4 py-3 text-center">
                               {hasError ? (
                                 <div className="flex flex-col items-center gap-1">
-                                  <XCircle size={20} className="text-red-600" />
-                                  <span className="text-xs text-red-600">{reading.error || 'Lỗi'}</span>
+                                  <XCircle size={20} className="text-red-600 dark:text-red-400" />
+                                  <span className="text-xs text-red-600 dark:text-red-400">{reading.error || 'Lỗi'}</span>
                                 </div>
                               ) : isComplete ? (
-                                <CheckCircle size={20} className="text-green-600 mx-auto" />
+                                <CheckCircle size={20} className="text-green-600 dark:text-green-400 mx-auto" />
                               ) : (
-                                <AlertCircle size={20} className="text-gray-400 mx-auto" />
+                                <AlertCircle size={20} className="text-tertiary mx-auto" />
                               )}
                             </td>
                           </tr>

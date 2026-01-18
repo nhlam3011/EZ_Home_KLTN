@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { DarkModeProvider } from "./contexts/DarkModeContext";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -19,11 +20,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <body
         className={`${inter.variable} font-sans antialiased`}
       >
-        {children}
+        <DarkModeProvider>
+          {children}
+        </DarkModeProvider>
       </body>
     </html>
   );

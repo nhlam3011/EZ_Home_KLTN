@@ -56,7 +56,18 @@ export default function ServicesPage() {
 
       const response = await fetch(`/api/services?${params.toString()}`)
       const data = await response.json()
-      setServices(data)
+      
+      // Lọc bỏ các dịch vụ không được phép đặt (điện, nước, dịch vụ chung)
+      const excludedServices = ['Điện', 'Nước', 'Dịch vụ chung', 'Phí quản lý', 'Phí dịch vụ']
+      const filteredData = data.filter((service: Service) => {
+        const serviceName = service.name.toLowerCase()
+        return !excludedServices.some(excluded => 
+          serviceName.includes(excluded.toLowerCase()) || 
+          serviceName === excluded.toLowerCase()
+        )
+      })
+      
+      setServices(filteredData)
     } catch (error) {
       console.error('Error fetching services:', error)
     } finally {
@@ -163,28 +174,28 @@ export default function ServicesPage() {
     const statusMap: Record<string, { label: string; className: string; icon: any }> = {
       PENDING: { 
         label: 'Chờ xử lý', 
-        className: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+        className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700',
         icon: Clock
       },
       PROCESSING: { 
         label: 'Đang xử lý', 
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
+        className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700',
         icon: AlertCircle
       },
       DONE: { 
         label: 'Hoàn thành', 
-        className: 'bg-green-100 text-green-700 border-green-200',
+        className: 'badge badge-success border',
         icon: CheckCircle
       },
       CANCELLED: { 
         label: 'Đã hủy', 
-        className: 'bg-gray-100 text-gray-700 border-gray-200',
+        className: 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700',
         icon: XCircle
       }
     }
     return statusMap[status] || { 
       label: status, 
-      className: 'bg-gray-100 text-gray-700 border-gray-200',
+      className: 'bg-gray-100 text-gray-700 border-primary',
       icon: AlertCircle
     }
   }
@@ -200,19 +211,19 @@ export default function ServicesPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dịch vụ</h1>
-        <p className="text-gray-600 mt-1">Đặt các dịch vụ tiện ích cho căn hộ của bạn</p>
+        <h1 className="text-2xl font-bold text-primary">Dịch vụ</h1>
+        <p className="text-secondary mt-1">Đặt các dịch vụ tiện ích cho căn hộ của bạn</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-primary">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => setActiveTab('services')}
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
               activeTab === 'services'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
             Dịch vụ
@@ -222,7 +233,7 @@ export default function ServicesPage() {
             className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 relative ${
               activeTab === 'orders'
                 ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+                : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
             Đơn hàng của tôi
@@ -239,15 +250,15 @@ export default function ServicesPage() {
       {activeTab === 'services' && (
         <>
           {/* Search Bar */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="card p-4">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-tertiary" size={20} />
               <input
                 type="text"
                 placeholder="Tìm kiếm dịch vụ (Vệ sinh, sửa chữa, giặt ủi...)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input w-full pl-12 pr-4 py-3"
               />
             </div>
           </div>
@@ -259,7 +270,7 @@ export default function ServicesPage() {
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                 categoryFilter === 'all'
                   ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'bg-primary border border-primary text-primary hover:bg-tertiary'
               }`}
             >
               Tất cả
@@ -271,7 +282,7 @@ export default function ServicesPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   categoryFilter === category
                     ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    : 'bg-primary border border-primary text-primary hover:bg-tertiary'
                 }`}
               >
                 {category}
@@ -283,7 +294,7 @@ export default function ServicesPage() {
           {loading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Đang tải dịch vụ...</p>
+              <p className="text-tertiary">Đang tải dịch vụ...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -294,7 +305,7 @@ export default function ServicesPage() {
                 return (
                   <div
                     key={service.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200"
+                    className="card rounded-xl overflow-hidden hover:shadow-lg transition-all duration-200"
                   >
                     <div className="aspect-video bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative">
                       <span className="text-6xl">{getServiceIcon(service.name)}</span>
@@ -306,18 +317,18 @@ export default function ServicesPage() {
                     </div>
                     <div className="p-5">
                       <div className="mb-3">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">{service.name}</h3>
-                        <p className="text-sm text-gray-600 line-clamp-2">
+                        <h3 className="text-lg font-bold text-primary mb-1">{service.name}</h3>
+                        <p className="text-sm text-secondary line-clamp-2">
                           {service.description || `Dịch vụ ${service.name.toLowerCase()} chất lượng cao`}
                         </p>
                       </div>
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <p className="text-xl font-bold text-gray-900">
+                          <p className="text-xl font-bold text-primary">
                             {isFree ? 'Miễn phí' : formatCurrency(Number(service.unitPrice))}
                           </p>
                           {!isFree && (
-                            <p className="text-xs text-gray-500 mt-0.5">/{service.unit}</p>
+                            <p className="text-xs text-tertiary mt-0.5">/{service.unit}</p>
                           )}
                         </div>
                         <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded">
@@ -339,10 +350,10 @@ export default function ServicesPage() {
           )}
 
           {filteredServices.length === 0 && !loading && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <div className="card p-12 text-center">
               <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy dịch vụ</h3>
-              <p className="text-gray-500">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
+              <h3 className="text-lg font-semibold text-primary mb-2">Không tìm thấy dịch vụ</h3>
+              <p className="text-tertiary">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác</p>
             </div>
           )}
         </>
@@ -353,16 +364,16 @@ export default function ServicesPage() {
         ordersLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-500">Đang tải đơn hàng...</p>
+            <p className="text-tertiary">Đang tải đơn hàng...</p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <ShoppingCart className="mx-auto text-gray-300 mb-4" size={48} />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có đơn hàng</h3>
-            <p className="text-gray-500">Bạn chưa đặt dịch vụ nào. Hãy xem các dịch vụ có sẵn!</p>
+          <div className="card p-12 text-center">
+            <ShoppingCart className="mx-auto text-tertiary mb-4" size={48} />
+            <h3 className="text-lg font-semibold text-primary mb-2">Chưa có đơn hàng</h3>
+            <p className="text-tertiary">Bạn chưa đặt dịch vụ nào. Hãy xem các dịch vụ có sẵn!</p>
             <button
               onClick={() => setActiveTab('services')}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="btn btn-primary btn-md mt-4"
             >
               Xem dịch vụ
             </button>
@@ -376,7 +387,7 @@ export default function ServicesPage() {
               return (
                 <div
                   key={order.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all"
+                  className="card rounded-xl p-6 hover:shadow-md transition-all"
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -385,8 +396,8 @@ export default function ServicesPage() {
                           {getServiceIcon(order.service.name)}
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900">{order.service.name}</h3>
-                          <p className="text-sm text-gray-500">
+                          <h3 className="text-lg font-bold text-primary">{order.service.name}</h3>
+                          <p className="text-sm text-tertiary">
                             Đặt ngày: {formatDate(order.orderDate)}
                           </p>
                         </div>
@@ -399,29 +410,29 @@ export default function ServicesPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">Số lượng</p>
-                      <p className="text-sm font-semibold text-gray-900">
+                    <div className="bg-tertiary rounded-lg p-3">
+                      <p className="text-xs text-tertiary mb-1">Số lượng</p>
+                      <p className="text-sm font-semibold text-primary">
                         {order.quantity} {order.service.unit}
                       </p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">Tổng tiền</p>
-                      <p className="text-sm font-semibold text-gray-900">
+                    <div className="bg-tertiary rounded-lg p-3">
+                      <p className="text-xs text-tertiary mb-1">Tổng tiền</p>
+                      <p className="text-sm font-semibold text-primary">
                         {formatCurrency(order.total)}
                       </p>
                     </div>
                   </div>
 
                   {order.note && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-4">
-                      <p className="text-xs text-blue-700 font-medium mb-1">Ghi chú:</p>
-                      <p className="text-sm text-blue-900">{order.note}</p>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3 mb-4">
+                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Ghi chú:</p>
+                      <p className="text-sm text-blue-900 dark:text-blue-200">{order.note}</p>
                     </div>
                   )}
 
                   {order.status === 'DONE' && (
-                    <div className="pt-4 border-t border-gray-200">
+                    <div className="pt-4 border-t border-primary">
                       <div className="flex items-center gap-2 text-sm text-green-600">
                         <CheckCircle size={16} />
                         <span>Dịch vụ đã được hoàn thành</span>
@@ -438,10 +449,10 @@ export default function ServicesPage() {
       {/* Order Modal */}
       {showOrderModal && selectedService && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+          <div className="card rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Đặt dịch vụ</h2>
+                <h2 className="text-xl font-bold text-primary">Đặt dịch vụ</h2>
                 <button
                   onClick={() => {
                     setShowOrderModal(false)
@@ -449,9 +460,9 @@ export default function ServicesPage() {
                     setQuantity(1)
                     setOrderNote('')
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                 >
-                  <X size={20} className="text-gray-500" />
+                  <X size={20} className="text-tertiary" />
                 </button>
               </div>
 
@@ -461,50 +472,50 @@ export default function ServicesPage() {
                     {getServiceIcon(selectedService.name)}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900">{selectedService.name}</h3>
-                    <p className="text-sm text-gray-500">{selectedService.description || `Dịch vụ ${selectedService.name.toLowerCase()}`}</p>
+                    <h3 className="text-lg font-bold text-primary">{selectedService.name}</h3>
+                    <p className="text-sm text-tertiary">{selectedService.description || `Dịch vụ ${selectedService.name.toLowerCase()}`}</p>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="bg-tertiary rounded-lg p-4 mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Đơn giá:</span>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm text-secondary">Đơn giá:</span>
+                    <span className="text-sm font-semibold text-primary">
                       {formatCurrency(Number(selectedService.unitPrice))} / {selectedService.unit}
                     </span>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-primary mb-2">
                     Số lượng
                   </label>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                      className="w-10 h-10 rounded-lg border border-primary flex items-center justify-center hover:bg-tertiary transition-colors"
                     >
-                      <Minus size={18} className="text-gray-600" />
+                      <Minus size={18} className="text-secondary" />
                     </button>
                     <input
                       type="number"
                       min="1"
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-20 text-center text-lg font-semibold border border-gray-300 rounded-lg py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="input w-20 text-center text-lg font-semibold py-2"
                     />
                     <button
                       onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                      className="w-10 h-10 rounded-lg border border-primary flex items-center justify-center hover:bg-tertiary transition-colors"
                     >
-                      <Plus size={18} className="text-gray-600" />
+                      <Plus size={18} className="text-secondary" />
                     </button>
-                    <span className="text-sm text-gray-600 ml-2">{selectedService.unit}</span>
+                    <span className="text-sm text-secondary ml-2">{selectedService.unit}</span>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-primary mb-2">
                     Ghi chú (tùy chọn)
                   </label>
                   <textarea
@@ -512,14 +523,14 @@ export default function ServicesPage() {
                     onChange={(e) => setOrderNote(e.target.value)}
                     placeholder="Nhập ghi chú hoặc yêu cầu đặc biệt..."
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="input w-full px-4 py-2 resize-none"
                   />
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Tổng cộng:</span>
-                    <span className="text-xl font-bold text-blue-600">
+                    <span className="text-sm font-medium text-primary">Tổng cộng:</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
                       {formatCurrency(totalPrice)}
                     </span>
                   </div>
@@ -534,7 +545,7 @@ export default function ServicesPage() {
                     setQuantity(1)
                     setOrderNote('')
                   }}
-                  className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className="flex-1 px-4 py-2.5 border-2 border-primary text-primary rounded-lg hover:bg-tertiary transition-colors font-medium"
                 >
                   Hủy
                 </button>

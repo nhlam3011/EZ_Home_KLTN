@@ -149,13 +149,13 @@ export default function EditRoomPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'RENTED':
-        return 'bg-red-100 text-red-700 border-red-200'
+        return 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold'
       case 'AVAILABLE':
-        return 'bg-green-100 text-green-700 border-green-200'
+        return 'badge badge-success'
       case 'MAINTENANCE':
-        return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+        return 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold'
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200'
+        return 'bg-tertiary text-primary border-primary'
     }
   }
 
@@ -175,7 +175,7 @@ export default function EditRoomPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Đang tải...</p>
+        <p className="text-tertiary">Đang tải...</p>
       </div>
     )
   }
@@ -191,13 +191,13 @@ export default function EditRoomPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Chỉnh sửa phòng</h1>
-          <p className="text-gray-600 mt-1">Cập nhật thông tin chi tiết của phòng {room.name}</p>
+          <h1 className="text-2xl font-bold text-primary">Chỉnh sửa phòng</h1>
+          <p className="text-secondary mt-1">Cập nhật thông tin chi tiết của phòng {room.name}</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/admin/rooms"
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="btn btn-secondary btn-md"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -205,7 +205,7 @@ export default function EditRoomPage() {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50 transition-colors"
+            className="btn btn-primary btn-md"
           >
             <Save size={18} />
             <span>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
@@ -219,14 +219,14 @@ export default function EditRoomPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Current Status Card */}
             {activeContract && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="card stat-card-blue">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-900">Phòng đang được thuê</p>
-                    <p className="text-sm text-blue-700 mt-1">
+                    <p className="text-sm font-medium text-primary">Phòng đang được thuê</p>
+                    <p className="text-sm text-secondary mt-1">
                       Khách thuê: {activeContract.user.fullName} | SĐT: {activeContract.user.phone}
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-tertiary mt-1">
                       Hợp đồng: {formatDate(activeContract.startDate)} - {formatDate(activeContract.endDate)}
                     </p>
                   </div>
@@ -238,11 +238,11 @@ export default function EditRoomPage() {
             )}
 
             {/* Basic Information */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin cơ bản</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">Thông tin cơ bản</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Số phòng <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -252,13 +252,13 @@ export default function EditRoomPage() {
                     onChange={handleChange}
                     placeholder="VD: P.101"
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-primary mb-1">
                       Tầng <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -266,7 +266,7 @@ export default function EditRoomPage() {
                       value={formData.floor}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Chọn tầng</option>
                       {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(floor => (
@@ -276,7 +276,7 @@ export default function EditRoomPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-primary mb-1">
                       Diện tích (m²)
                     </label>
                     <div className="relative">
@@ -288,22 +288,22 @@ export default function EditRoomPage() {
                         min="0"
                         step="0.1"
                         placeholder="VD: 25.5"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">m²</span>
+                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary">m²</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Số người tối đa
                   </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => adjustMaxPeople(-1)}
-                      className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center transition-colors"
+                      className="w-10 h-10 border border-primary rounded-lg hover:bg-tertiary flex items-center justify-center transition-colors text-primary"
                     >
                       -
                     </button>
@@ -313,12 +313,12 @@ export default function EditRoomPage() {
                       value={formData.maxPeople}
                       onChange={handleChange}
                       min="1"
-                      className="w-20 px-4 py-2 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-20 px-4 py-2 border border-primary rounded-lg text-center bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => adjustMaxPeople(1)}
-                      className="w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center transition-colors"
+                      className="w-10 h-10 border border-primary rounded-lg hover:bg-tertiary flex items-center justify-center transition-colors text-primary"
                     >
                       +
                     </button>
@@ -328,11 +328,11 @@ export default function EditRoomPage() {
             </div>
 
             {/* Cost & Description */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Chi phí & Mô tả</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">Chi phí & Mô tả</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Giá thuê cơ bản (VND/tháng) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -343,17 +343,17 @@ export default function EditRoomPage() {
                       onChange={handleChange}
                       required
                       min="0"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500">₫</span>
+                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary">₫</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-tertiary mt-1">
                     Giá này chưa bao gồm điện, nước và dịch vụ khác.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Mô tả phòng
                   </label>
                   <textarea
@@ -362,7 +362,7 @@ export default function EditRoomPage() {
                     onChange={handleChange}
                     rows={4}
                     placeholder="Nhập mô tả chi tiết về tiện nghi phòng, hướng cửa số, nội thất có sẵn..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -372,55 +372,55 @@ export default function EditRoomPage() {
           {/* Right Column */}
           <div className="space-y-6">
             {/* Room Status Summary */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">TÓM TẮT</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">TÓM TẮT</h2>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="text-blue-600" size={20} />
+                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary">
+                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
+                    <Building2 className="text-white" size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Số phòng</p>
-                    <p className="text-sm font-semibold text-gray-900">{room.name}</p>
+                    <p className="text-xs text-tertiary">Số phòng</p>
+                    <p className="text-sm font-semibold text-primary">{room.name}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Ruler className="text-green-600" size={20} />
+                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary">
+                  <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
+                    <Ruler className="text-white" size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Diện tích</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs text-tertiary">Diện tích</p>
+                    <p className="text-sm font-semibold text-primary">
                       {room.area ? `${room.area} m²` : 'Chưa cập nhật'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Users className="text-purple-600" size={20} />
+                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary">
+                  <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
+                    <Users className="text-white" size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Số người tối đa</p>
-                    <p className="text-sm font-semibold text-gray-900">{room.maxPeople} người</p>
+                    <p className="text-xs text-tertiary">Số người tối đa</p>
+                    <p className="text-sm font-semibold text-primary">{room.maxPeople} người</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="text-yellow-600" size={20} />
+                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary">
+                  <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
+                    <DollarSign className="text-white" size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Giá thuê</p>
-                    <p className="text-sm font-semibold text-gray-900">{formatCurrency(Number(room.price))}</p>
+                    <p className="text-xs text-tertiary">Giá thuê</p>
+                    <p className="text-sm font-semibold text-primary">{formatCurrency(Number(room.price))}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Status */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">TRẠNG THÁI</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">TRẠNG THÁI</h2>
               <div className="space-y-2">
-                <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <label className="flex items-center gap-2 p-3 border border-primary rounded-lg hover:bg-tertiary cursor-pointer">
                   <input
                     type="radio"
                     name="status"
@@ -430,11 +430,11 @@ export default function EditRoomPage() {
                     className="text-blue-600"
                   />
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-700">Trống (Sẵn sàng)</span>
-                    <p className="text-xs text-gray-500">Phòng có thể cho thuê ngay</p>
+                    <span className="text-sm font-medium text-primary">Trống (Sẵn sàng)</span>
+                    <p className="text-xs text-tertiary">Phòng có thể cho thuê ngay</p>
                   </div>
                 </label>
-                <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <label className="flex items-center gap-2 p-3 border border-primary rounded-lg hover:bg-tertiary cursor-pointer">
                   <input
                     type="radio"
                     name="status"
@@ -442,14 +442,14 @@ export default function EditRoomPage() {
                     checked={formData.status === 'RENTED'}
                     onChange={handleChange}
                     disabled={!activeContract}
-                    className="text-blue-600 disabled:opacity-50"
+                    className="text-blue-600 dark:text-blue-400 disabled:opacity-50"
                   />
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-700">Đang thuê</span>
-                    <p className="text-xs text-gray-500">Phòng đang có khách thuê</p>
+                    <span className="text-sm font-medium text-primary">Đang thuê</span>
+                    <p className="text-xs text-tertiary">Phòng đang có khách thuê</p>
                   </div>
                 </label>
-                <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                <label className="flex items-center gap-2 p-3 border border-primary rounded-lg hover:bg-tertiary cursor-pointer">
                   <input
                     type="radio"
                     name="status"
@@ -459,34 +459,34 @@ export default function EditRoomPage() {
                     className="text-blue-600"
                   />
                   <div className="flex-1">
-                    <span className="text-sm font-medium text-gray-700">Đang bảo trì</span>
-                    <p className="text-xs text-gray-500">Phòng đang được sửa chữa/bảo trì</p>
+                    <span className="text-sm font-medium text-primary">Đang bảo trì</span>
+                    <p className="text-xs text-tertiary">Phòng đang được sửa chữa/bảo trì</p>
                   </div>
                 </label>
               </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">THAO TÁC NHANH</h2>
+            <div className="card">
+              <h2 className="text-lg font-semibold text-primary mb-4">THAO TÁC NHANH</h2>
               <div className="space-y-2">
                 {activeContract && (
                   <Link
                     href={`/admin/residents/${activeContract.user.id}`}
-                    className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-center transition-colors"
+                    className="block w-full px-4 py-2 text-sm border border-primary rounded-lg hover:bg-tertiary text-center transition-colors text-primary"
                   >
                     Xem thông tin khách thuê
                   </Link>
                 )}
                 <Link
                   href={`/admin/rooms/${roomId}/contracts`}
-                  className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-center transition-colors"
+                  className="block w-full px-4 py-2 text-sm border border-primary rounded-lg hover:bg-tertiary text-center transition-colors text-primary"
                 >
                   Xem lịch sử hợp đồng
                 </Link>
                 <Link
                   href={`/admin/maintenance?room=${roomId}`}
-                  className="block w-full px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-center transition-colors"
+                  className="block w-full px-4 py-2 text-sm border border-primary rounded-lg hover:bg-tertiary text-center transition-colors text-primary"
                 >
                   Xem sự cố phòng
                 </Link>

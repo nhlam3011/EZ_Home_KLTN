@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         content,
         images: images || [],
-        status: 'PUBLIC'
+        status: 'PENDING' // Bài viết cần được admin duyệt
       },
       include: {
         user: {

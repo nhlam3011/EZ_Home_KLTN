@@ -128,13 +128,13 @@ export default function NewInvoicePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tạo hóa đơn mới</h1>
-          <p className="text-gray-600 mt-1">Tạo hóa đơn thanh toán cho cư dân</p>
+          <h1 className="text-2xl font-bold text-primary">Tạo hóa đơn mới</h1>
+          <p className="text-secondary mt-1">Tạo hóa đơn thanh toán cho cư dân</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/admin/invoices"
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            className="px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -142,7 +142,7 @@ export default function NewInvoicePage() {
           <button
             onClick={handleSubmit}
             disabled={loading || !selectedContract}
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 btn-primary text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50"
           >
             <Save size={18} />
             <span>{loading ? 'Đang tạo...' : 'Tạo hóa đơn'}</span>
@@ -153,16 +153,15 @@ export default function NewInvoicePage() {
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Contract Selection */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Chọn hợp đồng</h2>
+          <div className="bg-primary rounded-lg shadow-sm border border-primary p-6">
+            <h2 className="text-lg font-semibold text-primary mb-4">Chọn hợp đồng</h2>
             <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
                 placeholder="Tìm kiếm theo tên, số phòng, SĐT..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -173,16 +172,16 @@ export default function NewInvoicePage() {
                   onClick={() => setSelectedContract(contract.id)}
                   className={`w-full p-3 text-left border rounded-lg transition-colors ${
                     selectedContract === contract.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:bg-gray-50'
+                      ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-primary hover:bg-tertiary'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">{contract.user.fullName}</p>
-                      <p className="text-sm text-gray-500">{contract.room.name} • {contract.user.phone}</p>
+                      <p className="font-medium text-primary">{contract.user.fullName}</p>
+                      <p className="text-sm text-tertiary">{contract.room.name} • {contract.user.phone}</p>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-primary">
                       {formatCurrency(Number(contract.rentPrice))}/tháng
                     </span>
                   </div>
@@ -192,18 +191,18 @@ export default function NewInvoicePage() {
           </div>
 
           {/* Invoice Details */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Chi tiết hóa đơn</h2>
+          <div className="bg-primary rounded-lg shadow-sm border border-primary p-6">
+            <h2 className="text-lg font-semibold text-primary mb-4">Chi tiết hóa đơn</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Tháng
                   </label>
                   <select
                     value={formData.month}
                     onChange={(e) => setFormData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
                       <option key={month} value={month}>Tháng {month}</option>
@@ -211,7 +210,7 @@ export default function NewInvoicePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-primary mb-1">
                     Năm
                   </label>
                   <input
@@ -220,13 +219,13 @@ export default function NewInvoicePage() {
                     onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
                     min="2020"
                     max="2030"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-primary mb-1">
                   Tiền phòng (VND)
                 </label>
                 <input
@@ -235,12 +234,12 @@ export default function NewInvoicePage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, amountRoom: e.target.value }))}
                   required
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-primary mb-1">
                   Tiền điện (VND)
                 </label>
                 <input
@@ -248,12 +247,12 @@ export default function NewInvoicePage() {
                   value={formData.amountElec}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountElec: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-primary mb-1">
                   Tiền nước (VND)
                 </label>
                 <input
@@ -261,12 +260,12 @@ export default function NewInvoicePage() {
                   value={formData.amountWater}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountWater: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-primary mb-1">
                   Phí dịch vụ chung (VND)
                 </label>
                 <input
@@ -274,14 +273,14 @@ export default function NewInvoicePage() {
                   value={formData.amountCommonService}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountCommonService: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Phí quản lý, vệ sinh, bảo vệ..."
                 />
-                <p className="text-xs text-gray-500 mt-1">Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ, thang máy...)</p>
+                <p className="text-xs text-tertiary mt-1">Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ, thang máy...)</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-primary mb-1">
                   Phí xử lý sự cố & Dịch vụ khác (VND)
                 </label>
                 <input
@@ -289,10 +288,10 @@ export default function NewInvoicePage() {
                   value={formData.amountService}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountService: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Phí sửa chữa, dịch vụ khác..."
                 />
-                <p className="text-xs text-gray-500 mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
+                <p className="text-xs text-tertiary mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
               </div>
             </div>
           </div>
@@ -300,42 +299,42 @@ export default function NewInvoicePage() {
 
         {/* Summary */}
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Tổng kết</h2>
+          <div className="bg-primary rounded-lg shadow-sm border border-primary p-6 sticky top-6">
+            <h2 className="text-lg font-semibold text-primary mb-4">Tổng kết</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Tiền phòng:</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-secondary">Tiền phòng:</span>
+                <span className="text-sm font-semibold text-primary">
                   {formatCurrency(parseFloat(formData.amountRoom || 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Tiền điện:</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-secondary">Tiền điện:</span>
+                <span className="text-sm font-semibold text-primary">
                   {formatCurrency(parseFloat(formData.amountElec || 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Tiền nước:</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-secondary">Tiền nước:</span>
+                <span className="text-sm font-semibold text-primary">
                   {formatCurrency(parseFloat(formData.amountWater || 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Phí dịch vụ chung:</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-secondary">Phí dịch vụ chung:</span>
+                <span className="text-sm font-semibold text-primary">
                   {formatCurrency(parseFloat(formData.amountCommonService || 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Phí xử lý sự cố & Dịch vụ khác:</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm text-secondary">Phí xử lý sự cố & Dịch vụ khác:</span>
+                <span className="text-sm font-semibold text-primary">
                   {formatCurrency(parseFloat(formData.amountService || 0))}
                 </span>
               </div>
-              <div className="pt-3 border-t border-gray-200">
+              <div className="pt-3 border-t border-primary">
                 <div className="flex items-center justify-between">
-                  <span className="text-base font-semibold text-gray-900">Tổng cộng:</span>
+                  <span className="text-base font-semibold text-primary">Tổng cộng:</span>
                   <span className="text-lg font-bold text-[#1e3a5f]">
                     {formatCurrency(totalAmount)}
                   </span>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { DarkModeToggle } from '../components/DarkModeToggle'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -58,30 +59,38 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-secondary">
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <DarkModeToggle />
+      </div>
+      <div className="w-full max-w-md relative z-10">
         {/* Logo & Title */}
         <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-[#1e3a5f] rounded-2xl shadow-lg mb-4">
-            <Building2 className="text-white" size={40} />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img 
+              src="/logo_final.png" 
+              alt="EZ-Home Logo" 
+              className="w-32 h-32 object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">EZ-Home</h1>
-          <p className="text-gray-600">Hệ thống quản lý nhà trọ thông minh</p>
+          <h1 className="text-3xl font-bold text-primary mb-2">EZ-Home</h1>
+          <p className="text-secondary">Hệ thống quản lý nhà trọ thông minh</p>
         </div>
 
         {/* Login Card */}
         <div className="card animate-fade-in">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Đăng nhập</h2>
+          <h2 className="text-2xl font-bold text-primary mb-6 text-center">Đăng nhập</h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-primary mb-2">
                 Số điện thoại
               </label>
               <input
@@ -95,7 +104,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-primary mb-2">
                 Mật khẩu
               </label>
               <div className="relative">
@@ -110,7 +119,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -133,17 +142,17 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 text-center">
-              <span className="text-gray-500">Lưu ý: </span>
-              Khách thuê mới sử dụng số CCCD làm mật khẩu ban đầu
+          <div className="mt-6 pt-6 border-t border-primary">
+            <p className="text-sm text-secondary text-center">
+              <span className="text-tertiary">Lưu ý: </span>
+              Khách mới sử dụng số CCCD làm mật khẩu ban đầu
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-500 mt-6">
-          © 2024 EZ-Home. Bảo lưu mọi quyền.
+        <p className="text-center text-sm text-tertiary mt-6">
+          KLTN - KHMT64 - Nguyen Nhat Lam
         </p>
       </div>
     </div>

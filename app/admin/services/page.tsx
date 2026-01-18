@@ -414,12 +414,12 @@ export default function ServicesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Mới', className: 'bg-red-100 text-red-700' },
-      PROCESSING: { label: 'Đang làm', className: 'bg-blue-100 text-blue-700' },
-      DONE: { label: 'Hoàn thành', className: 'bg-green-100 text-green-700' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-gray-100 text-gray-700' }
+      PENDING: { label: 'Mới', className: 'bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-400 font-semibold' },
+      PROCESSING: { label: 'Đang làm', className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 font-semibold' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      CANCELLED: { label: 'Đã hủy', className: 'bg-tertiary text-primary' }
     }
-    return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-700' }
+    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
   }
 
   const getInitials = (name: string) => {
@@ -436,14 +436,14 @@ export default function ServicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cấu hình Dịch vụ</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-primary">Cấu hình Dịch vụ</h1>
+          <p className="text-secondary mt-1">
             Quản lý các loại dịch vụ và đơn giá áp dụng cho toàn hệ thống
           </p>
         </div>
         <Link
           href="/admin/services/new"
-          className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2"
+          className="px-4 py-2 btn-primary flex items-center gap-2"
         >
           <Plus size={18} />
           <span>Thêm dịch vụ</span>
@@ -451,7 +451,7 @@ export default function ServicesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-primary">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => {
@@ -460,8 +460,8 @@ export default function ServicesPage() {
             }}
             className={`px-4 py-2 text-sm transition-colors ${
               activeTab === 'registrations'
-                ? 'font-semibold text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'font-semibold text-accent-blue border-b-2 border-accent-blue'
+                : 'text-secondary hover:text-primary'
             }`}
           >
             Danh sách đăng ký
@@ -473,8 +473,8 @@ export default function ServicesPage() {
             }}
             className={`px-4 py-2 text-sm transition-colors ${
               activeTab === 'config'
-                ? 'font-semibold text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'font-semibold text-accent-blue border-b-2 border-accent-blue'
+                : 'text-secondary hover:text-primary'
             }`}
           >
             Cấu hình Dịch vụ
@@ -486,8 +486,8 @@ export default function ServicesPage() {
             }}
             className={`px-4 py-2 text-sm transition-colors ${
               activeTab === 'history'
-                ? 'font-semibold text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'font-semibold text-accent-blue border-b-2 border-accent-blue'
+                : 'text-secondary hover:text-primary'
             }`}
           >
             Lịch sử điều chỉnh giá
@@ -497,16 +497,15 @@ export default function ServicesPage() {
 
       {/* Search and Filters */}
       {activeTab === 'registrations' ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="card p-4">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex-1 min-w-[300px] relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
                 placeholder="Tìm theo số phòng, tên dịch vụ, người yêu cầu..."
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input w-full pl-10 pr-4 py-2"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -516,7 +515,7 @@ export default function ServicesPage() {
               className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
                 viewMode === 'list'
                   ? 'bg-[#1e3a5f] text-white'
-                  : 'border border-gray-300 hover:bg-gray-50'
+                  : 'btn-secondary'
               }`}
             >
               <List size={16} />
@@ -528,7 +527,7 @@ export default function ServicesPage() {
               className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
                 viewMode === 'kanban'
                   ? 'bg-[#1e3a5f] text-white'
-                  : 'border border-gray-300 hover:bg-gray-50'
+                  : 'btn-secondary'
               }`}
             >
               <LayoutGrid size={16} />
@@ -538,7 +537,7 @@ export default function ServicesPage() {
             <select 
               value={buildingFilter}
               onChange={(e) => setBuildingFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none"
+              className="input px-4 py-2 text-sm"
             >
               <option value="all">Tất cả Tòa nhà</option>
               <option value="A">Tòa A</option>
@@ -548,7 +547,7 @@ export default function ServicesPage() {
             <select 
               value={orderStatusFilter}
               onChange={(e) => setOrderStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none"
+              className="input px-4 py-2 text-sm"
             >
               <option value="all">Mọi trạng thái</option>
               <option value="PENDING">Mới</option>
@@ -559,22 +558,21 @@ export default function ServicesPage() {
           </div>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="card p-4">
           <div className="flex items-center gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
                 placeholder="Tìm kiếm theo tên dịch vụ..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input w-full pl-10 pr-4 py-2"
               />
             </div>
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none"
+              className="input px-4 py-2 text-sm"
             >
               <option value="all">Hiển thị: Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>
@@ -588,23 +586,23 @@ export default function ServicesPage() {
       {activeTab === 'registrations' && (
         ordersLoading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Đang tải...</p>
+            <p className="text-tertiary">Đang tải...</p>
           </div>
         ) : viewMode === 'list' ? (
           <>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="card overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-tertiary border-b border-primary">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">PHÒNG</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">TÊN DỊCH VỤ</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NGƯỜI YÊU CẦU</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">THỜI GIAN TẠO</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">TRẠNG THÁI</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">HÀNH ĐỘNG</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">PHÒNG</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TÊN DỊCH VỤ</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">NGƯỜI YÊU CẦU</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">THỜI GIAN TẠO</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">HÀNH ĐỘNG</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-primary">
                   {paginatedOrders.map((order) => {
                     const statusBadge = getStatusBadge(order.status)
                     const room = order.user.contracts[0]?.room
@@ -612,23 +610,23 @@ export default function ServicesPage() {
                     const initials = getInitials(order.user.fullName)
                     
                     return (
-                      <tr key={order.id} className="hover:bg-gray-50">
+                      <tr key={order.id} className="hover:bg-tertiary">
                         <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-gray-900">{roomName}</span>
+                          <span className="text-sm font-medium text-primary">{roomName}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm text-gray-900">{order.service.name}</span>
+                          <span className="text-sm text-primary">{order.service.name}</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-blue-600 font-semibold text-xs">{initials}</span>
+                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                              <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
                             </div>
-                            <span className="text-sm text-gray-900">{order.user.fullName}</span>
+                            <span className="text-sm text-primary">{order.user.fullName}</span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm text-gray-600">{formatDateTime(order.orderDate)}</span>
+                          <span className="text-sm text-secondary">{formatDateTime(order.orderDate)}</span>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
@@ -636,7 +634,7 @@ export default function ServicesPage() {
                               {statusBadge.label}
                             </span>
                             {order.status === 'CANCELLED' && order.note && order.note.startsWith('Lý do hủy:') && (
-                              <span className="text-xs text-gray-500 italic mt-1" title={order.note}>
+                              <span className="text-xs text-tertiary italic mt-1" title={order.note}>
                                 {order.note.replace('Lý do hủy: ', '')}
                               </span>
                             )}
@@ -649,10 +647,10 @@ export default function ServicesPage() {
                               onClick={() => {
                                 alert(`Đơn hàng #${order.id}\nDịch vụ: ${order.service.name}\nSố lượng: ${order.quantity}\nTổng tiền: ${formatCurrency(order.total)}\nTrạng thái: ${statusBadge.label}\nNgười yêu cầu: ${order.user.fullName}\nPhòng: ${roomName}`)
                               }}
-                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                              className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                               title="Xem chi tiết"
                             >
-                              <Eye size={16} className="text-gray-600" />
+                              <Eye size={16} className="text-secondary" />
                             </button>
                             {order.status === 'PENDING' && (
                               <>
@@ -710,7 +708,7 @@ export default function ServicesPage() {
                               </button>
                             )}
                             {order.status === 'CANCELLED' && (
-                              <span className="text-sm text-gray-500">Đã hủy</span>
+                              <span className="text-sm text-tertiary">Đã hủy</span>
                             )}
                           </div>
                         </td>
@@ -721,8 +719,8 @@ export default function ServicesPage() {
               </table>
             </div>
             {orders.length > 0 && (
-              <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                <p className="text-sm text-gray-600">
+              <div className="flex items-center justify-between card p-4">
+                <p className="text-sm text-secondary">
                   Hiển thị {orderStartIndex + 1}-{Math.min(orderEndIndex, orders.length)} trong số {orders.length} đơn hàng
                 </p>
                 <div className="flex items-center gap-2">
@@ -730,7 +728,7 @@ export default function ServicesPage() {
                     type="button"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="btn btn-secondary btn-sm"
                   >
                     Trước
                   </button>
@@ -751,8 +749,8 @@ export default function ServicesPage() {
                         key={pageNum}
                         type="button"
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors ${
-                          currentPage === pageNum ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : ''
+                        className={`btn btn-sm ${
+                          currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
                         }`}
                       >
                         {pageNum}
@@ -762,7 +760,7 @@ export default function ServicesPage() {
                   <button 
                     onClick={() => setCurrentPage(prev => Math.min(totalOrderPages, prev + 1))}
                     disabled={currentPage === totalOrderPages}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="btn btn-secondary btn-sm"
                   >
                     Tiếp
                   </button>
@@ -773,11 +771,11 @@ export default function ServicesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* PENDING Column */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-tertiary rounded-lg p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <h3 className="font-semibold text-gray-900">Mới</h3>
-                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                <h3 className="font-semibold text-primary">Mới</h3>
+                <span className="px-2 py-1 bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-full text-xs font-semibold">
                   {orders.filter(o => o.status === 'PENDING').length}
                 </span>
               </div>
@@ -789,23 +787,23 @@ export default function ServicesPage() {
                   return (
                     <div 
                       key={order.id} 
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                      className="card p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{order.service.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">Phòng {roomName}</p>
+                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
+                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-xs">{initials}</span>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
                         </div>
-                        <span className="text-xs text-gray-600">{order.user.fullName}</span>
+                        <span className="text-xs text-secondary">{order.user.fullName}</span>
                       </div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-gray-500">Số lượng: {order.quantity}</span>
-                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(order.total)}</span>
+                        <span className="text-xs text-tertiary">Số lượng: {order.quantity}</span>
+                        <span className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</span>
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -839,11 +837,11 @@ export default function ServicesPage() {
             </div>
 
             {/* PROCESSING Column */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-tertiary rounded-lg p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <h3 className="font-semibold text-gray-900">Đang làm</h3>
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+                <h3 className="font-semibold text-primary">Đang làm</h3>
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 rounded-full text-xs font-semibold">
                   {orders.filter(o => o.status === 'PROCESSING').length}
                 </span>
               </div>
@@ -855,23 +853,23 @@ export default function ServicesPage() {
                   return (
                     <div 
                       key={order.id} 
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                      className="card p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{order.service.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">Phòng {roomName}</p>
+                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
+                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-xs">{initials}</span>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
                         </div>
-                        <span className="text-xs text-gray-600">{order.user.fullName}</span>
+                        <span className="text-xs text-secondary">{order.user.fullName}</span>
                       </div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-gray-500">Số lượng: {order.quantity}</span>
-                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(order.total)}</span>
+                        <span className="text-xs text-tertiary">Số lượng: {order.quantity}</span>
+                        <span className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</span>
                       </div>
                       <button
                         type="button"
@@ -892,11 +890,11 @@ export default function ServicesPage() {
             </div>
 
             {/* DONE Column */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-tertiary rounded-lg p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <h3 className="font-semibold text-gray-900">Hoàn thành</h3>
-                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                <h3 className="font-semibold text-primary">Hoàn thành</h3>
+                <span className="badge badge-success rounded-full text-xs">
                   {orders.filter(o => o.status === 'DONE').length}
                 </span>
               </div>
@@ -906,22 +904,22 @@ export default function ServicesPage() {
                   const roomName = room?.name || 'N/A'
                   const initials = getInitials(order.user.fullName)
                   return (
-                    <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div key={order.id} className="card p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{order.service.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">Phòng {roomName}</p>
+                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
+                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-xs">{initials}</span>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
                         </div>
-                        <span className="text-xs text-gray-600">{order.user.fullName}</span>
+                        <span className="text-xs text-secondary">{order.user.fullName}</span>
                       </div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-gray-500">Số lượng: {order.quantity}</span>
-                        <span className="text-sm font-semibold text-gray-900">{formatCurrency(order.total)}</span>
+                        <span className="text-xs text-tertiary">Số lượng: {order.quantity}</span>
+                        <span className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</span>
                       </div>
                       <button
                         type="button"
@@ -942,11 +940,11 @@ export default function ServicesPage() {
             </div>
 
             {/* CANCELLED Column */}
-            <div className="bg-gray-50 rounded-lg p-4">
+            <div className="bg-tertiary rounded-lg p-4">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
-                <h3 className="font-semibold text-gray-900">Đã hủy</h3>
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                <div className="w-2 h-2 rounded-full bg-secondary"></div>
+                <h3 className="font-semibold text-primary">Đã hủy</h3>
+                <span className="px-2 py-1 bg-tertiary text-primary rounded-full text-xs font-semibold">
                   {orders.filter(o => o.status === 'CANCELLED').length}
                 </span>
               </div>
@@ -956,25 +954,25 @@ export default function ServicesPage() {
                   const roomName = room?.name || 'N/A'
                   const initials = getInitials(order.user.fullName)
                   return (
-                    <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                    <div key={order.id} className="card p-4">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{order.service.name}</p>
-                          <p className="text-xs text-gray-500 mt-1">Phòng {roomName}</p>
+                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
+                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-xs">{initials}</span>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
                         </div>
-                        <span className="text-xs text-gray-600">{order.user.fullName}</span>
+                        <span className="text-xs text-secondary">{order.user.fullName}</span>
                       </div>
                       {order.note && order.note.startsWith('Lý do hủy:') && (
-                        <div className="mb-3 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700">
+                        <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 rounded text-xs text-red-900 dark:text-red-400">
                           {order.note.replace('Lý do hủy: ', '')}
                         </div>
                       )}
-                      <div className="px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-xs font-medium text-center">
+                      <div className="px-3 py-1.5 bg-tertiary text-secondary rounded-lg text-xs font-medium text-center">
                         Đã hủy
                       </div>
                     </div>
@@ -990,51 +988,51 @@ export default function ServicesPage() {
       {activeTab === 'config' && (
         loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500">Đang tải...</p>
+            <p className="text-tertiary">Đang tải...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="card overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-tertiary border-b border-primary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   THÔNG TIN DỊCH VỤ
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   ĐƠN VỊ TÍNH
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   ĐƠN GIÁ HIỆN TẠI
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   TRẠNG THÁI
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   HÀNH ĐỘNG
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-primary">
               {paginatedServices.map((service) => (
-                <tr key={service.id} className="hover:bg-gray-50">
+                <tr key={service.id} className="hover:bg-tertiary">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-xl">
+                      <div className="w-10 h-10 rounded-lg bg-tertiary flex items-center justify-center text-xl">
                         {getServiceIcon(service.name)}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{service.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-sm font-medium text-primary">{service.name}</p>
+                        <p className="text-xs text-tertiary mt-1">
                           Dịch vụ {service.name.toLowerCase()}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm text-gray-600">{service.unit}</span>
+                    <span className="text-sm text-secondary">{service.unit}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-primary">
                       {formatCurrency(Number(service.unitPrice))} / {service.unit}
                     </span>
                   </td>
@@ -1046,7 +1044,7 @@ export default function ServicesPage() {
                         checked={service.isActive}
                         onChange={() => handleToggleActive(service.id, service.isActive)}
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-primary after:border-primary after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </td>
                   <td className="px-6 py-4">
@@ -1054,18 +1052,18 @@ export default function ServicesPage() {
                       <button 
                         type="button"
                         onClick={() => handleEdit(service)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                         title="Chỉnh sửa"
                       >
-                        <Edit size={16} className="text-gray-600" />
+                        <Edit size={16} className="text-secondary" />
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(service.id)}
-                        className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                         title="Xóa"
                       >
-                        <Trash2 size={16} className="text-red-600" />
+                        <Trash2 size={16} className="text-red-600 dark:text-red-400" />
                       </button>
                     </div>
                   </td>
@@ -1079,8 +1077,8 @@ export default function ServicesPage() {
 
       {/* Pagination for Services */}
       {activeTab === 'config' && filteredServices.length > 0 && (
-        <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">
+        <div className="flex items-center justify-between card p-4">
+          <p className="text-sm text-secondary">
             Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredServices.length)} trong {filteredServices.length} dịch vụ
           </p>
           <div className="flex items-center gap-2">
@@ -1088,7 +1086,7 @@ export default function ServicesPage() {
               type="button"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-secondary btn-sm"
             >
               Trước
             </button>
@@ -1107,8 +1105,8 @@ export default function ServicesPage() {
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors ${
-                    currentPage === pageNum ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : ''
+                  className={`btn btn-sm ${
+                    currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
                   }`}
                 >
                   {pageNum}
@@ -1119,7 +1117,7 @@ export default function ServicesPage() {
               type="button"
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-secondary btn-sm"
             >
               Tiếp
             </button>
@@ -1129,37 +1127,37 @@ export default function ServicesPage() {
 
       {/* History Tab */}
       {activeTab === 'history' && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <p className="text-gray-500 text-center py-12">Lịch sử điều chỉnh giá đang được phát triển...</p>
+        <div className="card p-6">
+          <p className="text-tertiary text-center py-12">Lịch sử điều chỉnh giá đang được phát triển...</p>
         </div>
       )}
 
       {/* Cancel Order Modal */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="card rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Hủy đơn dịch vụ</h2>
+                <h2 className="text-xl font-bold text-primary">Hủy đơn dịch vụ</h2>
                 <button
                   onClick={() => {
                     setShowCancelModal(false)
                     setSelectedOrderId(null)
                     setCancelReason('')
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                 >
-                  <XCircle size={20} className="text-gray-500" />
+                  <XCircle size={20} className="text-tertiary" />
                 </button>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-secondary mb-4">
                 Vui lòng nêu rõ lý do không nhận đơn sự cố này:
               </p>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="Nhập lý do hủy đơn..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+                className="input w-full px-4 py-3 resize-none"
                 rows={4}
               />
               <div className="flex items-center gap-3 mt-6">
@@ -1177,7 +1175,7 @@ export default function ServicesPage() {
                     setSelectedOrderId(null)
                     setCancelReason('')
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-primary text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Hủy
                 </button>
@@ -1190,48 +1188,48 @@ export default function ServicesPage() {
       {/* Edit Service Modal */}
       {showEditModal && editingService && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Chỉnh sửa dịch vụ</h2>
+          <div className="bg-primary rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-primary">
+              <h2 className="text-xl font-semibold text-primary">Chỉnh sửa dịch vụ</h2>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tên dịch vụ <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                   placeholder="Nhập tên dịch vụ"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Đơn giá <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   value={editFormData.unitPrice}
                   onChange={(e) => setEditFormData({ ...editFormData, unitPrice: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                   placeholder="Nhập đơn giá"
                   min="0"
                   step="1000"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-tertiary mt-1">
                   Đơn giá hiện tại: {formatCurrency(editingService.unitPrice)}
                 </p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Đơn vị tính <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={editFormData.unit}
                   onChange={(e) => setEditFormData({ ...editFormData, unit: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 >
                   <option value="">Chọn đơn vị</option>
                   <option value="lần">lần</option>
@@ -1244,11 +1242,11 @@ export default function ServicesPage() {
                 </select>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center gap-3">
+            <div className="px-6 py-4 border-t border-primary flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleSaveEdit}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                className="btn btn-primary btn-md flex-1"
               >
                 Lưu thay đổi
               </button>
@@ -1259,7 +1257,7 @@ export default function ServicesPage() {
                   setEditingService(null)
                   setEditFormData({ name: '', unitPrice: '', unit: '' })
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="btn btn-secondary btn-md flex-1"
               >
                 Hủy
               </button>
@@ -1271,7 +1269,7 @@ export default function ServicesPage() {
       {/* Create Invoice Modal */}
       {showInvoiceModal && contract && selectedOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-primary rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
@@ -1279,8 +1277,8 @@ export default function ServicesPage() {
                     <Receipt size={20} className="text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Tạo hóa đơn dịch vụ</h2>
-                    <p className="text-sm text-gray-500">Đơn hàng #{selectedOrder.id}: {selectedOrder.service.name}</p>
+                    <h2 className="text-xl font-bold text-primary">Tạo hóa đơn dịch vụ</h2>
+                    <p className="text-sm text-secondary">Đơn hàng #{selectedOrder.id}: {selectedOrder.service.name}</p>
                   </div>
                 </div>
                 <button
@@ -1290,27 +1288,27 @@ export default function ServicesPage() {
                     setSelectedOrder(null)
                     setContract(null)
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-tertiary rounded-lg transition-colors"
                 >
-                  <XCircle size={20} className="text-gray-500" />
+                  <XCircle size={20} className="text-tertiary" />
                 </button>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-blue-900 mb-1">Khách hàng</p>
-                  <p className="text-sm text-blue-700">{selectedOrder.user.fullName}</p>
-                  <p className="text-xs text-blue-600 mt-1">Phòng {selectedOrder.user.contracts[0]?.room?.name || 'N/A'}</p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">Khách hàng</p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">{selectedOrder.user.fullName}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Phòng {selectedOrder.user.contracts[0]?.room?.name || 'N/A'}</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <Receipt size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                    <Receipt size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-900 mb-1">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
                         Hóa đơn riêng cho dịch vụ
                       </p>
-                      <p className="text-xs text-blue-700">
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
                         Hóa đơn này sẽ được tạo <strong>riêng biệt</strong>, không gộp vào hóa đơn tháng hiện có.
                       </p>
                     </div>
@@ -1319,13 +1317,13 @@ export default function ServicesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-primary mb-2">
                       Tháng
                     </label>
                     <select
                       value={invoiceData.month}
                       onChange={(e) => setInvoiceData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="input w-full"
                     >
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <option key={m} value={m}>{m}</option>
@@ -1333,39 +1331,39 @@ export default function ServicesPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-primary mb-2">
                       Năm
                     </label>
                     <input
                       type="number"
                       value={invoiceData.year}
                       onChange={(e) => setInvoiceData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="input w-full"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-primary mb-2">
                     Phí dịch vụ (VND)
-                    <span className="text-xs text-gray-500 ml-2">(Đơn hàng #{selectedOrder.id}: {selectedOrder.service.name})</span>
+                    <span className="text-xs text-tertiary ml-2">(Đơn hàng #{selectedOrder.id}: {selectedOrder.service.name})</span>
                   </label>
                   <input
                     type="number"
                     value={invoiceData.amountService}
                     onChange={(e) => setInvoiceData(prev => ({ ...prev, amountService: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                    className="input w-full"
                     placeholder="Nhập phí dịch vụ"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-tertiary mt-1">
                     Tổng tiền đơn hàng: {formatCurrency(selectedOrder.total)}
                   </p>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="bg-tertiary rounded-lg p-4 border border-primary">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-700">Tổng cộng:</span>
-                    <span className="text-lg font-bold text-green-600">
+                    <span className="text-sm font-semibold text-primary">Tổng cộng:</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
                       {formatCurrency(
                         parseFloat(invoiceData.amountService || '0')
                       )}
@@ -1374,11 +1372,11 @@ export default function ServicesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center gap-3 mt-6 pt-6 border-t border-primary">
                 <button
                   type="button"
                   onClick={handleCreateInvoice}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  className="btn btn-success btn-md flex-1"
                 >
                   <Receipt size={18} />
                   <span>Tạo hóa đơn riêng</span>
@@ -1390,7 +1388,7 @@ export default function ServicesPage() {
                     setSelectedOrder(null)
                     setContract(null)
                   }}
-                  className="px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                  className="btn btn-secondary btn-md"
                 >
                   Hủy
                 </button>

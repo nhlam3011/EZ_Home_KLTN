@@ -43,9 +43,9 @@ enum RequestStatus {
 }
 
 enum PaymentMethod {
-  VIETQR
   CASH
   BANK_TRANSFER
+  VIETQR
 }
 
 enum PaymentStatus {
@@ -257,8 +257,8 @@ model Payment {
   method        PaymentMethod
   status        PaymentStatus @default(PENDING)
   transactionId String?       // Transaction ID from payment gateway
-  qrCode        String?       // QR code image (Base64 or URL) for VietQR
-  qrString      String?       // QR code string for VietQR
+  qrCode        String?       // QR code image URL (from VietQR API)
+  qrString      String?       // QR code string for scanning
   gatewayResponse String?     // Full gateway response (JSON string)
   paidAt        DateTime?     // When payment was completed
   createdAt     DateTime      @default(now())

@@ -65,21 +65,21 @@ export default function IssueDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-100 text-yellow-700' },
-      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-blue-100 text-blue-700' },
-      DONE: { label: 'Hoàn thành', className: 'bg-green-100 text-green-700' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-gray-100 text-gray-700' }
+      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
+      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      CANCELLED: { label: 'Đã hủy', className: 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 font-semibold' }
     }
-    return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-700' }
+    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
   }
 
   const getSeverityBadge = (severity: string) => {
     const severityMap: Record<string, { label: string; className: string }> = {
-      HIGH: { label: 'Cao', className: 'bg-red-100 text-red-700' },
-      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-100 text-yellow-700' },
-      LOW: { label: 'Thấp', className: 'bg-blue-100 text-blue-700' }
+      HIGH: { label: 'Cao', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' },
+      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
+      LOW: { label: 'Thấp', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' }
     }
-    return severityMap[severity] || { label: severity, className: 'bg-gray-100 text-gray-700' }
+    return severityMap[severity] || { label: severity, className: 'bg-tertiary text-primary' }
   }
 
   const handleRate = async () => {
@@ -134,13 +134,13 @@ export default function IssueDetailPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/tenant/issues"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="btn btn-ghost btn-icon"
           >
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{issue.title}</h1>
-            <p className="text-gray-600 mt-1">Phòng {issue.room.name}</p>
+            <h1 className="text-2xl font-bold text-primary">{issue.title}</h1>
+            <p className="text-secondary mt-1">Phòng {issue.room.name}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -160,15 +160,15 @@ export default function IssueDetailPage() {
         {/* Left Column - Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* Description */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Mô tả sự cố</h2>
-            <p className="text-gray-700 whitespace-pre-wrap">
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-primary mb-4">Mô tả sự cố</h2>
+            <p className="text-primary whitespace-pre-wrap">
               {issue.description.split('\n\n--- Admin Notes ---')[0]}
             </p>
             {issue.description.includes('--- Admin Notes ---') && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Ghi chú của Admin:</h3>
-                <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg whitespace-pre-wrap">
+              <div className="mt-4 pt-4 border-t border-primary">
+                <h3 className="text-sm font-semibold text-primary mb-2">Ghi chú của Admin:</h3>
+                <p className="text-sm text-secondary bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg whitespace-pre-wrap">
                   {issue.description.split('--- Admin Notes ---\n')[1]}
                 </p>
               </div>
@@ -177,8 +177,8 @@ export default function IssueDetailPage() {
 
           {/* Images */}
           {issue.images && issue.images.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="card p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
                 <ImageIcon size={20} />
                 Hình ảnh hiện trạng
               </h2>
@@ -186,7 +186,7 @@ export default function IssueDetailPage() {
                 {issue.images.map((imageUrl, index) => (
                   <div
                     key={index}
-                    className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                    className="relative aspect-video bg-tertiary rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() => setSelectedImage(imageUrl)}
                   >
                     <img
@@ -202,17 +202,17 @@ export default function IssueDetailPage() {
 
           {/* Progress */}
           {issue.progress !== undefined && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Tiến độ xử lý</h2>
+            <div className="card p-6">
+              <h2 className="text-lg font-semibold text-primary mb-4">Tiến độ xử lý</h2>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Hoàn thành</span>
-                  <span className="font-semibold text-gray-900">{issue.progress}%</span>
+                  <span className="text-secondary">Hoàn thành</span>
+                  <span className="font-semibold text-primary">{issue.progress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
+                <div                     className="w-full bg-tertiary rounded-full h-3">
                   <div
                     className={`h-3 rounded-full transition-all ${
-                      issue.progress === 100 ? 'bg-green-500' : 'bg-blue-500'
+                      issue.progress === 100 ? 'bg-green-500 dark:bg-green-600' : 'bg-blue-500 dark:bg-blue-600'
                     }`}
                     style={{ width: `${issue.progress}%` }}
                   />
@@ -225,23 +225,23 @@ export default function IssueDetailPage() {
         {/* Right Column - Info */}
         <div className="space-y-6">
           {/* Status Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-4">Thông tin</h3>
+          <div className="card p-6">
+            <h3 className="text-sm font-semibold text-primary mb-4">Thông tin</h3>
             <div className="space-y-3">
               <div>
-                <p className="text-xs text-gray-500">Ngày gửi</p>
-                <p className="text-sm font-medium text-gray-900">{formatDate(issue.createdAt)}</p>
+                <p className="text-xs text-secondary">Ngày gửi</p>
+                <p className="text-sm font-medium text-primary">{formatDate(issue.createdAt)}</p>
               </div>
               {issue.category && (
                 <div>
-                  <p className="text-xs text-gray-500">Loại sự cố</p>
-                  <p className="text-sm font-medium text-gray-900">{issue.category}</p>
+                  <p className="text-xs text-secondary">Loại sự cố</p>
+                  <p className="text-sm font-medium text-primary">{issue.category}</p>
                 </div>
               )}
               {issue.repairCost && (
                 <div>
-                  <p className="text-xs text-gray-500">Chi phí sửa chữa</p>
-                  <p className="text-sm font-medium text-gray-900">{formatCurrency(issue.repairCost)}</p>
+                  <p className="text-xs text-secondary">Chi phí sửa chữa</p>
+                  <p className="text-sm font-medium text-primary">{formatCurrency(issue.repairCost)}</p>
                 </div>
               )}
             </div>
@@ -249,11 +249,11 @@ export default function IssueDetailPage() {
 
           {/* Actions */}
           {issue.status === 'DONE' && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4">Đánh giá</h3>
+            <div className="card p-6">
+              <h3 className="text-sm font-semibold text-primary mb-4">Đánh giá</h3>
               <button
                 onClick={handleRate}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
+                className="btn btn-primary btn-md w-full"
               >
                 <Star size={18} />
                 <span>Đánh giá dịch vụ</span>
@@ -277,9 +277,9 @@ export default function IssueDetailPage() {
             />
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-4 right-4 p-2 bg-white rounded-full hover:bg-gray-100"
+              className="absolute top-4 right-4 p-2 bg-primary rounded-full hover:bg-tertiary"
             >
-              <XCircle size={24} className="text-gray-700" />
+              <XCircle size={24} className="text-primary" />
             </button>
           </div>
         </div>

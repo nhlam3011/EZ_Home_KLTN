@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Download, Search, Edit, Trash2 } from 'lucide-react'
+import { Plus, Download, Search, Edit, Trash2, Building2, Users, DollarSign } from 'lucide-react'
 
 interface Room {
   id: number
@@ -126,7 +126,7 @@ export default function RoomsPage() {
       case 'MAINTENANCE':
         return 'bg-yellow-500'
       default:
-        return 'bg-gray-500'
+        return 'bg-tertiary0'
     }
   }
 
@@ -175,77 +175,65 @@ export default function RoomsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Danh sách phòng</h1>
-          <p className="text-gray-600 mt-1">Quản lý trạng thái và thông tin cư dân</p>
+          <h1 className="text-2xl font-bold text-primary">Danh sách phòng</h1>
+          <p className="text-secondary mt-1">Quản lý trạng thái và thông tin cư dân</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={handleExport}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="btn btn-secondary btn-md"
           >
             <Download size={18} />
             <span>Export</span>
           </button>
           <Link
             href="/admin/rooms/new"
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2"
+            className="btn btn-primary btn-md"
           >
-            <Plus size={18} />
+            <Plus size={19} strokeWidth={3} />
             <span>Thêm phòng mới</span>
           </Link>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="card">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary" size={20} />
             <input
               type="text"
               placeholder="Tìm theo số phòng, tên khách thuê..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                statusFilter === 'all'
-                  ? 'bg-[#1e3a5f] text-white'
-                  : 'border border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`btn-filter ${statusFilter === 'all' ? 'active' : ''}`}
             >
               Tất cả
             </button>
             <button
               onClick={() => setStatusFilter('AVAILABLE')}
-              className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1 ${
-                statusFilter === 'AVAILABLE'
-                  ? 'bg-[#1e3a5f] text-white'
-                  : 'border border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`btn-filter flex items-center gap-1 ${statusFilter === 'AVAILABLE' ? 'active' : ''}`}
             >
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span className="w-2 h-2 rounded-full bg-current opacity-80"></span>
               Trống
             </button>
             <button
               onClick={() => setStatusFilter('RENTED')}
-              className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1 ${
-                statusFilter === 'RENTED'
-                  ? 'bg-[#1e3a5f] text-white'
-                  : 'border border-gray-300 hover:bg-gray-50'
-              }`}
+              className={`btn-filter flex items-center gap-1 ${statusFilter === 'RENTED' ? 'active' : ''}`}
             >
-              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              <span className="w-2 h-2 rounded-full bg-current opacity-80"></span>
               Có khách
             </button>
             <select
               value={floorFilter}
               onChange={(e) => setFloorFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-primary rounded-lg text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Tất cả tầng</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(floor => (
@@ -257,50 +245,50 @@ export default function RoomsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="card stat-card-blue">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">TỔNG SỐ PHÒNG</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+              <p className="text-sm text-secondary mb-1 font-medium">TỔNG SỐ PHÒNG</p>
+              <p className="text-2xl font-bold text-primary">{stats.total}</p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">🏢</span>
+            <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
+              <Building2 className="text-white" size={24} />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="card stat-card-green">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">ĐANG THUÊ</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.rented}</p>
+              <p className="text-sm text-secondary mb-1 font-medium">ĐANG THUÊ</p>
+              <p className="text-2xl font-bold text-primary">{stats.rented}</p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">👤</span>
+            <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
+              <Users className="text-white" size={24} />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="card stat-card-purple">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">PHÒNG TRỐNG</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.vacant}</p>
+              <p className="text-sm text-secondary mb-1 font-medium">PHÒNG TRỐNG</p>
+              <p className="text-2xl font-bold text-primary">{stats.vacant}</p>
             </div>
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">✓</span>
+            <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
+              <Building2 className="text-white" size={24} />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="card stat-card-orange">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">DOANH THU THÁNG</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-secondary mb-1 font-medium">DOANH THU THÁNG</p>
+              <p className="text-2xl font-bold text-primary">
                 {formatLargeCurrency(stats.revenue)}
               </p>
             </div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <span className="text-2xl">💰</span>
+            <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
+              <DollarSign className="text-white" size={24} />
             </div>
           </div>
         </div>
@@ -309,7 +297,7 @@ export default function RoomsPage() {
       {/* Room Grid */}
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">Đang tải...</p>
+          <p className="text-tertiary">Đang tải...</p>
         </div>
       ) : (
         <>
@@ -324,42 +312,42 @@ export default function RoomsPage() {
               return (
                 <div
                   key={room.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                  className="card hover:shadow-lg transition-shadow"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900">{room.name}</h3>
+                    <h3 className="text-lg font-semibold text-primary">{room.name}</h3>
                     <span
                       className={`w-2 h-2 rounded-full ${getStatusColor(room.status)}`}
                     ></span>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Trạng thái:</span>
+                      <span className="text-sm text-secondary">Trạng thái:</span>
                       <span
                         className={`text-sm font-medium ${
-                          room.status === 'RENTED' ? 'text-red-600' : 'text-green-600'
+                          room.status === 'RENTED' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                         }`}
                       >
                         {getStatusLabel(room.status)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Giá thuê:</span>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm text-secondary">Giá thuê:</span>
+                      <span className="text-sm font-semibold text-primary">
                         {formatCurrency(Number(room.price))}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Người ở:</span>
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm text-secondary">Người ở:</span>
+                      <span className="text-sm font-medium text-primary">
                         {currentOccupants}/{room.maxPeople}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-primary">
                     <Link
                       href={`/admin/rooms/${room.id}`}
-                      className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-1 transition-colors"
+                      className="btn btn-secondary btn-sm flex-1"
                       title="Chỉnh sửa thông tin phòng"
                     >
                       <Edit size={14} />
@@ -367,7 +355,7 @@ export default function RoomsPage() {
                     </Link>
                     <button
                       onClick={() => handleDelete(room.id)}
-                      className="px-3 py-1.5 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 flex items-center justify-center gap-1"
+                      className="btn btn-outline-danger btn-sm"
                     >
                       <Trash2 size={14} />
                       Xóa
@@ -380,15 +368,15 @@ export default function RoomsPage() {
 
           {/* Pagination */}
           {rooms.length > 0 && (
-            <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <p className="text-sm text-gray-600">
+            <div className="card flex items-center justify-between">
+              <p className="text-sm text-secondary">
                 Hiển thị {startIndex + 1} đến {Math.min(endIndex, rooms.length)} của {rooms.length} phòng
               </p>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-secondary btn-sm"
                 >
                   &lt;
                 </button>
@@ -407,8 +395,8 @@ export default function RoomsPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors ${
-                        currentPage === pageNum ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : ''
+                      className={`btn btn-sm ${
+                        currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
                       }`}
                     >
                       {pageNum}
@@ -418,7 +406,7 @@ export default function RoomsPage() {
                 <button 
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="btn btn-secondary btn-sm"
                 >
                   &gt;
                 </button>

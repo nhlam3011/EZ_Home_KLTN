@@ -290,13 +290,13 @@ export default function EditResidentPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sửa thông tin Cư dân</h1>
-          <p className="text-gray-600 mt-1">Cập nhật thông tin cá nhân và hồ sơ đính kèm</p>
+          <h1 className="text-2xl font-bold text-primary">Sửa thông tin Cư dân</h1>
+          <p className="text-secondary mt-1">Cập nhật thông tin cá nhân và hồ sơ đính kèm</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href={`/admin/residents/${residentId}`}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-colors text-primary"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -304,16 +304,16 @@ export default function EditResidentPage() {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold disabled:opacity-50 disabled:hover:shadow-md"
           >
             {saving ? (
               <>
-                <Loader2 className="animate-spin" size={18} />
+                <Loader2 className="animate-spin" size={19} strokeWidth={2} />
                 <span>Đang lưu...</span>
               </>
             ) : (
               <>
-                <Save size={18} />
+                <Save size={19} strokeWidth={2.5} />
                 <span>Lưu thay đổi</span>
               </>
             )}
@@ -322,8 +322,8 @@ export default function EditResidentPage() {
       </div>
 
       {errors.submit && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-700">{errors.submit}</p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-700 dark:text-red-400">{errors.submit}</p>
         </div>
       )}
 
@@ -331,8 +331,8 @@ export default function EditResidentPage() {
         {/* Left Column - Personal Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Avatar Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ảnh đại diện</h2>
+          <div className="card">
+            <h2 className="text-lg font-semibold text-primary mb-4">Ảnh đại diện</h2>
             <div className="flex items-center gap-6">
               <div className="relative">
                 {resident.avatarUrl ? (
@@ -348,7 +348,7 @@ export default function EditResidentPage() {
                     <span className="text-white font-bold text-3xl">{initials}</span>
                   </div>
                 )}
-                <label className="absolute bottom-0 right-0 w-10 h-10 bg-[#1e3a5f] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#2a4a6f] transition-colors shadow-lg">
+                <label className="absolute bottom-0 right-0 w-10 h-10 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200 shadow-md">
                   <input
                     type="file"
                     accept="image/*"
@@ -365,20 +365,20 @@ export default function EditResidentPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Thay đổi ảnh đại diện</p>
-                <p className="text-xs text-gray-500">JPG, PNG tối đa 5MB</p>
+                <p className="text-xs text-tertiary">JPG, PNG tối đa 5MB</p>
               </div>
             </div>
           </div>
 
           {/* Personal Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="card">
+            <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
               <User size={20} />
               <span>Thông tin cá nhân</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Họ và tên <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -387,11 +387,11 @@ export default function EditResidentPage() {
                   value={formData.fullName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Số điện thoại <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -400,11 +400,11 @@ export default function EditResidentPage() {
                   value={formData.phone}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Email
                 </label>
                 <input
@@ -412,11 +412,11 @@ export default function EditResidentPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Ngày sinh
                 </label>
                 <input
@@ -424,18 +424,18 @@ export default function EditResidentPage() {
                   name="dob"
                   value={formData.dob}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Giới tính
                 </label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 >
                   <option value="">Chọn giới tính</option>
                   <option value="NAM">Nam</option>
@@ -444,7 +444,7 @@ export default function EditResidentPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Nghề nghiệp
                 </label>
                 <input
@@ -452,11 +452,11 @@ export default function EditResidentPage() {
                   name="job"
                   value={formData.job}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Địa chỉ thường trú
                 </label>
                 <input
@@ -464,21 +464,21 @@ export default function EditResidentPage() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
             </div>
           </div>
 
           {/* CCCD Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="card">
+            <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
               <CreditCard size={20} />
               <span>Thông tin CCCD/CMND</span>
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Số CCCD/CMND
                 </label>
                 <input
@@ -486,11 +486,11 @@ export default function EditResidentPage() {
                   name="cccdNumber"
                   value={formData.cccdNumber}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Ngày cấp
                 </label>
                 <input
@@ -498,11 +498,11 @@ export default function EditResidentPage() {
                   name="cccdDate"
                   value={formData.cccdDate}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Nơi cấp
                 </label>
                 <input
@@ -510,15 +510,15 @@ export default function EditResidentPage() {
                   name="cccdPlace"
                   value={formData.cccdPlace}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input w-full"
                 />
               </div>
             </div>
           </div>
 
           {/* Other Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thông tin khác</h2>
+          <div className="card">
+            <h2 className="text-lg font-semibold text-primary mb-4">Thông tin khác</h2>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Biển số xe
@@ -528,7 +528,7 @@ export default function EditResidentPage() {
                 name="licensePlate"
                 value={formData.licensePlate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -536,25 +536,25 @@ export default function EditResidentPage() {
 
         {/* Right Column - Documents */}
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-primary p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Hồ sơ đính kèm</h3>
+              <h3 className="text-lg font-semibold text-primary">Hồ sơ đính kèm</h3>
               <button 
                 onClick={() => setShowUploadDoc(!showUploadDoc)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-tertiary rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 title="Tải lên hồ sơ"
               >
-                <Plus size={18} className="text-gray-600" />
+                <Plus size={18} strokeWidth={2} className="text-secondary" />
               </button>
             </div>
 
             {showUploadDoc && (
-              <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="mb-4 p-4 border border-primary rounded-lg bg-tertiary">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-gray-700">Tải lên hồ sơ mới</label>
+                  <label className="text-sm font-medium text-primary">Tải lên hồ sơ mới</label>
                   <button
                     onClick={() => setShowUploadDoc(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-tertiary hover:text-primary"
                   >
                     <X size={16} />
                   </button>
@@ -563,10 +563,10 @@ export default function EditResidentPage() {
                   type="file"
                   onChange={handleDocumentUpload}
                   disabled={uploadingDoc}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#1e3a5f] file:text-white hover:file:bg-[#2a4a6f] disabled:opacity-50"
+                  className="w-full text-sm text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-500 file:hover:bg-blue-600 file:text-white disabled:opacity-50"
                 />
                 {uploadingDoc && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                  <div className="mt-2 flex items-center gap-2 text-sm text-secondary">
                     <Loader2 size={16} className="animate-spin" />
                     <span>Đang tải lên...</span>
                   </div>
@@ -579,18 +579,18 @@ export default function EditResidentPage() {
                 documents.map((doc) => {
                   const isImage = doc.fileType?.startsWith('image/')
                   const Icon = isImage ? ImageIcon : FileText
-                  const iconBg = isImage ? 'bg-green-100' : 'bg-blue-100'
-                  const iconColor = isImage ? 'text-green-600' : 'text-blue-600'
+                  const iconBg = isImage ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  const iconColor = isImage ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
 
                   return (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div key={doc.id} className="flex items-center justify-between p-3 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
                           <Icon className={iconColor} size={20} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{doc.fileName}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-sm font-medium text-primary truncate">{doc.fileName}</p>
+                          <p className="text-xs text-tertiary">
                             {formatFileSize(doc.fileSize)} • {formatDate(doc.createdAt)}
                           </p>
                         </div>
@@ -599,25 +599,25 @@ export default function EditResidentPage() {
                         <a
                           href={doc.fileUrl}
                           download
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                          className="p-2 hover:bg-secondary rounded-lg transition-colors"
                           title="Tải xuống"
                         >
-                          <Download size={16} className="text-gray-600" />
+                          <Download size={16} className="text-secondary" />
                         </a>
                         <button
                           onClick={() => handleDeleteDocument(doc.id)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                           title="Xóa"
                         >
-                          <X size={16} className="text-red-600" />
+                          <X size={16} className="text-red-600 dark:text-red-400" />
                         </button>
                       </div>
                     </div>
                   )
                 })
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FileText size={32} className="mx-auto mb-2 text-gray-400" />
+                <div className="text-center py-8 text-tertiary">
+                  <FileText size={32} className="mx-auto mb-2 text-tertiary" />
                   <p className="text-sm">Chưa có hồ sơ đính kèm</p>
                   <p className="text-xs mt-1">Nhấn nút + để tải lên hồ sơ</p>
                 </div>

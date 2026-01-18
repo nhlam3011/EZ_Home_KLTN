@@ -74,13 +74,13 @@ export default function MessagesPage() {
 
   const extractMessageType = (content: string) => {
     if (content.startsWith('[Hóa đơn')) {
-      return { type: 'Hóa đơn', color: 'bg-blue-100 text-blue-700' }
+      return { type: 'Hóa đơn', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' }
     } else if (content.startsWith('[Thông báo')) {
-      return { type: 'Thông báo', color: 'bg-green-100 text-green-700' }
+      return { type: 'Thông báo', color: 'badge badge-success' }
     } else if (content.startsWith('[Tin nhắn')) {
-      return { type: 'Tin nhắn', color: 'bg-purple-100 text-purple-700' }
+      return { type: 'Tin nhắn', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' }
     }
-    return { type: 'Tin nhắn', color: 'bg-gray-100 text-gray-700' }
+    return { type: 'Tin nhắn', color: 'bg-tertiary text-primary' }
   }
 
   const cleanContent = (content: string) => {
@@ -100,7 +100,7 @@ export default function MessagesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Đang tải tin nhắn...</p>
+          <p className="text-tertiary">Đang tải tin nhắn...</p>
         </div>
       </div>
     )
@@ -114,20 +114,20 @@ export default function MessagesPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/tenant"
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-tertiary rounded-lg transition-colors"
             >
-              <ArrowLeft size={20} className="text-gray-600" />
+              <ArrowLeft size={20} className="text-secondary" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tin nhắn</h1>
-              <p className="text-gray-600 mt-1">Tin nhắn và thông báo từ quản lý</p>
+              <h1 className="text-2xl font-bold text-primary">Tin nhắn</h1>
+              <p className="text-secondary mt-1">Tin nhắn và thông báo từ quản lý</p>
             </div>
           </div>
         </div>
         {unreadCount > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
-            <Bell className="text-red-600" size={20} />
-            <span className="text-sm font-semibold text-red-700">
+          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <Bell className="text-red-600 dark:text-red-400" size={20} />
+            <span className="text-sm font-semibold text-red-700 dark:text-red-400">
               {unreadCount} tin chưa đọc
             </span>
           </div>
@@ -136,10 +136,10 @@ export default function MessagesPage() {
 
       {/* Messages List */}
       {messages.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <MessageSquare className="mx-auto text-gray-300 mb-4" size={48} />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có tin nhắn</h3>
-          <p className="text-gray-500">Bạn chưa nhận được tin nhắn nào từ quản lý</p>
+        <div className="card p-12 text-center">
+          <MessageSquare className="mx-auto text-tertiary mb-4" size={48} />
+          <h3 className="text-lg font-semibold text-primary mb-2">Chưa có tin nhắn</h3>
+          <p className="text-tertiary">Bạn chưa nhận được tin nhắn nào từ quản lý</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -150,8 +150,8 @@ export default function MessagesPage() {
             return (
               <div
                 key={message.id}
-                className={`bg-white rounded-lg shadow-sm border ${
-                  isNew ? 'border-purple-200 bg-purple-50/30' : 'border-gray-200'
+                className={`card border ${
+                  isNew ? 'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-900/20' : 'border-primary'
                 } p-6 hover:shadow-md transition-all`}
               >
                 <div className="flex items-start gap-4">
@@ -177,11 +177,11 @@ export default function MessagesPage() {
                     <div className="flex items-start justify-between gap-4 mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-gray-900">
+                          <h3 className="text-sm font-semibold text-primary">
                             {message.user.fullName}
                           </h3>
                           {message.user.role === 'ADMIN' && (
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
+                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium rounded">
                               Quản lý
                             </span>
                           )}
@@ -189,7 +189,7 @@ export default function MessagesPage() {
                             {messageType.type}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">
+                        <p className="text-sm text-secondary mb-3 whitespace-pre-wrap">
                           {cleanContent(message.content)}
                         </p>
                       </div>
@@ -199,7 +199,7 @@ export default function MessagesPage() {
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-tertiary">
                       <Calendar size={14} />
                       <span>{formatDate(message.createdAt)}</span>
                       <span>•</span>

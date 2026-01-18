@@ -71,7 +71,7 @@ export default function TenantDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Đang tải...</p>
+        <p className="text-tertiary">Đang tải...</p>
       </div>
     )
   }
@@ -82,40 +82,40 @@ export default function TenantDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tổng quan</h1>
-        <p className="text-gray-600 mt-1">Quản lý thông tin và thanh toán của bạn</p>
+        <h1 className="text-2xl font-bold text-primary">Tổng quan</h1>
+        <p className="text-secondary mt-1">Quản lý thông tin và thanh toán của bạn</p>
       </div>
 
       {/* Key Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Invoice Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative overflow-hidden flex flex-col h-full">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+        <div className="card stat-card-blue relative overflow-hidden flex flex-col h-full">
+          <div className="absolute top-0 right-0 w-35 h-35 bg-blue-50 dark:bg-blue-900/20 rounded-full -mr-16 -mt-16 opacity-50"></div>
           <div className="relative flex flex-col flex-1">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">
+              <h3 className="text-sm font-medium text-primary">
                 Hóa đơn tháng {data.currentMonth}/{data.currentYear}
               </h3>
               <DollarSign className="text-blue-500" size={24} />
             </div>
-            <p className="text-2xl font-bold text-gray-900 mb-2">
+            <p className="text-2xl font-bold text-primary mb-2">
               {formatCurrency(data.currentInvoice?.totalAmount || 0)}
             </p>
-            <span className={`px-2 py-1 rounded text-xs font-medium ${
+            <span className={`badge ${
               data.currentInvoice?.status === 'UNPAID' 
-                ? 'bg-red-100 text-red-700' 
-                : 'bg-green-100 text-green-700'
+                ? 'badge-error' 
+                : 'badge-success'
             }`}>
               {data.currentInvoice?.status === 'UNPAID' ? 'Chưa thanh toán' : 'Đã thanh toán'}
             </span>
-            <p className="text-xs text-gray-500 mt-2 mb-4">
+            <p className="text-xs text-secondary mt-2 mb-4">
               Hạn thanh toán: {formatDate(data.currentInvoice?.createdAt || new Date())}
             </p>
             <div className="mt-auto">
               {data.currentInvoice?.status === 'UNPAID' && (
                 <Link
                   href="/tenant/invoices"
-                  className="w-full block px-4 py-2 bg-blue-600 text-white rounded-lg text-center hover:bg-blue-700 transition-colors"
+                  className="btn btn-primary btn-md w-full"
                 >
                   Thanh toán ngay
                 </Link>
@@ -125,26 +125,26 @@ export default function TenantDashboard() {
         </div>
 
         {/* Contract Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative overflow-hidden flex flex-col h-full">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+        <div className="card stat-card-green relative overflow-hidden flex flex-col h-full">
+          <div className="absolute top-0 right-0 w-35 h-35 bg-green-50 dark:bg-green-900/20 rounded-full -mr-16 -mt-16 opacity-50"></div>
           <div className="relative flex flex-col flex-1">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">Hợp đồng thuê</h3>
+              <h3 className="text-sm font-medium text-primary">Hợp đồng thuê</h3>
               <FileText className="text-green-500" size={24} />
             </div>
-            <p className="text-lg font-semibold text-gray-900 mb-2">
+            <p className="text-lg font-semibold text-primary mb-2">
               {formatDate(data.contract?.endDate || new Date())}
             </p>
-            <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">
+            <span className="badge badge-success">
               Đang hiệu lực
             </span>
-            <p className="text-xs text-gray-500 mt-2 mb-4">
+            <p className="text-xs text-secondary mt-2 mb-4">
               Còn hiệu lực: {getDaysRemaining(data.contract?.endDate || new Date())} ngày
             </p>
             <div className="mt-auto">
               <button 
                 onClick={handleRenewContract}
-                className="w-full px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                className="btn btn-secondary btn-md w-full"
               >
                 Gia hạn hợp đồng
               </button>
@@ -153,13 +153,13 @@ export default function TenantDashboard() {
         </div>
 
         {/* Messages Card */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative overflow-hidden flex flex-col h-full">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
+        <div className="card stat-card-purple relative overflow-hidden flex flex-col h-full">
+          <div className="absolute top-0 right-0 w-35 h-35 bg-blue-50 dark:bg-blue-900/20 rounded-full -mr-16 -mt-16 opacity-50"></div>
           <div className="relative flex flex-col flex-1">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">Tin nhắn</h3>
+              <h3 className="text-sm font-medium text-primary">Tin nhắn</h3>
               <div className="relative">
-                <MessageSquare className="text-purple-500" size={24} />
+                <MessageSquare className="text-purple-500 dark:text-purple-400" size={24} />
                 {data.unreadMessagesCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-bold">
                     {data.unreadMessagesCount > 9 ? '9+' : data.unreadMessagesCount}
@@ -167,16 +167,16 @@ export default function TenantDashboard() {
                 )}
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">
+            <p className="text-2xl font-bold text-primary mb-1">
               {data.unreadMessagesCount || 0} tin mới
             </p>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-secondary mb-4">
               Tin nhắn từ quản lý
             </p>
             <div className="mt-auto">
               <Link
                 href="/tenant/messages"
-                className="w-full block px-4 py-2 bg-purple-600 text-white rounded-lg text-center hover:bg-purple-700 transition-colors"
+                className="btn btn-primary btn-md w-full"
               >
                 Xem tin nhắn
               </Link>
@@ -188,10 +188,10 @@ export default function TenantDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Utility Costs Chart */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Chi phí Điện & Nước</h3>
-            <select className="text-sm border border-gray-300 rounded-lg px-3 py-1">
+            <h3 className="text-lg font-semibold text-primary">Chi phí Điện & Nước</h3>
+            <select className="input text-sm px-3 py-1 w-auto">
               <option>6 tháng gần nhất</option>
             </select>
           </div>
@@ -205,7 +205,7 @@ export default function TenantDashboard() {
                       className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600 cursor-pointer group relative"
                       style={{ height: `${(cost.elec / maxValue) * 100}%` }}
                     >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-primary dark:bg-secondary text-inverse dark:text-primary text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg border border-primary">
                         Điện: {formatCurrency(cost.elec)}
                       </div>
                     </div>
@@ -213,12 +213,12 @@ export default function TenantDashboard() {
                       className="w-full bg-blue-300 rounded-t transition-all hover:bg-blue-400 cursor-pointer group relative"
                       style={{ height: `${(cost.water / maxValue) * 100}%` }}
                     >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-primary dark:bg-secondary text-inverse dark:text-primary text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg border border-primary">
                         Nước: {formatCurrency(cost.water)}
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-600 font-medium">{cost.monthName || `${cost.month}/${cost.year}`}</span>
+                  <span className="text-xs text-primary font-semibold">{cost.monthName || `${cost.month}/${cost.year}`}</span>
                 </div>
               )
             })}
@@ -226,18 +226,18 @@ export default function TenantDashboard() {
           <div className="flex items-center gap-4 mt-4 justify-center">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Điện</span>
+              <span className="text-sm text-primary font-medium">Điện</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
-              <span className="text-sm text-gray-600">Nước</span>
+              <div className="w-3 h-3 bg-blue-300 dark:bg-blue-500 rounded-full"></div>
+              <span className="text-sm text-primary font-medium">Nước</span>
             </div>
           </div>
         </div>
 
         {/* Cost Structure Chart */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="card">
+          <h3 className="text-lg font-semibold text-primary mb-4">
             Cơ cấu chi phí tháng {data.currentMonth}/{data.currentYear}
           </h3>
           <div className="flex items-center justify-center">
@@ -284,13 +284,13 @@ export default function TenantDashboard() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-l font-bold text-primary">
                     {data.currentInvoice 
                       ? formatCurrency(data.currentInvoice.totalAmount || 0).replace('₫', '').trim()
                       : '0 VNĐ'
                     }
                   </p>
-                  <p className="text-xs text-gray-500">Tổng cộng</p>
+                  <p className="text-xs text-secondary font-medium">Tổng cộng</p>
                 </div>
               </div>
             </div>
@@ -299,54 +299,54 @@ export default function TenantDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                <span className="text-sm text-gray-600">Tiền phòng</span>
+                <span className="text-sm text-primary font-medium">Tiền phòng</span>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{data.costStructure?.room || 0}%</span>
+              <span className="text-sm font-semibold text-primary">{data.costStructure?.room || 0}%</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-blue-300 rounded"></div>
-                <span className="text-sm text-gray-600">Dịch vụ & Tiện ích</span>
+                <span className="text-sm text-primary font-medium">Dịch vụ & Tiện ích</span>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{data.costStructure?.services || 0}%</span>
+              <span className="text-sm font-semibold text-primary">{data.costStructure?.services || 0}%</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-blue-200 rounded"></div>
-                <span className="text-sm text-gray-600">Khác</span>
+                <span className="text-sm text-primary font-medium">Khác</span>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{data.costStructure?.other || 0}%</span>
+              <span className="text-sm font-semibold text-primary">{data.costStructure?.other || 0}%</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Recent Activities */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Hoạt động gần đây</h3>
-          <Link href="/tenant/activities" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
+          <h3 className="text-lg font-semibold text-primary">Hoạt động gần đây</h3>
+          <Link href="/tenant/activities" className="text-sm text-primary hover:text-secondary flex items-center gap-1 transition-colors">
             Xem tất cả
             <ArrowRight size={16} />
           </Link>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+          <table className="table w-full">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">HOẠT ĐỘNG</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">THỜI GIAN</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">LOẠI</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">TRẠNG THÁI</th>
+                <th className="px-4 py-3 uppercase">HOẠT ĐỘNG</th>
+                <th className="px-4 py-3 uppercase">THỜI GIAN</th>
+                <th className="px-4 py-3 uppercase">LOẠI</th>
+                <th className="px-4 py-3 uppercase">TRẠNG THÁI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {data.recentActivities && data.recentActivities.length > 0 ? (
                 data.recentActivities.map((activity, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">{activity.description}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{activity.time}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{activity.type}</td>
+                  <tr key={idx}>
+                    <td className="px-4 py-3 text-sm text-primary">{activity.description}</td>
+                    <td className="px-4 py-3 text-sm text-secondary">{activity.time}</td>
+                    <td className="px-4 py-3 text-sm text-secondary">{activity.type}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 ${
                         activity.status === 'Thành công' || activity.status === 'Hoàn thành'
@@ -354,8 +354,8 @@ export default function TenantDashboard() {
                           : activity.status === 'Đang xử lý' || activity.status === 'Chờ xử lý'
                           ? 'text-orange-600'
                           : activity.status === 'Quá hạn' || activity.status === 'Đã hủy'
-                          ? 'text-red-600'
-                          : 'text-gray-600'
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-secondary'
                       }`}>
                         <span className={`w-2 h-2 rounded-full ${
                           activity.status === 'Thành công' || activity.status === 'Hoàn thành'
@@ -363,8 +363,8 @@ export default function TenantDashboard() {
                             : activity.status === 'Đang xử lý' || activity.status === 'Chờ xử lý'
                             ? 'bg-orange-500'
                             : activity.status === 'Quá hạn' || activity.status === 'Đã hủy'
-                            ? 'bg-red-500'
-                            : 'bg-gray-500'
+                            ? 'bg-red-500 dark:bg-red-600'
+                            : 'bg-secondary'
                         }`}></span>
                         {activity.status}
                       </span>
@@ -373,7 +373,7 @@ export default function TenantDashboard() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td colSpan={4} className="px-4 py-8 text-center text-sm text-tertiary">
                     Chưa có hoạt động nào
                   </td>
                 </tr>

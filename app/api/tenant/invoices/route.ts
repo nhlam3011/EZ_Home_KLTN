@@ -5,17 +5,52 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
+    const userIdParam = searchParams.get('userId')
 
-    // Get first tenant user (in production, get from session)
-    const user = await prisma.user.findFirst({
-      where: { role: 'TENANT' },
-      include: {
-        contracts: {
-          where: { status: 'ACTIVE' },
-          take: 1
+    // Get user ID from query param or header (in production, get from session)
+    let userId: number | null = null
+    
+    if (userIdParam) {
+      userId = parseInt(userIdParam)
+    } else {
+      // Try to get from Authorization header
+      const authHeader = request.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7)
+        // Extract user ID from token (temporary solution)
+        const tokenParts = token.split('-')
+        if (tokenParts.length >= 2) {
+          userId = parseInt(tokenParts[1])
         }
       }
-    })
+    }
+
+    // If no userId found, try to get from first tenant (fallback for demo)
+    let user
+    if (userId) {
+      user = await prisma.user.findUnique({
+        where: { id: userId, role: 'TENANT' },
+        include: {
+          contracts: {
+            where: { status: 'ACTIVE' },
+            take: 1
+          }
+        }
+      })
+    }
+
+    // Fallback: get first tenant user if userId not provided or not found
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { role: 'TENANT' },
+        include: {
+          contracts: {
+            where: { status: 'ACTIVE' },
+            take: 1
+          }
+        }
+      })
+    }
 
     if (!user || !user.contracts[0]) {
       return NextResponse.json([])
@@ -101,7 +136,8 @@ export async function GET(request: NextRequest) {
         // Try to find related issue by matching repairCost
         let issueInfo = null
         let issueRepairCost = 0
-        let managementFee = amountCommonService // Phí dịch vụ chung từ field riêng
+        // Phí dịch vụ chung - luôn lấy từ amountCommonService của invoice
+        let managementFee = amountCommonService
 
         if (isIssueInvoice) {
           // This is a separate invoice for issue repair cost
@@ -159,6 +195,7 @@ export async function GET(request: NextRequest) {
 
         return {
           ...invoice,
+          amountCommonService: amountCommonService, // Đảm bảo trả về amountCommonService
           meterReading: meterReading ? {
             elecOld: meterReading.elecOld,
             elecNew: meterReading.elecNew,
@@ -178,7 +215,7 @@ export async function GET(request: NextRequest) {
           issueInfo,
           isIssueInvoice,
           issueRepairCost,
-          managementFee
+          managementFee: amountCommonService // Đảm bảo managementFee = amountCommonService
         }
       })
     )

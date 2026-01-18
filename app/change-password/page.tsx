@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, Eye, EyeOff, CheckCircle, Loader2, Shield, AlertCircle } from 'lucide-react'
+import { DarkModeToggle } from '../components/DarkModeToggle'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -120,7 +121,7 @@ export default function ChangePasswordPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center relative">
         <Loader2 className="animate-spin text-blue-600" size={32} />
       </div>
     )
@@ -128,14 +129,18 @@ export default function ChangePasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-        <div className="card max-w-md w-full text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="text-green-600" size={32} />
+      <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-secondary">
+        {/* Dark Mode Toggle */}
+        <div className="absolute top-4 right-4 z-20">
+          <DarkModeToggle />
+        </div>
+        <div className="card max-w-md w-full text-center relative z-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4 border border-green-200 dark:border-green-800">
+            <CheckCircle className="text-green-600 dark:text-green-400" size={32} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Đổi mật khẩu thành công!</h2>
-          <p className="text-gray-600 mb-4">Bạn sẽ được chuyển đến trang chủ...</p>
-          <Loader2 className="animate-spin text-blue-600 mx-auto" size={24} />
+          <h2 className="text-2xl font-bold text-primary mb-2">Đổi mật khẩu thành công!</h2>
+          <p className="text-secondary mb-4">Bạn sẽ được chuyển đến trang chủ...</p>
+          <Loader2 className="animate-spin text-primary mx-auto" size={24} />
         </div>
       </div>
     )
@@ -147,41 +152,45 @@ export default function ChangePasswordPage() {
     : 'Mật khẩu hiện tại (Số CCCD)'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="card max-w-md w-full">
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-secondary">
+      {/* Dark Mode Toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <DarkModeToggle />
+      </div>
+      <div className="card max-w-md w-full relative z-10">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4 border border-blue-200 dark:border-blue-800">
             {isAdmin ? (
-              <Shield className="text-blue-600" size={32} />
+              <Shield className="text-blue-600 dark:text-blue-400" size={32} />
             ) : (
-              <Lock className="text-blue-600" size={32} />
+              <Lock className="text-blue-600 dark:text-blue-400" size={32} />
             )}
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-primary mb-2">
             Đổi mật khẩu lần đầu
           </h2>
-          <p className="text-gray-600">
+          <p className="text-secondary">
             Vui lòng đổi mật khẩu để bảo mật tài khoản của bạn
           </p>
           {isAdmin && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-200 rounded-full">
-              <Shield size={14} className="text-blue-600" />
-              <span className="text-xs font-medium text-blue-700">Tài khoản Quản trị viên</span>
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-full">
+              <Shield size={14} className="text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Tài khoản Quản trị viên</span>
             </div>
           )}
         </div>
 
         {errors.submit && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-            <p className="text-sm text-red-700">{errors.submit}</p>
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+            <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
+            <p className="text-sm text-red-700 dark:text-red-300">{errors.submit}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {currentPasswordLabel} <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-primary mb-2">
+              {currentPasswordLabel} <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <div className="relative">
               <input
@@ -194,19 +203,19 @@ export default function ChangePasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors"
               >
                 {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
             {errors.currentPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.currentPassword}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.currentPassword}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mật khẩu mới <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-primary mb-2">
+              Mật khẩu mới <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <div className="relative">
               <input
@@ -219,22 +228,22 @@ export default function ChangePasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors"
               >
                 {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
             {errors.newPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-tertiary">
               Mật khẩu phải có ít nhất 6 ký tự, bao gồm chữ cái và số
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-primary mb-2">
+              Xác nhận mật khẩu mới <span className="text-red-500 dark:text-red-400">*</span>
             </label>
             <div className="relative">
               <input
@@ -247,20 +256,20 @@ export default function ChangePasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-tertiary hover:text-primary transition-colors"
               >
                 {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
             )}
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <div className="flex items-start gap-2">
-              <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={16} />
-              <div className="text-xs text-blue-800">
+              <AlertCircle className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" size={16} />
+              <div className="text-xs text-blue-800 dark:text-blue-300">
                 <p className="font-medium mb-1">Lưu ý bảo mật:</p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Không chia sẻ mật khẩu với người khác</li>

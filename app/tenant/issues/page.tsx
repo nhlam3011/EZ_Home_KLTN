@@ -54,21 +54,21 @@ export default function IssuesPage() {
 
   const getSeverityBadge = (severity: string) => {
     const severityMap: Record<string, { label: string; className: string }> = {
-      HIGH: { label: 'Cao', className: 'bg-red-100 text-red-700' },
-      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-100 text-yellow-700' },
-      LOW: { label: 'Thấp', className: 'bg-blue-100 text-blue-700' }
+      HIGH: { label: 'Cao', className: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
+      LOW: { label: 'Thấp', className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' }
     }
-    return severityMap[severity] || { label: severity, className: 'bg-gray-100 text-gray-700' }
+    return severityMap[severity] || { label: severity, className: 'bg-tertiary text-primary' }
   }
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-100 text-yellow-700' },
-      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-blue-100 text-blue-700' },
-      DONE: { label: 'Hoàn thành', className: 'bg-green-100 text-green-700' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-gray-100 text-gray-700' }
+      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
+      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      CANCELLED: { label: 'Đã hủy', className: 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 font-semibold' }
     }
-    return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-700' }
+    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
   }
 
   const getCategoryIcon = (category: string) => {
@@ -111,12 +111,12 @@ export default function IssuesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý sự cố</h1>
-          <p className="text-gray-600 mt-1">Theo dõi và báo cáo sự cố trong căn hộ</p>
+          <h1 className="text-2xl font-bold text-primary">Quản lý sự cố</h1>
+          <p className="text-secondary mt-1">Theo dõi và báo cáo sự cố trong căn hộ</p>
         </div>
         <Link
           href="/tenant/issues/new"
-          className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2"
+          className="btn btn-primary btn-md"
         >
           <Plus size={18} />
           <span>Gửi báo cáo mới</span>
@@ -124,24 +124,24 @@ export default function IssuesPage() {
       </div>
 
       {/* Search and Filter */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="card p-4">
         <div className="flex items-center gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+
             <input
               type="text"
               placeholder="Tìm kiếm theo tiêu đề..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input w-full pl-10 pr-4 py-2"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">🔍</span>
+            <span className="text-sm text-secondary">🔍</span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input px-4 py-2 text-sm"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="PENDING">Chờ xử lý</option>
@@ -156,40 +156,40 @@ export default function IssuesPage() {
       {/* Issues Table */}
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">Đang tải...</p>
+          <p className="text-tertiary">Đang tải...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="card overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-tertiary border-b border-primary">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   NGÀY GỬI
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   TIÊU ĐỀ SỰ CỐ
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   MỨC ĐỘ
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   TRẠNG THÁI XỬ LÝ
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
                   HÀNH ĐỘNG
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-primary">
               {paginatedIssues.map((issue) => {
                 const severityBadge = getSeverityBadge(issue.severity || 'MEDIUM')
                 const statusBadge = getStatusBadge(issue.status)
                 const progress = issue.progress || (issue.status === 'DONE' ? 100 : issue.status === 'PROCESSING' ? 80 : 0)
 
                 return (
-                  <tr key={issue.id} className="hover:bg-gray-50">
+                  <tr key={issue.id} className="hover:bg-tertiary">
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-secondary">
                         {formatDate(issue.createdAt)}
                       </span>
                     </td>
@@ -197,8 +197,8 @@ export default function IssuesPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-xl">{getCategoryIcon(issue.category || '')}</span>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{issue.title}</p>
-                          <p className="text-xs text-gray-500">{issue.category || 'Khác'}</p>
+                          <p className="text-sm font-medium text-primary">{issue.title}</p>
+                          <p className="text-xs text-tertiary">{issue.category || 'Khác'}</p>
                         </div>
                       </div>
                     </td>
@@ -213,16 +213,16 @@ export default function IssuesPage() {
                           {statusBadge.label}
                         </span>
                         {issue.status === 'PROCESSING' && (
-                          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="w-32 h-2 bg-tertiary rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-gray-900 rounded-full transition-all"
+                              className="h-full bg-primary rounded-full transition-all"
                               style={{ width: `${progress}%` }}
                             ></div>
                           </div>
                         )}
                         {issue.status === 'DONE' && (
-                          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div className="h-full bg-green-500 rounded-full" style={{ width: '100%' }}></div>
+                          <div className="w-32 h-2 bg-tertiary rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 dark:bg-green-600 rounded-full" style={{ width: '100%' }}></div>
                           </div>
                         )}
                       </div>
@@ -231,7 +231,7 @@ export default function IssuesPage() {
                       {issue.status === 'DONE' ? (
                         <button 
                           onClick={() => handleRate(issue.id)}
-                          className="text-sm text-yellow-600 hover:text-yellow-700 flex items-center gap-1 transition-colors"
+                          className="btn btn-ghost btn-sm text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300"
                         >
                           <Star size={16} />
                           <span>Đánh giá</span>
@@ -239,11 +239,10 @@ export default function IssuesPage() {
                       ) : (
                         <Link
                           href={`/tenant/issues/${issue.id}`}
-                          className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors"
+                          className="btn btn-ghost btn-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                         >
                           <Eye size={16} />
                           <span>Chi tiết</span>
-                          <span>→</span>
                         </Link>
                       )}
                     </td>
@@ -257,15 +256,15 @@ export default function IssuesPage() {
 
       {/* Pagination */}
       {issues.length > 0 && (
-        <div className="flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-          <p className="text-sm text-gray-600">
+        <div className="flex items-center justify-between card p-4">
+          <p className="text-sm text-secondary">
             Hiển thị {startIndex + 1}-{Math.min(endIndex, issues.length)} trong số {issues.length} sự cố
           </p>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-secondary btn-sm"
             >
               &lt;
             </button>
@@ -284,8 +283,8 @@ export default function IssuesPage() {
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 transition-colors ${
-                    currentPage === pageNum ? 'bg-[#1e3a5f] text-white border-[#1e3a5f]' : ''
+                  className={`btn btn-sm ${
+                    currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
                   }`}
                 >
                   {pageNum}
@@ -295,7 +294,7 @@ export default function IssuesPage() {
             <button 
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-secondary btn-sm"
             >
               &gt;
             </button>

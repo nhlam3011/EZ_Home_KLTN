@@ -1,330 +1,190 @@
 import nodemailer from 'nodemailer'
 
-// Email configuration
-const createTransporter = () => {
-  // Use environment variables for email configuration
-  // For development, you can use Gmail, Outlook, or any SMTP server
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASSWORD,
-    },
-  })
+// Email configuration from environment variables
+const emailConfig = {
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+  },
+}
 
+// Create reusable transporter
+let transporter: nodemailer.Transporter | null = null
+
+function getTransporter() {
+  if (!transporter) {
+    // Only create transporter if credentials are provided
+    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+      console.warn('Email credentials not configured. Email notifications will be disabled.')
+      return null
+    }
+
+    transporter = nodemailer.createTransport({
+      host: emailConfig.host,
+      port: emailConfig.port,
+      secure: emailConfig.secure,
+      auth: emailConfig.auth,
+    })
+  }
   return transporter
 }
 
-// Format currency
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0
-  }).format(amount)
+// Email templates
+export const emailTemplates = {
+  invoiceCreated: (invoiceId: number, amount: number, period: string, tenantName: string) => ({
+    subject: `Hóa đơn mới #${invoiceId} - EZ-Home`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">Hóa đơn mới từ EZ-Home</h2>
+        <p>Xin chào <strong>${tenantName}</strong>,</p>
+        <p>Hóa đơn mới đã được tạo cho bạn:</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Mã hóa đơn:</strong> #${invoiceId}</p>
+          <p><strong>Kỳ thanh toán:</strong> ${period}</p>
+          <p><strong>Số tiền:</strong> <span style="color: #ef4444; font-size: 18px; font-weight: bold;">${amount.toLocaleString('vi-VN')} VNĐ</span></p>
+        </div>
+        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và thanh toán hóa đơn.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Trân trọng,<br>
+          <strong>EZ-Home</strong>
+        </p>
+      </div>
+    `,
+  }),
+
+  invoiceMessage: (invoiceId: number, message: string, tenantName: string) => ({
+    subject: `Tin nhắn về hóa đơn #${invoiceId} - EZ-Home`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">Tin nhắn về hóa đơn</h2>
+        <p>Xin chào <strong>${tenantName}</strong>,</p>
+        <p>Bạn có tin nhắn mới về hóa đơn #${invoiceId}:</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="white-space: pre-wrap;">${message}</p>
+        </div>
+        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Trân trọng,<br>
+          <strong>EZ-Home</strong>
+        </p>
+      </div>
+    `,
+  }),
+
+  issueStatusUpdate: (issueTitle: string, status: string, statusLabel: string, tenantName: string) => ({
+    subject: `Cập nhật trạng thái sự cố: ${issueTitle} - EZ-Home`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">Cập nhật trạng thái sự cố</h2>
+        <p>Xin chào <strong>${tenantName}</strong>,</p>
+        <p>Yêu cầu của bạn đã được cập nhật:</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Tiêu đề:</strong> ${issueTitle}</p>
+          <p><strong>Trạng thái mới:</strong> <span style="color: #10b981; font-weight: bold;">${statusLabel}</span></p>
+        </div>
+        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Trân trọng,<br>
+          <strong>EZ-Home</strong>
+        </p>
+      </div>
+    `,
+  }),
+
+  generalNotification: (title: string, content: string, tenantName: string) => ({
+    subject: `${title} - EZ-Home`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">${title}</h2>
+        <p>Xin chào <strong>${tenantName}</strong>,</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="white-space: pre-wrap;">${content}</p>
+        </div>
+        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Trân trọng,<br>
+          <strong>EZ-Home</strong>
+        </p>
+      </div>
+    `,
+  }),
 }
 
-// Format date
-const formatDate = (date: Date | string) => {
-  return new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(new Date(date))
-}
-
-// Send payment success email
-export async function sendPaymentSuccessEmail(
+// Send email function
+export async function sendEmail(
   to: string,
-  invoiceData: {
-    id: number
-    month: number
-    year: number
-    totalAmount: number
-    paidAt: Date
-    roomName: string
-  }
-) {
+  subject: string,
+  html: string
+): Promise<boolean> {
   try {
-    const transporter = createTransporter()
-    
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      console.log('Email service not configured. Skipping email send.')
-      return { success: false, message: 'Email service not configured' }
+    const transporter = getTransporter()
+    if (!transporter) {
+      console.log('Email transporter not available. Skipping email send.')
+      return false
     }
 
     const mailOptions = {
-      from: `"EZ-Home" <${process.env.SMTP_USER}>`,
-      to: to,
-      subject: `Xác nhận thanh toán hóa đơn tháng ${invoiceData.month}/${invoiceData.year} - EZ-Home`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #1e3a5f 0%, #2a4a6f 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-            .success-badge { background: #10b981; color: white; padding: 10px 20px; border-radius: 5px; display: inline-block; margin: 20px 0; }
-            .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1e3a5f; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
-            .detail-row:last-child { border-bottom: none; }
-            .detail-label { font-weight: 600; color: #6b7280; }
-            .detail-value { font-weight: 700; color: #111827; }
-            .amount { font-size: 24px; color: #10b981; font-weight: bold; }
-            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>EZ-Home</h1>
-              <p>Hệ thống quản lý nhà trọ thông minh</p>
-            </div>
-            <div class="content">
-              <h2>Xác nhận thanh toán thành công!</h2>
-              <div class="success-badge">✓ Đã thanh toán</div>
-              
-              <p>Xin chào,</p>
-              <p>Cảm ơn bạn đã thanh toán hóa đơn. Chúng tôi xác nhận đã nhận được thanh toán của bạn.</p>
-              
-              <div class="invoice-details">
-                <h3 style="margin-top: 0; color: #1e3a5f;">Chi tiết hóa đơn</h3>
-                <div class="detail-row">
-                  <span class="detail-label">Mã hóa đơn:</span>
-                  <span class="detail-value">INV-${invoiceData.id.toString().padStart(6, '0')}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Kỳ thanh toán:</span>
-                  <span class="detail-value">Tháng ${invoiceData.month}/${invoiceData.year}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Phòng:</span>
-                  <span class="detail-value">${invoiceData.roomName}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Ngày thanh toán:</span>
-                  <span class="detail-value">${formatDate(invoiceData.paidAt)}</span>
-                </div>
-                <div class="detail-row" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #1e3a5f;">
-                  <span class="detail-label" style="font-size: 18px;">Tổng tiền đã thanh toán:</span>
-                  <span class="amount">${formatCurrency(invoiceData.totalAmount)}</span>
-                </div>
-              </div>
-              
-              <p>Bạn có thể tải hóa đơn PDF từ hệ thống hoặc kiểm tra trong tài khoản của bạn.</p>
-              
-              <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.</p>
-              
-              <div class="footer">
-                <p>Trân trọng,<br>Đội ngũ EZ-Home</p>
-                <p>Email: ${process.env.SMTP_USER}<br>Hotline: 1900 1234</p>
-              </div>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
+      from: `"EZ-Home" <${emailConfig.auth.user}>`,
+      to,
+      subject,
+      html,
     }
 
     const info = await transporter.sendMail(mailOptions)
-    console.log('Payment success email sent:', info.messageId)
-    return { success: true, messageId: info.messageId }
+    console.log('Email sent successfully:', info.messageId)
+    return true
   } catch (error) {
-    console.error('Error sending payment success email:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    console.error('Error sending email:', error)
+    return false
   }
 }
 
-// Send new message notification email
-export async function sendMessageNotificationEmail(
-  to: string,
-  messageData: {
-    title: string
-    content: string
-    from: string
-    type?: 'invoice' | 'notification' | 'message'
-  }
-) {
-  try {
-    const transporter = createTransporter()
-    
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      console.log('Email service not configured. Skipping email send.')
-      return { success: false, message: 'Email service not configured' }
-    }
-
-    const typeLabels: Record<string, string> = {
-      invoice: 'Hóa đơn',
-      notification: 'Thông báo',
-      message: 'Tin nhắn'
-    }
-
-    const typeLabel = typeLabels[messageData.type || 'message'] || 'Tin nhắn'
-
-    const mailOptions = {
-      from: `"EZ-Home" <${process.env.SMTP_USER}>`,
-      to: to,
-      subject: `[${typeLabel}] ${messageData.title} - EZ-Home`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #1e3a5f 0%, #2a4a6f 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-            .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1e3a5f; }
-            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>EZ-Home</h1>
-              <p>Hệ thống quản lý nhà trọ thông minh</p>
-            </div>
-            <div class="content">
-              <h2>${messageData.title}</h2>
-              
-              <p>Xin chào,</p>
-              
-              <div class="message-box">
-                <p style="white-space: pre-wrap; margin: 0;">${messageData.content}</p>
-              </div>
-              
-              <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và phản hồi.</p>
-              
-              <div class="footer">
-                <p>Trân trọng,<br>${messageData.from}<br>Đội ngũ EZ-Home</p>
-                <p>Email: ${process.env.SMTP_USER}<br>Hotline: 1900 1234</p>
-              </div>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-    }
-
-    const info = await transporter.sendMail(mailOptions)
-    console.log('Message notification email sent:', info.messageId)
-    return { success: true, messageId: info.messageId }
-  } catch (error) {
-    console.error('Error sending message notification email:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
-  }
+// Helper functions for specific email types
+export async function sendInvoiceCreatedEmail(
+  email: string,
+  invoiceId: number,
+  amount: number,
+  period: string,
+  tenantName: string
+): Promise<boolean> {
+  if (!email) return false
+  const template = emailTemplates.invoiceCreated(invoiceId, amount, period, tenantName)
+  return sendEmail(email, template.subject, template.html)
 }
 
-// Send new invoice notification email
-export async function sendNewInvoiceEmail(
-  to: string,
-  invoiceData: {
-    id: number
-    month: number
-    year: number
-    totalAmount: number
-    roomName: string
-    dueDate: Date
-  }
-) {
-  try {
-    const transporter = createTransporter()
-    
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
-      console.log('Email service not configured. Skipping email send.')
-      return { success: false, message: 'Email service not configured' }
-    }
+export async function sendInvoiceMessageEmail(
+  email: string,
+  invoiceId: number,
+  message: string,
+  tenantName: string
+): Promise<boolean> {
+  if (!email) return false
+  const template = emailTemplates.invoiceMessage(invoiceId, message, tenantName)
+  return sendEmail(email, template.subject, template.html)
+}
 
-    const mailOptions = {
-      from: `"EZ-Home" <${process.env.SMTP_USER}>`,
-      to: to,
-      subject: `Hóa đơn tháng ${invoiceData.month}/${invoiceData.year} - EZ-Home`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #1e3a5f 0%, #2a4a6f 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
-            .invoice-badge { background: #f59e0b; color: white; padding: 10px 20px; border-radius: 5px; display: inline-block; margin: 20px 0; }
-            .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1e3a5f; }
-            .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }
-            .detail-row:last-child { border-bottom: none; }
-            .detail-label { font-weight: 600; color: #6b7280; }
-            .detail-value { font-weight: 700; color: #111827; }
-            .amount { font-size: 24px; color: #ef4444; font-weight: bold; }
-            .cta-button { display: inline-block; background: #1e3a5f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 12px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>EZ-Home</h1>
-              <p>Hệ thống quản lý nhà trọ thông minh</p>
-            </div>
-            <div class="content">
-              <h2>Hóa đơn mới đã được tạo</h2>
-              <div class="invoice-badge">Hóa đơn mới</div>
-              
-              <p>Xin chào,</p>
-              <p>Hóa đơn thanh toán của bạn cho tháng ${invoiceData.month}/${invoiceData.year} đã được tạo. Vui lòng thanh toán trước ngày ${formatDate(invoiceData.dueDate)}.</p>
-              
-              <div class="invoice-details">
-                <h3 style="margin-top: 0; color: #1e3a5f;">Chi tiết hóa đơn</h3>
-                <div class="detail-row">
-                  <span class="detail-label">Mã hóa đơn:</span>
-                  <span class="detail-value">INV-${invoiceData.id.toString().padStart(6, '0')}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Kỳ thanh toán:</span>
-                  <span class="detail-value">Tháng ${invoiceData.month}/${invoiceData.year}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Phòng:</span>
-                  <span class="detail-value">${invoiceData.roomName}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Hạn thanh toán:</span>
-                  <span class="detail-value">${formatDate(invoiceData.dueDate)}</span>
-                </div>
-                <div class="detail-row" style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #1e3a5f;">
-                  <span class="detail-label" style="font-size: 18px;">Tổng tiền cần thanh toán:</span>
-                  <span class="amount">${formatCurrency(invoiceData.totalAmount)}</span>
-                </div>
-              </div>
-              
-              <p style="text-align: center;">
-                <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/tenant/invoices" class="cta-button">Xem và thanh toán hóa đơn</a>
-              </p>
-              
-              <p>Bạn có thể thanh toán trực tuyến qua VietQR hoặc liên hệ với chúng tôi để thanh toán bằng tiền mặt.</p>
-              
-              <div class="footer">
-                <p>Trân trọng,<br>Đội ngũ EZ-Home</p>
-                <p>Email: ${process.env.SMTP_USER}<br>Hotline: 1900 1234</p>
-              </div>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-    }
+export async function sendIssueStatusUpdateEmail(
+  email: string,
+  issueTitle: string,
+  status: string,
+  statusLabel: string,
+  tenantName: string
+): Promise<boolean> {
+  if (!email) return false
+  const template = emailTemplates.issueStatusUpdate(issueTitle, status, statusLabel, tenantName)
+  return sendEmail(email, template.subject, template.html)
+}
 
-    const info = await transporter.sendMail(mailOptions)
-    console.log('New invoice email sent:', info.messageId)
-    return { success: true, messageId: info.messageId }
-  } catch (error) {
-    console.error('Error sending new invoice email:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
-  }
+export async function sendGeneralNotificationEmail(
+  email: string,
+  title: string,
+  content: string,
+  tenantName: string
+): Promise<boolean> {
+  if (!email) return false
+  const template = emailTemplates.generalNotification(title, content, tenantName)
+  return sendEmail(email, template.subject, template.html)
 }
