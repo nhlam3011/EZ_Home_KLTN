@@ -118,12 +118,13 @@ export default function EditInvoicePage() {
     }
   }
 
-  const totalAmount =
-    parseFloat(formData.amountRoom || 0) +
-    parseFloat(formData.amountElec || 0) +
-    parseFloat(formData.amountWater || 0) +
-    parseFloat(formData.amountCommonService || 0) +
-    parseFloat(formData.amountService || 0)
+
+    const totalAmount =
+      parseFloat(formData.amountRoom || '0') +
+      parseFloat(formData.amountElec || '0') +
+      parseFloat(formData.amountWater || '0') +
+      parseFloat(formData.amountCommonService || '0');
+      parseFloat(formData.amountService || "0")
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
