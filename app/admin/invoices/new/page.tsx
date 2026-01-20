@@ -304,31 +304,31 @@ const totalAmount =
               <div className="flex items-center justify-between">
                 <span className="text-sm text-secondary">Tiền phòng:</span>
                 <span className="text-sm font-semibold text-primary">
-                  {formatCurrency(parseFloat(formData.amountRoom || "0"))}
+                  {formatCurrency(parseFloat(formData.amountRoom || '0'))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-secondary">Tiền điện:</span>
                 <span className="text-sm font-semibold text-primary">
-                  {formatCurrency(parseFloat(formData.amountElec || "0"))}
+                  {formatCurrency(parseFloat(formData.amountElec || '0'))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-secondary">Tiền nước:</span>
                 <span className="text-sm font-semibold text-primary">
-                  {formatCurrency(parseFloat(formData.amountWater || "0"))}
+                  {formatCurrency(parseFloat(formData.amountWater || '0'))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-secondary">Phí dịch vụ chung:</span>
                 <span className="text-sm font-semibold text-primary">
-                  {formatCurrency(parseFloat(formData.amountCommonService || "0"))}
+                  {formatCurrency(parseFloat(formData.amountCommonService || '0'))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-secondary">Phí xử lý sự cố & Dịch vụ khác:</span>
                 <span className="text-sm font-semibold text-primary">
-                  {formatCurrency(parseFloat(formData.amountService || "0"))}
+                  {formatCurrency(parseFloat(formData.amountService || '0'))}
                 </span>
               </div>
               <div className="pt-3 border-t border-primary">
