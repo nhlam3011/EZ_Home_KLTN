@@ -14,6 +14,7 @@ interface DashboardData {
   recentActivities: any[]
   currentMonth: number
   currentYear: number
+  unreadMessagesCount: number
 }
 
 export default function TenantDashboard() {
