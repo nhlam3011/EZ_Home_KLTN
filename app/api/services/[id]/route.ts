@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Định nghĩa kiểu cho params (Next.js 15+ yêu cầu params là Promise)
+type RouteParams = {
+  params: Promise<{ id: string }>
+}
+
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
+    // 1. Await params để lấy id
+    const { id } = await params
+    
     const body = await request.json()
     const { name, unitPrice, unit, isActive } = body
 
@@ -17,7 +25,8 @@ export async function PUT(
     if (isActive !== undefined) updateData.isActive = isActive
 
     const service = await prisma.service.update({
-      where: { id: parseInt(params.id) },
+      // 2. Dùng biến id đã await (thay vì params.id)
+      where: { id: parseInt(id) },
       data: updateData
     })
 
@@ -33,12 +42,16 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: RouteParams
 ) {
   try {
+    // 1. Await params để lấy id
+    const { id } = await params
+
     // Check if service has orders
     const service = await prisma.service.findUnique({
-      where: { id: parseInt(params.id) },
+      // 2. Dùng biến id đã await
+      where: { id: parseInt(id) },
       include: {
         orders: true
       }
@@ -59,7 +72,7 @@ export async function DELETE(
     }
 
     await prisma.service.delete({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     })
 
     return NextResponse.json({ success: true })

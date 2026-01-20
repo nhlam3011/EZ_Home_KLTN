@@ -252,7 +252,6 @@ export default function ServicesPage() {
           {/* Search Bar */}
           <div className="card p-4">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-tertiary" size={20} />
               <input
                 type="text"
                 placeholder="Tìm kiếm dịch vụ (Vệ sinh, sửa chữa, giặt ủi...)"
