@@ -116,7 +116,7 @@ export async function GET() {
       }
     })
 
-    const recentActivities = []
+    const recentActivities: any[] = []
     
     // Add invoice activities
     recentInvoices.forEach(inv => {
