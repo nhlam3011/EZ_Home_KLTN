@@ -114,38 +114,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Find overdue invoices for this contract to add to current invoice
-    // Handle case where paymentDueDate field might not exist yet (migration not run)
-    let overdueInvoices: any[] = []
-    let overdueAmount = 0
-    
-    try {
-      const now = new Date()
-      overdueInvoices = await prisma.invoice.findMany({
-        where: {
-          contractId: parseInt(contractId),
-          status: {
-            in: ['UNPAID', 'OVERDUE']
-          },
-          paymentDueDate: {
-            lt: now // Payment due date has passed
-          }
+    const now = new Date()
+    const overdueInvoices = await prisma.invoice.findMany({
+      where: {
+        contractId: parseInt(contractId),
+        status: {
+          in: ['UNPAID', 'OVERDUE']
+        },
+        paymentDueDate: {
+          lt: now // Payment due date has passed
         }
-      })
-
-      // Calculate total overdue amount
-      overdueInvoices.forEach(inv => {
-        overdueAmount += Number(inv.totalAmount)
-      })
-    } catch (error: any) {
-      // If paymentDueDate field doesn't exist, skip overdue invoice logic
-      if (error.message?.includes('paymentDueDate') || error.message?.includes('Unknown argument')) {
-        console.log('paymentDueDate field not found, skipping overdue invoice logic. Please run migration.')
-        overdueInvoices = []
-        overdueAmount = 0
-      } else {
-        throw error // Re-throw if it's a different error
       }
-    }
+    })
+
+    // Calculate total overdue amount
+    const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
 
     const totalAmount =
       parseFloat(amountRoom || 0) +
@@ -155,63 +138,30 @@ export async function POST(request: NextRequest) {
       parseFloat(amountService || 0) +
       overdueAmount // Add overdue amount to current invoice
 
-    // Try to create invoice with paymentDueDate first
-    // If field doesn't exist, create without it
-    let invoice
-    try {
-      invoice = await prisma.invoice.create({
-        data: {
-          contractId: parseInt(contractId),
-          month: parseInt(month),
-          year: parseInt(year),
-          amountRoom: parseFloat(amountRoom || 0),
-          amountElec: parseFloat(amountElec || 0),
-          amountWater: parseFloat(amountWater || 0),
-          amountCommonService: parseFloat(amountCommonService || 0),
-          amountService: parseFloat(amountService || 0) + overdueAmount, // Add overdue to amountService
-          totalAmount,
-          paymentDueDate: finalPaymentDueDate,
-          status: 'UNPAID'
-        },
-        include: {
-          contract: {
-            include: {
-              user: true,
-              room: true
-            }
+    // Create invoice
+    const invoice = await prisma.invoice.create({
+      data: {
+        contractId: parseInt(contractId),
+        month: parseInt(month),
+        year: parseInt(year),
+        amountRoom: parseFloat(amountRoom || 0),
+        amountElec: parseFloat(amountElec || 0),
+        amountWater: parseFloat(amountWater || 0),
+        amountCommonService: parseFloat(amountCommonService || 0),
+        amountService: parseFloat(amountService || 0) + overdueAmount, // Add overdue to amountService
+        totalAmount,
+        paymentDueDate: finalPaymentDueDate,
+        status: 'UNPAID'
+      },
+      include: {
+        contract: {
+          include: {
+            user: true,
+            room: true
           }
         }
-      })
-    } catch (createError: any) {
-      // If paymentDueDate field doesn't exist, create without it
-      if (createError.message?.includes('paymentDueDate') || createError.message?.includes('Unknown argument')) {
-        console.log('paymentDueDate field not found, creating invoice without it. Please run migration.')
-        invoice = await prisma.invoice.create({
-          data: {
-            contractId: parseInt(contractId),
-            month: parseInt(month),
-            year: parseInt(year),
-            amountRoom: parseFloat(amountRoom || 0),
-            amountElec: parseFloat(amountElec || 0),
-            amountWater: parseFloat(amountWater || 0),
-            amountCommonService: parseFloat(amountCommonService || 0),
-            amountService: parseFloat(amountService || 0) + overdueAmount,
-            totalAmount,
-            status: 'UNPAID'
-          },
-          include: {
-            contract: {
-              include: {
-                user: true,
-                room: true
-              }
-            }
-          }
-        })
-      } else {
-        throw createError // Re-throw if it's a different error
       }
-    }
+    })
 
     // Mark overdue invoices as paid (they are now included in the new invoice)
     if (overdueInvoices.length > 0) {

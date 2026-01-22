@@ -53,63 +53,30 @@ export async function POST(request: NextRequest) {
       parseFloat(amountCommonService || 0) +
       parseFloat(amountService || 0)
 
-    // Try to create invoice with paymentDueDate first
-    // If field doesn't exist, create without it
-    let invoice
-    try {
-      invoice = await prisma.invoice.create({
-        data: {
-          contractId: parseInt(contractId),
-          month: parseInt(month),
-          year: parseInt(year),
-          amountRoom: parseFloat(amountRoom || 0),
-          amountElec: parseFloat(amountElec || 0),
-          amountWater: parseFloat(amountWater || 0),
-          amountCommonService: parseFloat(amountCommonService || 0),
-          amountService: parseFloat(amountService || 0),
-          totalAmount,
-          paymentDueDate,
-          status: 'UNPAID'
-        },
-        include: {
-          contract: {
-            include: {
-              user: true,
-              room: true
-            }
+    // Create invoice
+    const invoice = await prisma.invoice.create({
+      data: {
+        contractId: parseInt(contractId),
+        month: parseInt(month),
+        year: parseInt(year),
+        amountRoom: parseFloat(amountRoom || 0),
+        amountElec: parseFloat(amountElec || 0),
+        amountWater: parseFloat(amountWater || 0),
+        amountCommonService: parseFloat(amountCommonService || 0),
+        amountService: parseFloat(amountService || 0),
+        totalAmount,
+        paymentDueDate,
+        status: 'UNPAID'
+      },
+      include: {
+        contract: {
+          include: {
+            user: true,
+            room: true
           }
         }
-      })
-    } catch (createError: any) {
-      // If paymentDueDate field doesn't exist, create without it
-      if (createError.message?.includes('paymentDueDate') || createError.message?.includes('Unknown argument')) {
-        console.log('paymentDueDate field not found, creating invoice without it. Please run migration.')
-        invoice = await prisma.invoice.create({
-          data: {
-            contractId: parseInt(contractId),
-            month: parseInt(month),
-            year: parseInt(year),
-            amountRoom: parseFloat(amountRoom || 0),
-            amountElec: parseFloat(amountElec || 0),
-            amountWater: parseFloat(amountWater || 0),
-            amountCommonService: parseFloat(amountCommonService || 0),
-            amountService: parseFloat(amountService || 0),
-            totalAmount,
-            status: 'UNPAID'
-          },
-          include: {
-            contract: {
-              include: {
-                user: true,
-                room: true
-              }
-            }
-          }
-        })
-      } else {
-        throw createError // Re-throw if it's a different error
       }
-    }
+    })
 
     return NextResponse.json(invoice, { status: 201 })
   } catch (error) {
