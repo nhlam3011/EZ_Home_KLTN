@@ -91,7 +91,10 @@ export class PayOSService {
    */
   verifyWebhookSignature(data: any, signature: string): boolean {
     try {
-      return this.payos.verifyPaymentWebhookData(data, signature)
+      // verifyPaymentWebhookData returns WebhookDataType if valid, throws error if invalid
+      const verifiedData = this.payos.verifyPaymentWebhookData(data, signature)
+      // If no error thrown, signature is valid
+      return verifiedData !== null && verifiedData !== undefined
     } catch (error) {
       console.error('PayOS webhook verification error:', error)
       return false
