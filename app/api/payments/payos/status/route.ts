@@ -97,12 +97,15 @@ export async function GET(request: NextRequest) {
           }
 
           // Refresh payment data
-          payment = await prisma.payment.findUnique({
+          const refreshedPayment = await prisma.payment.findUnique({
             where: { id: payment.id },
             include: {
               invoice: true
             }
           })
+          if (refreshedPayment) {
+            payment = refreshedPayment
+          }
         } else if (paymentInfo.status === 'CANCELLED' || paymentInfo.status === 'cancelled') {
           await prisma.payment.update({
             where: { id: payment.id },
@@ -112,17 +115,28 @@ export async function GET(request: NextRequest) {
           })
           
           // Refresh payment data
-          payment = await prisma.payment.findUnique({
+          const refreshedPayment = await prisma.payment.findUnique({
             where: { id: payment.id },
             include: {
               invoice: true
             }
           })
+          if (refreshedPayment) {
+            payment = refreshedPayment
+          }
         }
       } catch (error) {
         console.error('Error checking PayOS status:', error)
         // Continue with existing payment status
       }
+    }
+
+    // Ensure payment is not null before returning
+    if (!payment) {
+      return NextResponse.json(
+        { error: 'Payment not found' },
+        { status: 404 }
+      )
     }
 
     return NextResponse.json({
