@@ -88,11 +88,14 @@ export class PayOSService {
 
   /**
    * Verify webhook signature
+   * PayOS SDK uses checksum key from constructor to verify signature
    */
   verifyWebhookSignature(data: any, signature: string): boolean {
     try {
-      // verifyPaymentWebhookData returns WebhookDataType if valid, throws error if invalid
-      const verifiedData = this.payos.verifyPaymentWebhookData(data, signature)
+      // verifyPaymentWebhookData only takes data as argument
+      // It uses the checksum key from PayOS constructor to verify signature
+      // Returns WebhookDataType if valid, throws error if invalid
+      const verifiedData = this.payos.verifyPaymentWebhookData(data)
       // If no error thrown, signature is valid
       return verifiedData !== null && verifiedData !== undefined
     } catch (error) {
