@@ -13,6 +13,7 @@ interface Invoice {
   paymentDueDate: Date
   contract: {
     user: {
+      id: number
       fullName: string
       phone: string
       email: string
