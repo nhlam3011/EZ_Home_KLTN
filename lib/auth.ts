@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { NextRequest } from 'next/server'
 
 // Import bcryptjs - using require for compatibility
 const bcrypt = require('bcryptjs') as typeof import('bcryptjs')
@@ -79,4 +80,71 @@ export async function authenticateUser(phone: string, password: string) {
     isFirstLogin: user.isFirstLogin,
     room: user.contracts[0]?.room || null
   }
+}
+
+/**
+ * Get user ID from request
+ * Checks Authorization header or query params
+ * Note: For body, pass userId separately as it requires reading the body
+ */
+export function getUserIdFromRequest(request: NextRequest, bodyUserId?: number): number | null {
+  // Try to get from body if provided
+  if (bodyUserId) {
+    return bodyUserId
+  }
+
+  // Try to get from Authorization header
+  const authHeader = request.headers.get('authorization')
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7)
+    // Token format: token-{userId}-{timestamp}
+    const tokenParts = token.split('-')
+    if (tokenParts.length >= 2) {
+      const userId = parseInt(tokenParts[1])
+      if (!isNaN(userId)) {
+        return userId
+      }
+    }
+  }
+
+  // Try to get from query params
+  const userIdParam = request.nextUrl.searchParams.get('userId')
+  if (userIdParam) {
+    const userId = parseInt(userIdParam)
+    if (!isNaN(userId)) {
+      return userId
+    }
+  }
+
+  return null
+}
+
+/**
+ * Get current user from request
+ */
+export async function getCurrentUser(request: NextRequest, bodyUserId?: number) {
+  const userId = getUserIdFromRequest(request, bodyUserId)
+  if (!userId) {
+    return null
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      contracts: {
+        where: { status: 'ACTIVE' },
+        include: {
+          room: true
+        },
+        take: 1,
+        orderBy: { startDate: 'desc' }
+      }
+    }
+  })
+
+  if (!user || !user.isActive) {
+    return null
+  }
+
+  return user
 }

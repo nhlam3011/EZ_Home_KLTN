@@ -475,7 +475,7 @@ export default function NewResidentPage() {
             </ul>
           </div>
           {occupants.length > 0 && (
-            <div className="card bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <div className="card bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800">
               <h3 className="text-xs sm:text-sm font-semibold text-green-900 dark:text-green-200 mb-2">Tổng số người ở</h3>
               <p className="text-xl sm:text-2xl font-bold text-green-700 dark:text-green-300">{1 + occupants.length} người</p>
               <p className="text-xs text-green-600 dark:text-green-400 mt-1">

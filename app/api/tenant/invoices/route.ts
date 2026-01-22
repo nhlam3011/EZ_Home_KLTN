@@ -220,6 +220,24 @@ export async function GET(request: NextRequest) {
       })
     )
 
+    // Sort: prioritize UNPAID invoices first, then by year/month descending
+    enrichedInvoices.sort((a, b) => {
+      // Priority order: UNPAID > OVERDUE > PAID
+      const statusPriority = { UNPAID: 0, OVERDUE: 1, PAID: 2 }
+      const aPriority = statusPriority[a.status as keyof typeof statusPriority] ?? 3
+      const bPriority = statusPriority[b.status as keyof typeof statusPriority] ?? 3
+      
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority
+      }
+      
+      // If same status, sort by year/month descending
+      if (a.year !== b.year) {
+        return b.year - a.year
+      }
+      return b.month - a.month
+    })
+
     // Filter by search if provided
     let filteredInvoices = enrichedInvoices
     if (search) {

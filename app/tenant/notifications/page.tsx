@@ -19,7 +19,11 @@ export default function NotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/tenant/notifications')
+      const userData = localStorage.getItem('user')
+      if (!userData) return
+      
+      const user = JSON.parse(userData)
+      const response = await fetch(`/api/tenant/notifications?userId=${user.id}`)
       if (response.ok) {
         const data = await response.json()
         setNotifications(data)

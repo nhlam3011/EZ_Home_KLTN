@@ -1,13 +1,32 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
-// This is a placeholder - in production, you'd get user ID from session/auth
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // For demo, get first tenant user
-    // In production, get from session: const userId = await getUserId()
-    const user = await prisma.user.findFirst({
-      where: { role: 'TENANT' },
+    const searchParams = request.nextUrl.searchParams
+    const userId = searchParams.get('userId') // Get userId from query params
+
+    // Get current tenant user from authentication
+    const tenantUser = await getCurrentUser(request, userId ? parseInt(userId) : undefined)
+
+    if (!tenantUser) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login as tenant.' },
+        { status: 401 }
+      )
+    }
+
+    if (tenantUser.role !== 'TENANT') {
+      return NextResponse.json(
+        { error: 'Only tenant users can access this endpoint' },
+        { status: 403 }
+      )
+    }
+
+    // Get user with contracts
+    const user = await prisma.user.findUnique({
+      where: { id: tenantUser.id },
       include: {
         contracts: {
           where: { status: 'ACTIVE' },

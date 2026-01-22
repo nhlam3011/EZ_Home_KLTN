@@ -14,13 +14,17 @@ import {
   LogOut,
   MessageSquare,
   Menu,
-  X
+  X,
+  Building2,
+  FileCheck
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
 
 const menuItems = [
   { href: '/tenant', label: 'Tổng quan', icon: LayoutDashboard },
+  { href: '/tenant/rooms', label: 'Phòng của tôi', icon: Building2 },
+  { href: '/tenant/contracts', label: 'Hợp đồng', icon: FileCheck },
   { href: '/tenant/invoices', label: 'Hóa đơn', icon: FileText },
   { href: '/tenant/services', label: 'Dịch vụ', icon: Grid3x3 },
   { href: '/tenant/issues', label: 'Báo hỏng', icon: Wrench },
@@ -58,10 +62,23 @@ export default function TenantLayout({
 
     setUser(parsedUser)
 
-    fetch('/api/messages/unread-count')
-      .then(res => res.json())
-      .then(data => setUnreadMessages(data.count || 0))
-      .catch(() => {})
+    // Fetch unread messages count
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch(`/api/messages/unread-count?userId=${parsedUser.id}`)
+        const data = await response.json()
+        setUnreadMessages(data.count || 0)
+      } catch (error) {
+        console.error('Error fetching unread count:', error)
+      }
+    }
+
+    fetchUnreadCount()
+    
+    // Poll for unread count updates every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000)
+    
+    return () => clearInterval(interval)
   }, [router])
 
   const handleLogout = () => {
@@ -393,7 +410,10 @@ export default function TenantLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <main 
+          className={`flex-1 overflow-y-auto ${pathname === '/tenant/messages' ? '' : 'p-6'}`} 
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
+        >
           {children}
         </main>
       </div>

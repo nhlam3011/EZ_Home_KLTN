@@ -378,7 +378,7 @@ export default function DashboardPage() {
               </div>
               <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{stats.issueStatus.processing}</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="text-green-600 dark:text-green-400" size={20} />
                 <span className="text-sm font-medium text-primary">Hoàn thành</span>
@@ -441,7 +441,15 @@ export default function DashboardPage() {
                     <p className="text-xs text-tertiary">Phòng {issue.room}</p>
                     <p className="text-xs text-secondary mt-1 line-clamp-1">{issue.title}</p>
                   </div>
-                  <span className={`badge ${getStatusColor(issue.status).includes('green') ? 'badge-success' : getStatusColor(issue.status).includes('red') ? 'badge-error' : getStatusColor(issue.status).includes('yellow') ? 'badge-warning' : 'badge-info'}`}>
+                  <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                    getStatusColor(issue.status).includes('green') 
+                      ? 'bg-success-soft border border-success-subtle text-fg-success-strong' 
+                      : getStatusColor(issue.status).includes('red') 
+                      ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong' 
+                      : getStatusColor(issue.status).includes('yellow') 
+                      ? 'bg-warning-soft border border-warning-subtle text-warning' 
+                      : 'bg-neutral-secondary-medium border border-default-medium text-heading'
+                  }`}>
                     {getStatusLabel(issue.status)}
                   </span>
                 </div>

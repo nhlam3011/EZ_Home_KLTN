@@ -321,14 +321,14 @@ export default function ForecastPage() {
                     {item.monthName}
                   </div>
                   {isForecast && forecastItem && (
-                    <div className={`text-xs mt-1 px-2 py-0.5 rounded font-semibold ${
-                      forecastItem.confidence === 'HIGH' ? 'badge badge-success' :
-                      forecastItem.confidence === 'MEDIUM' ? 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700' :
-                      'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
+                    <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded mt-1 ${
+                      forecastItem.confidence === 'HIGH' ? 'bg-success-soft border border-success-subtle text-fg-success-strong' :
+                      forecastItem.confidence === 'MEDIUM' ? 'bg-warning-soft border border-warning-subtle text-warning' :
+                      'bg-danger-soft border border-danger-subtle text-fg-danger-strong'
                     }`}>
                       {forecastItem.confidence === 'HIGH' ? 'Cao' :
                        forecastItem.confidence === 'MEDIUM' ? 'TB' : 'Thấp'}
-                    </div>
+                    </span>
                   )}
                 </div>
               )
@@ -375,7 +375,7 @@ export default function ForecastPage() {
                 <p className="text-xs text-tertiary">{formatLargeCurrency(data.vacancyRisk.summary.mediumRiskRevenue)}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-100 dark:border-green-800">
               <div>
                 <p className="text-sm font-medium text-primary">Rủi ro thấp</p>
                 <p className="text-xs text-tertiary">{data.vacancyRisk.summary.lowRiskCount} phòng</p>
@@ -457,10 +457,10 @@ export default function ForecastPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        risk.riskLevel === 'HIGH' ? 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700' :
-                        risk.riskLevel === 'MEDIUM' ? 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700' :
-                        'badge badge-success'
+                      <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${
+                        risk.riskLevel === 'HIGH' ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong' :
+                        risk.riskLevel === 'MEDIUM' ? 'bg-warning-soft border border-warning-subtle text-warning' :
+                        'bg-success-soft border border-success-subtle text-fg-success-strong'
                       }`}>
                         {risk.riskLevel === 'HIGH' ? 'CAO' :
                          risk.riskLevel === 'MEDIUM' ? 'TRUNG BÌNH' : 'THẤP'}

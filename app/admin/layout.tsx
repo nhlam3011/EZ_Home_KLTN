@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Menu,
   X,
-  Users as CommunityIcon
+  Users as CommunityIcon,
+  MessageSquare
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
@@ -27,6 +28,7 @@ const menuItems = [
   { href: '/admin/finance', label: 'Tài chính', icon: FileText },
   { href: '/admin/maintenance', label: 'Bảo trì & Sự cố', icon: Wrench, badge: true },
   { href: '/admin/community', label: 'Cộng đồng', icon: CommunityIcon, badge: true },
+  { href: '/admin/messages', label: 'Tin nhắn', icon: MessageSquare },
   { href: '/admin/forecast', label: 'Dự đoán AI', icon: TrendingUp },
 ]
 
@@ -43,8 +45,41 @@ export default function AdminLayout({
   const router = useRouter()
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingPostsCount, setPendingPostsCount] = useState(0)
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
   const [user, setUser] = useState<any>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Map pathname to page title
+  const getPageTitle = () => {
+    const titleMap: Record<string, string> = {
+      '/admin': 'Admin Dashboard',
+      '/admin/rooms': 'Quản lý Phòng',
+      '/admin/residents': 'Cư dân',
+      '/admin/invoices': 'Tài chính',
+      '/admin/finance': 'Chốt điện nước',
+      '/admin/maintenance': 'Bảo trì & Sự cố',
+      '/admin/community': 'Cộng đồng',
+      '/admin/messages': 'Tin nhắn',
+      '/admin/notifications': 'Thông báo',
+      '/admin/forecast': 'Dự đoán AI',
+      '/admin/services': 'Cấu hình Dịch vụ',
+    }
+    
+    // Check exact match first
+    if (titleMap[pathname]) {
+      return titleMap[pathname]
+    }
+    
+    // Check for sub-routes
+    for (const [path, title] of Object.entries(titleMap)) {
+      if (pathname?.startsWith(path + '/')) {
+        return title
+      }
+    }
+    
+    return 'Admin Dashboard'
+  }
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
@@ -75,6 +110,31 @@ export default function AdminLayout({
       .then(res => res.json())
       .then(data => setPendingPostsCount(data.length || 0))
       .catch(() => {})
+
+    // Fetch unread messages count
+    if (parsedUser.id) {
+      fetch(`/api/admin/messages?userId=${parsedUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          const totalUnread = Object.values(data.unreadCounts || {}).reduce((sum: number, count: any) => sum + count, 0)
+          setUnreadMessagesCount(totalUnread)
+        })
+        .catch(() => {})
+
+      // Fetch unread notifications count (new posts in last 7 days)
+      fetch(`/api/admin/notifications?userId=${parsedUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          const sevenDaysAgo = new Date()
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+          const recentNotifications = data.filter((notif: any) => {
+            const notifDate = new Date(notif.createdAt)
+            return notifDate >= sevenDaysAgo
+          })
+          setUnreadNotificationsCount(recentNotifications.length)
+        })
+        .catch(() => {})
+    }
   }, [router])
 
   const handleLogout = () => {
@@ -174,9 +234,10 @@ export default function AdminLayout({
                   item.href === '/admin/maintenance' ? pendingCount > 0 :
                   item.href === '/admin/community' ? pendingPostsCount > 0 :
                   false
-                )
+                ) || (item.href === '/admin/messages' && unreadMessagesCount > 0)
                 const badgeCount = item.href === '/admin/maintenance' ? pendingCount :
-                                  item.href === '/admin/community' ? pendingPostsCount : 0
+                                  item.href === '/admin/community' ? pendingPostsCount :
+                                  item.href === '/admin/messages' ? unreadMessagesCount : 0
                 
                 return (
                   <Link
@@ -345,15 +406,16 @@ export default function AdminLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
+        {/* Top Header - Seamless with sidebar */}
         <header 
-          className="h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm"
+          className="h-16 flex items-center justify-between sticky top-0 z-30"
           style={{
             backgroundColor: 'var(--bg-primary)',
-            borderBottom: '1px solid var(--border-primary)'
+            borderBottom: '1px solid var(--border-primary)',
+            borderLeft: '1px solid var(--border-primary)'
           }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 px-6 flex-1">
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg transition-colors"
@@ -365,32 +427,38 @@ export default function AdminLayout({
               <Menu size={20} />
             </button>
             <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              Admin Dashboard
+              {getPageTitle()}
             </h2>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 px-6">
             <DarkModeToggle />
-            <button 
+            <Link
+              href="/admin/notifications"
               className="relative p-2 rounded-lg transition-colors"
               style={{ color: 'var(--text-primary)' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <Bell size={20} />
-              <span 
-                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2"
-                style={{ 
-                  backgroundColor: '#ef4444',
-                  borderColor: 'var(--bg-primary)'
-                }}
-              ></span>
-            </button>
+              {unreadNotificationsCount > 0 && (
+                <span 
+                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2"
+                  style={{ 
+                    backgroundColor: '#ef4444',
+                    borderColor: 'var(--bg-primary)'
+                  }}
+                ></span>
+              )}
+            </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <main 
+          className={`flex-1 overflow-y-auto ${pathname === '/admin/messages' || pathname === '/admin/notifications' ? '' : 'p-6'}`} 
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
+        >
           {children}
         </main>
       </div>

@@ -46,6 +46,7 @@ enum PaymentMethod {
   CASH
   BANK_TRANSFER
   VIETQR
+  PAYOS
 }
 
 enum PaymentStatus {
@@ -87,16 +88,21 @@ model User {
   serviceOrders ServiceOrder[]
   posts         Post[]
   documents     Document[]
+  sentMessages  Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageReceiver")
 }
 
 model Room {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique // VD: P.101
-  floor     Int
-  price     Decimal    @db.Decimal(10, 2)
-  area      Float?
-  maxPeople Int        @default(1)
-  status    RoomStatus @default(AVAILABLE)
+  id          Int        @id @default(autoincrement())
+  name        String     @unique // VD: P.101
+  floor       Int
+  price       Decimal    @db.Decimal(10, 2)
+  area        Float?
+  maxPeople   Int        @default(1)
+  status      RoomStatus @default(AVAILABLE)
+  roomType    String?    // Studio, 1N1K, 2N1K
+  description String?    // Mô tả chi tiết về phòng
+  amenities   String[]   // Danh sách tiện ích: ["Điều hòa", "Nóng lạnh", ...]
   
   // Quan hệ
   assets    Asset[]
@@ -161,6 +167,7 @@ model Invoice {
   amountService      Decimal       @default(0) @db.Decimal(10, 2) // Phí xử lý sự cố và dịch vụ khác
   totalAmount        Decimal       @db.Decimal(10, 2)
   status             InvoiceStatus @default(UNPAID)
+  paymentDueDate     DateTime      // Hạn thanh toán
   paidAt             DateTime?
   payments           Payment[]     // Danh sách các giao dịch thanh toán
   createdAt          DateTime      @default(now())
@@ -263,4 +270,20 @@ model Payment {
   paidAt        DateTime?     // When payment was completed
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  senderId    Int
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiverId  Int
+  receiver    User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  content     String
+  images      String[] // Mảng link ảnh
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, isRead])
+  @@index([createdAt])
 }

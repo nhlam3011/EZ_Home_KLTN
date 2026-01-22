@@ -111,6 +111,52 @@ export const emailTemplates = {
       </div>
     `,
   }),
+
+  messageReceived: (senderName: string, content: string, tenantName: string, hasImages: boolean) => ({
+    subject: `Tin nhắn mới từ ${senderName} - EZ-Home`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #3b82f6;">Tin nhắn mới từ quản lý</h2>
+        <p>Xin chào <strong>${tenantName}</strong>,</p>
+        <p>Bạn có tin nhắn mới từ <strong>${senderName}</strong>:</p>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          ${content ? `<p style="white-space: pre-wrap; margin-bottom: ${hasImages ? '10px' : '0'};">${content}</p>` : ''}
+          ${hasImages ? '<p style="color: #6b7280; font-size: 14px; margin-top: 10px;">📷 Tin nhắn có đính kèm hình ảnh</p>' : ''}
+        </div>
+        <p>Vui lòng đăng nhập vào hệ thống để xem và trả lời tin nhắn.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Trân trọng,<br>
+          <strong>EZ-Home</strong>
+        </p>
+      </div>
+    `,
+  }),
+
+  invoiceComplaint: (invoiceId: number, tenantName: string, roomName: string, amount: number, complaint: string) => ({
+    subject: `🚨 Khiếu nại hóa đơn #${invoiceId.toString().padStart(6, '0')} - EZ-Home`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #ef4444;">⚠️ Khiếu nại hóa đơn mới</h2>
+        <p>Xin chào <strong>Quản trị viên</strong>,</p>
+        <p>Bạn có một khiếu nại mới về hóa đơn:</p>
+        <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Mã hóa đơn:</strong> #${invoiceId.toString().padStart(6, '0')}</p>
+          <p><strong>Khách thuê:</strong> ${tenantName}</p>
+          <p><strong>Phòng:</strong> ${roomName}</p>
+          <p><strong>Số tiền:</strong> <span style="color: #ef4444; font-weight: bold;">${amount.toLocaleString('vi-VN')} VNĐ</span></p>
+        </div>
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Nội dung khiếu nại:</strong></p>
+          <p style="white-space: pre-wrap; margin-top: 10px;">${complaint}</p>
+        </div>
+        <p style="color: #6b7280; font-size: 14px;">Vui lòng đăng nhập vào hệ thống để xem chi tiết và xử lý khiếu nại.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+          Trân trọng,<br>
+          <strong>EZ-Home</strong>
+        </p>
+      </div>
+    `,
+  }),
 }
 
 // Send email function
@@ -186,5 +232,30 @@ export async function sendGeneralNotificationEmail(
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.generalNotification(title, content, tenantName)
+  return sendEmail(email, template.subject, template.html)
+}
+
+export async function sendMessageReceivedEmail(
+  email: string,
+  senderName: string,
+  content: string,
+  tenantName: string,
+  hasImages: boolean
+): Promise<boolean> {
+  if (!email) return false
+  const template = emailTemplates.messageReceived(senderName, content, tenantName, hasImages)
+  return sendEmail(email, template.subject, template.html)
+}
+
+export async function sendInvoiceComplaintEmail(
+  email: string,
+  invoiceId: number,
+  tenantName: string,
+  roomName: string,
+  amount: number,
+  complaint: string
+): Promise<boolean> {
+  if (!email) return false
+  const template = emailTemplates.invoiceComplaint(invoiceId, tenantName, roomName, amount, complaint)
   return sendEmail(email, template.subject, template.html)
 }

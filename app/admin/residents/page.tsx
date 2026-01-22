@@ -45,16 +45,16 @@ function getInitials(name: string) {
 function getDepositStatus(contract: any) {
   if (!contract) return { label: 'N/A', color: 'gray', className: 'bg-tertiary text-primary' }
   
-  // Check if deposit is paid (assuming deposit equals rentPrice * 2 as standard)
-  const expectedDeposit = Number(contract.rentPrice) * 2
+  // Check if deposit is paid (deposit >= rentPrice means deposit is sufficient)
+  const expectedDeposit = Number(contract.rentPrice)
   const paidDeposit = Number(contract.deposit) || 0
   
   if (paidDeposit >= expectedDeposit) {
-    return { label: 'Đã đồng đủ', color: 'green', className: 'badge badge-success' }
+    return { label: 'Đã đủ cọc', color: 'green', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' }
   } else if (paidDeposit > 0) {
     return { label: 'Thiếu cọc', color: 'orange', className: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' }
   } else {
-    return { label: 'Chưa đóng', color: 'red', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' }
+    return { label: 'Chưa đóng', color: 'red', className: 'bg-red-200 dark:bg-red-900/10 text-red-900 dark:text-red-300 border border-red-400 dark:border-red-700 font-semibold' }
   }
 }
 
@@ -412,7 +412,7 @@ export default function ResidentsPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-secondary">{formatDate(contract.endDate)}</span>
                               {isContractExpiring && (
-                                <span className="px-2 py-0.5 bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 rounded text-xs font-semibold">
+                                <span className="px-2 py-0.5 bg-yellow-200 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 rounded text-xs font-semibold">
                                   Còn {daysRemaining} ngày
                                 </span>
                               )}
@@ -428,7 +428,7 @@ export default function ResidentsPage() {
                       <td className="px-6 py-4">
                         {contract ? (
                           <div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${depositStatus.className}`}>
+                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${depositStatus.className}`}>
                               {depositStatus.label}
                             </span>
                             {contract.deposit > 0 && (

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { content, images } = body
+    const { content, images, userId } = body
 
     if (!content) {
       return NextResponse.json(
@@ -56,15 +57,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get first tenant user (in production, get from session)
-    const user = await prisma.user.findFirst({
-      where: { role: 'TENANT' }
-    })
+    // Get current tenant user from request
+    const user = await getCurrentUser(request, userId)
 
     if (!user) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Unauthorized. Please login.' },
+        { status: 401 }
+      )
+    }
+
+    if (user.role !== 'TENANT') {
+      return NextResponse.json(
+        { error: 'Only tenant users can create posts' },
+        { status: 403 }
       )
     }
 

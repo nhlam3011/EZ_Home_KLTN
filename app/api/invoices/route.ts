@@ -4,6 +4,25 @@ import { sendInvoiceCreatedEmail } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
   try {
+    // First, check and update overdue invoices (if paymentDueDate field exists)
+    try {
+      const now = new Date()
+      await prisma.invoice.updateMany({
+        where: {
+          status: 'UNPAID',
+          paymentDueDate: {
+            lt: now
+          }
+        },
+        data: {
+          status: 'OVERDUE'
+        }
+      })
+    } catch (updateError) {
+      // Ignore error if paymentDueDate field doesn't exist yet (migration not run)
+      console.log('Could not update overdue invoices (field may not exist yet):', updateError)
+    }
+
     const searchParams = request.nextUrl.searchParams
     const month = searchParams.get('month')
     const year = searchParams.get('year')
@@ -50,13 +69,12 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json(filteredInvoices)
+    // Ensure we always return an array
+    return NextResponse.json(Array.isArray(filteredInvoices) ? filteredInvoices : [])
   } catch (error) {
     console.error('Error fetching invoices:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch invoices' },
-      { status: 500 }
-    )
+    // Return empty array instead of error object to prevent frontend errors
+    return NextResponse.json([])
   }
 }
 
@@ -71,7 +89,8 @@ export async function POST(request: NextRequest) {
       amountElec,
       amountWater,
       amountCommonService,
-      amountService
+      amountService,
+      paymentDueDate
     } = body
 
     // Validate required fields
@@ -82,20 +101,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if invoice already exists for this contract and period
-    const existingInvoice = await prisma.invoice.findFirst({
-      where: {
-        contractId: parseInt(contractId),
-        month: parseInt(month),
-        year: parseInt(year)
-      }
-    })
+    // Cho phép tạo nhiều hóa đơn trong cùng tháng (để bổ sung thiếu sót)
+    // Không kiểm tra hóa đơn đã tồn tại
 
-    if (existingInvoice) {
-      return NextResponse.json(
-        { error: 'Invoice already exists for this period' },
-        { status: 400 }
-      )
+    // Calculate payment due date (use provided date or default to 10 days from now)
+    let finalPaymentDueDate: Date
+    if (paymentDueDate) {
+      finalPaymentDueDate = new Date(paymentDueDate)
+    } else {
+      finalPaymentDueDate = new Date()
+      finalPaymentDueDate.setDate(finalPaymentDueDate.getDate() + 10)
+    }
+
+    // Find overdue invoices for this contract to add to current invoice
+    // Handle case where paymentDueDate field might not exist yet (migration not run)
+    let overdueInvoices: any[] = []
+    let overdueAmount = 0
+    
+    try {
+      const now = new Date()
+      overdueInvoices = await prisma.invoice.findMany({
+        where: {
+          contractId: parseInt(contractId),
+          status: {
+            in: ['UNPAID', 'OVERDUE']
+          },
+          paymentDueDate: {
+            lt: now // Payment due date has passed
+          }
+        }
+      })
+
+      // Calculate total overdue amount
+      overdueInvoices.forEach(inv => {
+        overdueAmount += Number(inv.totalAmount)
+      })
+    } catch (error: any) {
+      // If paymentDueDate field doesn't exist, skip overdue invoice logic
+      if (error.message?.includes('paymentDueDate') || error.message?.includes('Unknown argument')) {
+        console.log('paymentDueDate field not found, skipping overdue invoice logic. Please run migration.')
+        overdueInvoices = []
+        overdueAmount = 0
+      } else {
+        throw error // Re-throw if it's a different error
+      }
     }
 
     const totalAmount =
@@ -103,30 +152,81 @@ export async function POST(request: NextRequest) {
       parseFloat(amountElec || 0) +
       parseFloat(amountWater || 0) +
       parseFloat(amountCommonService || 0) +
-      parseFloat(amountService || 0)
+      parseFloat(amountService || 0) +
+      overdueAmount // Add overdue amount to current invoice
 
-    const invoice = await prisma.invoice.create({
-      data: {
-        contractId: parseInt(contractId),
-        month: parseInt(month),
-        year: parseInt(year),
-        amountRoom: parseFloat(amountRoom || 0),
-        amountElec: parseFloat(amountElec || 0),
-        amountWater: parseFloat(amountWater || 0),
-        amountCommonService: parseFloat(amountCommonService || 0),
-        amountService: parseFloat(amountService || 0),
-        totalAmount,
-        status: 'UNPAID'
-      },
-      include: {
-        contract: {
-          include: {
-            user: true,
-            room: true
+    // Try to create invoice with paymentDueDate first
+    // If field doesn't exist, create without it
+    let invoice
+    try {
+      invoice = await prisma.invoice.create({
+        data: {
+          contractId: parseInt(contractId),
+          month: parseInt(month),
+          year: parseInt(year),
+          amountRoom: parseFloat(amountRoom || 0),
+          amountElec: parseFloat(amountElec || 0),
+          amountWater: parseFloat(amountWater || 0),
+          amountCommonService: parseFloat(amountCommonService || 0),
+          amountService: parseFloat(amountService || 0) + overdueAmount, // Add overdue to amountService
+          totalAmount,
+          paymentDueDate: finalPaymentDueDate,
+          status: 'UNPAID'
+        },
+        include: {
+          contract: {
+            include: {
+              user: true,
+              room: true
+            }
           }
         }
+      })
+    } catch (createError: any) {
+      // If paymentDueDate field doesn't exist, create without it
+      if (createError.message?.includes('paymentDueDate') || createError.message?.includes('Unknown argument')) {
+        console.log('paymentDueDate field not found, creating invoice without it. Please run migration.')
+        invoice = await prisma.invoice.create({
+          data: {
+            contractId: parseInt(contractId),
+            month: parseInt(month),
+            year: parseInt(year),
+            amountRoom: parseFloat(amountRoom || 0),
+            amountElec: parseFloat(amountElec || 0),
+            amountWater: parseFloat(amountWater || 0),
+            amountCommonService: parseFloat(amountCommonService || 0),
+            amountService: parseFloat(amountService || 0) + overdueAmount,
+            totalAmount,
+            status: 'UNPAID'
+          },
+          include: {
+            contract: {
+              include: {
+                user: true,
+                room: true
+              }
+            }
+          }
+        })
+      } else {
+        throw createError // Re-throw if it's a different error
       }
-    })
+    }
+
+    // Mark overdue invoices as paid (they are now included in the new invoice)
+    if (overdueInvoices.length > 0) {
+      await prisma.invoice.updateMany({
+        where: {
+          id: {
+            in: overdueInvoices.map(inv => inv.id)
+          }
+        },
+        data: {
+          status: 'PAID',
+          paidAt: new Date()
+        }
+      })
+    }
 
     // Send email notification to tenant
     if (invoice.contract.user.email) {

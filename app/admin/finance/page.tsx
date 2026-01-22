@@ -262,33 +262,33 @@ export default function FinancePage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-primary">Tài chính</h1>
-        <p className="text-secondary mt-1">Quản lý hóa đơn và chốt điện nước</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-primary">Tài chính</h1>
+        <p className="text-sm sm:text-base text-secondary mt-1">Quản lý hóa đơn và chốt điện nước</p>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-primary">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2 sm:gap-6 overflow-x-auto">
           <Link
             href="/admin/invoices"
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               pathname === '/admin/invoices'
                 ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            <FileText size={18} className="inline mr-2" />
+            <FileText size={18} className="inline mr-1 sm:mr-2" />
             Danh sách hóa đơn
           </Link>
           <Link
             href="/admin/finance"
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               pathname === '/admin/finance'
                 ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            <Zap size={18} className="inline mr-2" />
+            <Zap size={18} className="inline mr-1 sm:mr-2" />
             Chốt điện nước
           </Link>
         </div>
@@ -299,9 +299,9 @@ export default function FinancePage() {
         <div className="space-y-6">
           {/* Action Bar */}
           <div className="card">
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-primary">Kỳ chốt số:</label>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <label className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">Kỳ chốt số:</label>
                 <select
                   value={`${selectedMonth}/${selectedYear}`}
                   onChange={(e) => {
@@ -309,7 +309,7 @@ export default function FinancePage() {
                     setSelectedMonth(parseInt(month))
                     setSelectedYear(parseInt(year))
                   }}
-                  className="px-3 py-2 border border-primary rounded-lg text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-primary rounded-lg text-xs sm:text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 sm:flex-none"
                 >
                   {generateMonthYearOptions().map(opt => (
                     <option key={opt.value} value={opt.value}>
@@ -318,41 +318,45 @@ export default function FinancePage() {
                   ))}
                 </select>
               </div>
-              <div className="flex-1 relative max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary" size={18} />
+              <div className="flex-1 relative min-w-0">
+                <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-tertiary w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm phòng..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-primary rounded-lg text-xs sm:text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <button
-                onClick={handleSaveReadings}
-                disabled={saving}
-                className="btn btn-primary btn-md"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    <span>Đang lưu...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={18} />
-                    <span>Lưu thay đổi</span>
-                  </>
-                )}
-              </button>
-              <button className="btn btn-secondary btn-md">
-                <Download size={18} />
-                <span>Xuất Excel</span>
-              </button>
-              <button className="btn btn-secondary btn-md">
-                <Upload size={18} />
-                <span>Upload Excel</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleSaveReadings}
+                  disabled={saving}
+                  className="btn btn-primary btn-sm sm:btn-md flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span className="text-xs sm:text-sm">Đang lưu...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} />
+                      <span className="text-xs sm:text-sm">Lưu thay đổi</span>
+                    </>
+                  )}
+                </button>
+                <button className="btn btn-secondary btn-sm sm:btn-md flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]">
+                  <Download size={18} />
+                  <span className="hidden sm:inline">Xuất Excel</span>
+                  <span className="sm:hidden">Xuất</span>
+                </button>
+                <button className="btn btn-secondary btn-sm sm:btn-md flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]">
+                  <Upload size={18} />
+                  <span className="hidden sm:inline">Upload Excel</span>
+                  <span className="sm:hidden">Upload</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -364,44 +368,49 @@ export default function FinancePage() {
             </div>
           ) : (
             <div className="card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-tertiary border-b border-primary">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">PHÒNG</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                        <div className="flex items-center gap-2">
-                          <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
-                          ĐIỆN CŨ
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                        <div className="flex items-center gap-2">
-                          <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
-                          ĐIỆN MỚI
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                        <div className="flex items-center gap-2">
-                          <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
-                          NƯỚC CŨ
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                        <div className="flex items-center gap-2">
-                          <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
-                          NƯỚC MỚI
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
-                    </tr>
-                  </thead>
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <div className="inline-block min-w-full align-middle">
+                  <table className="w-full">
+                    <thead className="bg-tertiary border-b border-primary">
+                      <tr>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase sticky left-0 bg-tertiary z-10">PHÒNG</th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400" />
+                            <span className="hidden sm:inline">ĐIỆN CŨ</span>
+                            <span className="sm:hidden">Đ.CŨ</span>
+                          </div>
+                        </th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400" />
+                            <span className="hidden sm:inline">ĐIỆN MỚI</span>
+                            <span className="sm:hidden">Đ.MỚI</span>
+                          </div>
+                        </th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase hidden md:table-cell">TIÊU THỤ</th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400" />
+                            <span className="hidden sm:inline">NƯỚC CŨ</span>
+                            <span className="sm:hidden">N.CŨ</span>
+                          </div>
+                        </th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400" />
+                            <span className="hidden sm:inline">NƯỚC MỚI</span>
+                            <span className="sm:hidden">N.MỚI</span>
+                          </div>
+                        </th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase hidden md:table-cell">TIÊU THỤ</th>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-primary">
                     {filteredRooms.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-tertiary">
+                        <td colSpan={8} className="px-4 py-8 text-center text-xs sm:text-sm text-tertiary">
                           Không có phòng nào
                         </td>
                       </tr>
@@ -424,23 +433,23 @@ export default function FinancePage() {
                               hasError ? 'bg-red-50 dark:bg-red-900/20' : ''
                             }`}
                           >
-                            <td className="px-4 py-3">
+                            <td className="px-3 sm:px-4 py-2 sm:py-3 sticky left-0 bg-primary dark:bg-secondary z-10">
                               <div>
-                                <p className="text-sm font-medium text-primary">{room.name}</p>
+                                <p className="text-xs sm:text-sm font-medium text-primary">{room.name}</p>
                                 {room.contract && (
                                   <p className="text-xs text-tertiary">{room.contract.user.fullName}</p>
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
-                                <span className="text-sm text-secondary font-medium">{room.elecOld.toLocaleString('vi-VN')}</span>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
+                                <span className="text-xs sm:text-sm text-secondary font-medium">{room.elecOld.toLocaleString('vi-VN')}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
                                 <input
                                   type="number"
                                   min={room.elecOld}
@@ -454,7 +463,7 @@ export default function FinancePage() {
                                     }
                                   }}
                                   placeholder="Nhập số mới"
-                                  className={`w-24 px-2 py-1 text-sm border rounded bg-primary text-primary ${
+                                  className={`w-16 sm:w-24 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary ${
                                     hasError && elecNewNum !== null && elecNewNum < room.elecOld
                                       ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
                                       : 'border-primary focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400'
@@ -465,9 +474,9 @@ export default function FinancePage() {
                                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.elecOld}</p>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
                               {elecConsumption !== null ? (
-                                <span className={`text-sm font-medium ${
+                                <span className={`text-xs sm:text-sm font-medium ${
                                   elecConsumption < 0 
                                     ? 'text-red-600 dark:text-red-400' 
                                     : 'text-yellow-600 dark:text-yellow-400'
@@ -475,18 +484,18 @@ export default function FinancePage() {
                                   {elecConsumption.toLocaleString('vi-VN')}
                                 </span>
                               ) : (
-                                <span className="text-sm text-tertiary">-</span>
+                                <span className="text-xs sm:text-sm text-tertiary">-</span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
-                                <span className="text-sm text-secondary font-medium">{room.waterOld.toLocaleString('vi-VN')}</span>
+                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                                <span className="text-xs sm:text-sm text-secondary font-medium">{room.waterOld.toLocaleString('vi-VN')}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                            <td className="px-2 sm:px-4 py-2 sm:py-3">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
                                 <input
                                   type="number"
                                   min={room.waterOld}
@@ -500,7 +509,7 @@ export default function FinancePage() {
                                     }
                                   }}
                                   placeholder="Nhập số mới"
-                                  className={`w-24 px-2 py-1 text-sm border rounded bg-primary text-primary ${
+                                  className={`w-16 sm:w-24 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary ${
                                     hasError && waterNewNum !== null && waterNewNum < room.waterOld
                                       ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
                                       : 'border-primary focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400'
@@ -511,9 +520,9 @@ export default function FinancePage() {
                                 <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.waterOld}</p>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
                               {waterConsumption !== null ? (
-                                <span className={`text-sm font-medium ${
+                                <span className={`text-xs sm:text-sm font-medium ${
                                   waterConsumption < 0 
                                     ? 'text-red-600 dark:text-red-400' 
                                     : 'text-blue-600 dark:text-blue-400'
@@ -521,19 +530,19 @@ export default function FinancePage() {
                                   {waterConsumption.toLocaleString('vi-VN')}
                                 </span>
                               ) : (
-                                <span className="text-sm text-tertiary">-</span>
+                                <span className="text-xs sm:text-sm text-tertiary">-</span>
                               )}
                             </td>
-                            <td className="px-4 py-3 text-center">
+                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                               {hasError ? (
                                 <div className="flex flex-col items-center gap-1">
-                                  <XCircle size={20} className="text-red-600 dark:text-red-400" />
-                                  <span className="text-xs text-red-600 dark:text-red-400">{reading.error || 'Lỗi'}</span>
+                                  <XCircle size={16} className="sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
+                                  <span className="text-xs text-red-600 dark:text-red-400 hidden sm:inline">{reading.error || 'Lỗi'}</span>
                                 </div>
                               ) : isComplete ? (
-                                <CheckCircle size={20} className="text-green-600 dark:text-green-400 mx-auto" />
+                                <CheckCircle size={16} className="sm:w-5 sm:h-5 text-green-600 dark:text-green-400 mx-auto" />
                               ) : (
-                                <AlertCircle size={20} className="text-tertiary mx-auto" />
+                                <AlertCircle size={16} className="sm:w-5 sm:h-5 text-tertiary mx-auto" />
                               )}
                             </td>
                           </tr>
@@ -541,7 +550,8 @@ export default function FinancePage() {
                       })
                     )}
                   </tbody>
-                </table>
+                  </table>
+                </div>
               </div>
             </div>
           )}

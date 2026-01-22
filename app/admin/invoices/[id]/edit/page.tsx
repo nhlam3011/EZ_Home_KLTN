@@ -16,6 +16,7 @@ interface Invoice {
   amountService: number
   totalAmount: number
   status: string
+  paymentDueDate: Date | string
   contract: {
     id: number
     user: {
@@ -42,7 +43,8 @@ export default function EditInvoicePage() {
     amountElec: '0',
     amountWater: '0',
     amountCommonService: '0',
-    amountService: '0'
+    amountService: '0',
+    paymentDueDate: ''
   })
 
   useEffect(() => {
@@ -57,6 +59,10 @@ export default function EditInvoicePage() {
       if (response.ok) {
         const data = await response.json()
         setInvoice(data)
+        const paymentDueDate = data.paymentDueDate 
+          ? new Date(data.paymentDueDate).toISOString().split('T')[0]
+          : new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        
         setFormData({
           month: data.month,
           year: data.year,
@@ -64,7 +70,8 @@ export default function EditInvoicePage() {
           amountElec: data.amountElec.toString(),
           amountWater: data.amountWater.toString(),
           amountCommonService: (data.amountCommonService || 0).toString(),
-          amountService: data.amountService.toString()
+          amountService: data.amountService.toString(),
+          paymentDueDate: paymentDueDate
         })
       } else {
         alert('Không tìm thấy hóa đơn')
@@ -99,7 +106,8 @@ export default function EditInvoicePage() {
           amountElec: parseFloat(formData.amountElec),
           amountWater: parseFloat(formData.amountWater),
           amountCommonService: parseFloat(formData.amountCommonService),
-          amountService: parseFloat(formData.amountService)
+          amountService: parseFloat(formData.amountService),
+          paymentDueDate: formData.paymentDueDate
         })
       })
 
@@ -123,7 +131,8 @@ export default function EditInvoicePage() {
       parseFloat(formData.amountRoom || '0') +
       parseFloat(formData.amountElec || '0') +
       parseFloat(formData.amountWater || '0') +
-      parseFloat(formData.amountCommonService || '0');
+      parseFloat(formData.amountCommonService || '0') +
+      parseFloat(formData.amountService || '0');
       parseFloat(formData.amountService || '0')
 
   const formatCurrency = (amount: number) => {
@@ -292,6 +301,20 @@ export default function EditInvoicePage() {
                 />
                 <p className="text-xs text-tertiary mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">
+                  Hạn thanh toán
+                </label>
+                <input
+                  type="date"
+                  value={formData.paymentDueDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, paymentDueDate: e.target.value }))}
+                  required
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-tertiary mt-1">Ngày hết hạn thanh toán hóa đơn</p>
+              </div>
             </div>
           </div>
         </div>
@@ -342,12 +365,12 @@ export default function EditInvoicePage() {
             </div>
             <div className="mt-4 pt-4 border-t border-primary">
               <p className="text-xs text-tertiary mb-1">Trạng thái hiện tại:</p>
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+              <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${
                 invoice.status === 'PAID' 
-                  ? 'badge badge-success' 
+                  ? 'bg-success-soft border border-success-subtle text-fg-success-strong' 
                   : invoice.status === 'OVERDUE'
-                  ? 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold'
-                  : 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold'
+                  ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong'
+                  : 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold'
               }`}>
                 {invoice.status === 'PAID' ? 'Đã thanh toán' : invoice.status === 'OVERDUE' ? 'Quá hạn' : 'Chưa thanh toán'}
               </span>

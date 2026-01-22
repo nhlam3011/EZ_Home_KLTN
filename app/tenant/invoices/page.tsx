@@ -10,6 +10,7 @@ interface Invoice {
   totalAmount: number
   status: string
   createdAt: Date
+  paymentDueDate: Date
   contract: {
     user: {
       fullName: string
@@ -148,11 +149,11 @@ export default function InvoicesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      UNPAID: { label: 'Chưa thanh toán', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold px-3 py-1 rounded-full text-xs' },
-      PAID: { label: 'Đã thanh toán', className: 'badge badge-success' },
-      OVERDUE: { label: 'Quá hạn', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold px-3 py-1 rounded-full text-xs' }
+      UNPAID: { label: 'Chưa thanh toán', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
+      PAID: { label: 'Đã thanh toán', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      OVERDUE: { label: 'Quá hạn', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' }
     }
-    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary px-3 py-1 rounded-full text-xs' }
+    return statusMap[status] || { label: status, className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
   }
 
   const handleDownloadPDF = async () => {
@@ -209,17 +210,32 @@ export default function InvoicesPage() {
     const message = prompt('Vui lòng mô tả vấn đề bạn gặp phải với hóa đơn này:')
     if (message && message.trim()) {
       try {
+        // Get user ID from localStorage
+        const userData = localStorage.getItem('user')
+        let userId = null
+        if (userData) {
+          try {
+            const user = JSON.parse(userData)
+            userId = user.id
+          } catch (e) {
+            console.error('Error parsing user data:', e)
+          }
+        }
+
         const response = await fetch(`/api/tenant/invoices/${selectedInvoice.id}/complain`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ message })
+          body: JSON.stringify({ 
+            message,
+            userId: userId || selectedInvoice.contract.user.id
+          })
         })
 
         const data = await response.json()
         if (response.ok) {
-          alert(data.message || 'Khiếu nại của bạn đã được gửi. Chúng tôi sẽ xem xét và phản hồi trong vòng 24-48 giờ.')
+          alert(data.message || 'Khiếu nại của bạn đã được gửi đến quản trị viên. Chúng tôi sẽ xem xét và phản hồi trong vòng 24-48 giờ.')
         } else {
           alert(data.error || 'Có lỗi xảy ra khi gửi khiếu nại')
         }
@@ -230,16 +246,16 @@ export default function InvoicesPage() {
     }
   }
 
-  const handleVietQRPayment = async () => {
+  const handlePayOSPayment = async () => {
     if (!selectedInvoice || selectedInvoice.status !== 'UNPAID') return
     
     try {
-      const confirmed = confirm(`Bạn có chắc chắn muốn thanh toán hóa đơn ${formatCurrency(Number(selectedInvoice.totalAmount))} qua VietQR?`)
+      const confirmed = confirm(`Bạn có chắc chắn muốn thanh toán hóa đơn ${formatCurrency(Number(selectedInvoice.totalAmount))} qua PayOS?`)
       if (!confirmed) return
 
       setLoading(true)
-      // Create payment and get QR code
-      const response = await fetch('/api/payments/vietqr/create', {
+      // Create payment and get checkout URL
+      const response = await fetch('/api/payments/payos/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -250,18 +266,28 @@ export default function InvoicesPage() {
       })
 
       const data = await response.json()
-      if (response.ok && data.qrCode) {
-        setQrCode(data.qrCode)
-        setQrString(data.qrString || '')
-        setPaymentId(data.paymentId)
-        setShowQRModal(true)
-        // Start checking payment status
-        startPaymentStatusCheck(data.paymentId)
+      if (response.ok && data.checkoutUrl) {
+        // PayOS returns a checkout URL - redirect to payment page
+        window.open(data.checkoutUrl, '_blank')
+        
+        // Also show QR code if available
+        if (data.qrCode) {
+          setQrCode(data.qrCode)
+          setQrString('')
+          setPaymentId(data.paymentId)
+          setShowQRModal(true)
+          // Start checking payment status
+          startPaymentStatusCheck(data.paymentId)
+        } else {
+          // If no QR code, just check status periodically
+          setPaymentId(data.paymentId)
+          startPaymentStatusCheck(data.paymentId)
+        }
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi tạo mã QR thanh toán')
+        alert(data.error || 'Có lỗi xảy ra khi tạo liên kết thanh toán')
       }
     } catch (error) {
-      console.error('Error processing VietQR payment:', error)
+      console.error('Error processing PayOS payment:', error)
       alert('Có lỗi xảy ra khi xử lý thanh toán')
     } finally {
       setLoading(false)
@@ -286,7 +312,7 @@ export default function InvoicesPage() {
       try {
         // Check payment status directly
         if (paymentId) {
-          const paymentResponse = await fetch(`/api/payments/vietqr/status?paymentId=${paymentId}`)
+          const paymentResponse = await fetch(`/api/payments/payos/status?paymentId=${paymentId}`)
           if (paymentResponse.ok) {
             const paymentData = await paymentResponse.json()
             if (paymentData.status === 'SUCCESS') {
@@ -422,7 +448,7 @@ export default function InvoicesPage() {
                         </span>
                       </div>
                       <p className="text-xs text-tertiary mb-1">
-                        Hạn TT: {formatDate(invoice.createdAt)}
+                        Hạn TT: {formatDate(invoice.paymentDueDate || invoice.createdAt)}
                       </p>
                       <span className={`inline-block ${statusBadge.className} whitespace-nowrap`}>
                         {statusBadge.label}
@@ -457,7 +483,7 @@ export default function InvoicesPage() {
                     <p className={`text-xs sm:text-sm font-medium mt-1 ${
                       selectedInvoice.status === 'UNPAID' ? 'text-red-600 dark:text-red-400' : 'text-secondary'
                     }`}>
-                      Hạn thanh toán: {formatDate(selectedInvoice.createdAt)}
+                      Hạn thanh toán: {formatDate(selectedInvoice.paymentDueDate || selectedInvoice.createdAt)}
                     </p>
                   </div>
                 </div>
@@ -633,12 +659,12 @@ export default function InvoicesPage() {
                     </button>
                     {selectedInvoice.status === 'UNPAID' && (
                       <button 
-                        onClick={handleVietQRPayment}
+                        onClick={handlePayOSPayment}
                         disabled={loading}
                         className="btn btn-primary btn-sm flex-1 sm:flex-none"
                       >
                         <span>💳</span>
-                        <span>Thanh toán VietQR</span>
+                        <span>Thanh toán PayOS</span>
                       </button>
                     )}
                     <button 
@@ -667,7 +693,7 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-primary rounded-lg shadow-xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-primary">Thanh toán qua VietQR</h3>
+              <h3 className="text-lg font-bold text-primary">Thanh toán qua PayOS</h3>
               <button
                 onClick={() => {
                   if (paymentCheckIntervalRef.current) {
@@ -689,21 +715,22 @@ export default function InvoicesPage() {
             
             <div className="text-center mb-4">
               <p className="text-sm text-secondary mb-2">
-                Quét mã QR bằng ứng dụng ngân hàng của bạn
+                {qrCode ? (
+                  <>Quét mã QR bằng ứng dụng ngân hàng của bạn hoặc thanh toán trực tuyến</>
+                ) : (
+                  <>Đang chuyển hướng đến trang thanh toán PayOS...</>
+                )}
               </p>
               {qrCode && (
                 <div className="bg-white p-4 rounded-lg inline-block mb-4">
                   <img src={qrCode} alt="QR Code" className="w-64 h-64 mx-auto" />
                 </div>
               )}
-              {qrString && (
-                <div className="bg-tertiary p-3 rounded-lg mb-4">
-                  <p className="text-xs text-secondary mb-1">Hoặc nhập mã QR:</p>
-                  <p className="text-xs font-mono text-primary break-all">{qrString}</p>
-                </div>
-              )}
-              <p className="text-sm text-secondary">
+              <p className="text-sm text-secondary mb-2">
                 Số tiền: <span className="font-bold text-primary">{formatCurrency(Number(selectedInvoice?.totalAmount || 0))}</span>
+              </p>
+              <p className="text-xs text-tertiary">
+                Nếu cửa sổ thanh toán không mở tự động, vui lòng kiểm tra popup blocker của trình duyệt
               </p>
             </div>
 
@@ -748,7 +775,7 @@ export default function InvoicesPage() {
                     
                     // Manually confirm payment
                     try {
-                      const response = await fetch(`/api/payments/vietqr/callback`, {
+                      const response = await fetch(`/api/payments/payos/callback`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ paymentId })

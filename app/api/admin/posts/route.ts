@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,7 +8,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') // 'all', 'PENDING', 'PUBLIC'
     const search = searchParams.get('search')
 
-    const where: any = {}
+    const where: any = {
+      // Filter out invoice notification posts (they start with "[Hóa đơn #")
+      NOT: {
+        content: {
+          startsWith: '[Hóa đơn #'
+        }
+      }
+    }
 
     if (status && status !== 'all') {
       where.status = status
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { content, images, status } = body
+    const { content, images, status, userId } = body
 
     if (!content) {
       return NextResponse.json(
@@ -58,16 +66,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get admin user from request (in production, get from session)
-    // For now, get first admin user
-    const adminUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' }
-    })
+    // Get current admin user from request
+    const adminUser = await getCurrentUser(request, userId)
 
     if (!adminUser) {
       return NextResponse.json(
-        { error: 'Admin user not found' },
-        { status: 404 }
+        { error: 'Unauthorized. Please login as admin.' },
+        { status: 401 }
+      )
+    }
+
+    if (adminUser.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Only admin users can create posts' },
+        { status: 403 }
       )
     }
 

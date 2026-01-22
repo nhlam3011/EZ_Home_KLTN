@@ -286,35 +286,36 @@ export default function EditResidentPage() {
   const initials = getInitials(resident.fullName)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-primary">Sửa thông tin Cư dân</h1>
-          <p className="text-secondary mt-1">Cập nhật thông tin cá nhân và hồ sơ đính kèm</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary">Sửa thông tin Cư dân</h1>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Cập nhật thông tin cá nhân và hồ sơ đính kèm</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href={`/admin/residents/${residentId}`}
-            className="px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-colors text-primary"
+            className="px-3 sm:px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-colors text-primary text-sm sm:text-base"
           >
-            <X size={18} />
+            <X size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span>Hủy</span>
           </Link>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold disabled:opacity-50 disabled:hover:shadow-md"
+            className="px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold disabled:opacity-50 disabled:hover:shadow-md text-sm sm:text-base"
           >
             {saving ? (
               <>
-                <Loader2 className="animate-spin" size={19} strokeWidth={2} />
+                <Loader2 className="animate-spin sm:w-[19px] sm:h-[19px]" size={16} strokeWidth={2} />
                 <span>Đang lưu...</span>
               </>
             ) : (
               <>
-                <Save size={19} strokeWidth={2.5} />
-                <span>Lưu thay đổi</span>
+                <Save size={16} className="sm:w-[19px] sm:h-[19px]" strokeWidth={2.5} />
+                <span className="hidden sm:inline">Lưu thay đổi</span>
+                <span className="sm:hidden">Lưu</span>
               </>
             )}
           </button>
@@ -336,35 +337,49 @@ export default function EditResidentPage() {
             <div className="flex items-center gap-6">
               <div className="relative">
                 {resident.avatarUrl ? (
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                  <div className="w-24 h-24 rounded-full overflow-visible shadow-lg relative">
                     <img 
                       src={resident.avatarUrl} 
                       alt={resident.fullName}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-full"
                     />
+                    <label className="absolute bottom-0 right-0 w-7 h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                        disabled={uploadingAvatar}
+                      />
+                      {uploadingAvatar ? (
+                        <Loader2 size={14} className="text-white animate-spin" strokeWidth={2.5} />
+                      ) : (
+                        <Camera size={14} className="text-white" strokeWidth={2.5} />
+                      )}
+                    </label>
                   </div>
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg relative overflow-visible">
                     <span className="text-white font-bold text-3xl">{initials}</span>
+                    <label className="absolute bottom-0 right-0 w-7 h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                        disabled={uploadingAvatar}
+                      />
+                      {uploadingAvatar ? (
+                        <Loader2 size={14} className="text-white animate-spin" strokeWidth={2.5} />
+                      ) : (
+                        <Camera size={14} className="text-white m-1" strokeWidth={2.5} />
+                      )}
+                    </label>
                   </div>
                 )}
-                <label className="absolute bottom-0 right-0 w-10 h-10 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200 shadow-md">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={uploadingAvatar}
-                  />
-                  {uploadingAvatar ? (
-                    <Loader2 size={20} className="text-white animate-spin" />
-                  ) : (
-                    <Camera size={20} className="text-white" />
-                  )}
-                </label>
               </div>
               <div>
-                <p className="text-sm text-gray-600 mb-1">Thay đổi ảnh đại diện</p>
+                <p className="text-sm text-secondary mb-1">Thay đổi ảnh đại diện</p>
                 <p className="text-xs text-tertiary">JPG, PNG tối đa 5MB</p>
               </div>
             </div>
@@ -372,11 +387,11 @@ export default function EditResidentPage() {
 
           {/* Personal Information */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-              <User size={20} />
+            <h2 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4 flex items-center gap-2">
+              <User size={18} className="sm:w-5 sm:h-5" />
               <span>Thông tin cá nhân</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-medium text-primary mb-2">
                   Họ và tên <span className="text-red-500">*</span>
@@ -518,9 +533,9 @@ export default function EditResidentPage() {
 
           {/* Other Information */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-primary mb-4">Thông tin khác</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4">Thông tin khác</h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-primary mb-2">
                 Biển số xe
               </label>
               <input
@@ -535,16 +550,16 @@ export default function EditResidentPage() {
         </div>
 
         {/* Right Column - Documents */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-primary p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary">Hồ sơ đính kèm</h3>
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-primary">Hồ sơ đính kèm</h3>
               <button 
                 onClick={() => setShowUploadDoc(!showUploadDoc)}
-                className="p-2 hover:bg-tertiary rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                className="p-1.5 sm:p-2 hover:bg-tertiary rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 title="Tải lên hồ sơ"
               >
-                <Plus size={18} strokeWidth={2} className="text-secondary" />
+                <Plus size={16} className="sm:w-[18px] sm:h-[18px] text-secondary" strokeWidth={2} />
               </button>
             </div>
 
@@ -583,33 +598,33 @@ export default function EditResidentPage() {
                   const iconColor = isImage ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
 
                   return (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <Icon className={iconColor} size={20} />
+                    <div key={doc.id} className="flex items-center justify-between p-2 sm:p-3 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <div className={`w-8 h-8 sm:w-10 sm:h-10 ${iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <Icon className={`${iconColor} sm:w-5 sm:h-5`} size={16} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-primary truncate">{doc.fileName}</p>
-                          <p className="text-xs text-tertiary">
+                          <p className="text-xs sm:text-sm font-medium text-primary truncate">{doc.fileName}</p>
+                          <p className="text-[10px] sm:text-xs text-tertiary">
                             {formatFileSize(doc.fileSize)} • {formatDate(doc.createdAt)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <a
                           href={doc.fileUrl}
                           download
-                          className="p-2 hover:bg-secondary rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 hover:bg-secondary rounded-lg transition-colors"
                           title="Tải xuống"
                         >
-                          <Download size={16} className="text-secondary" />
+                          <Download size={14} className="sm:w-4 sm:h-4 text-secondary" />
                         </a>
                         <button
                           onClick={() => handleDeleteDocument(doc.id)}
-                          className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                           title="Xóa"
                         >
-                          <X size={16} className="text-red-600 dark:text-red-400" />
+                          <X size={14} className="sm:w-4 sm:h-4 text-red-600 dark:text-red-400" />
                         </button>
                       </div>
                     </div>

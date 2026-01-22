@@ -30,7 +30,8 @@ export default function NewInvoicePage() {
     amountElec: '0',
     amountWater: '0',
     amountCommonService: '0',
-    amountService: '0'
+    amountService: '0',
+    paymentDueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Default: 10 days from now
   })
 
   useEffect(() => {
@@ -84,7 +85,8 @@ export default function NewInvoicePage() {
           amountElec: parseFloat(formData.amountElec),
           amountWater: parseFloat(formData.amountWater),
           amountCommonService: parseFloat(formData.amountCommonService),
-          amountService: parseFloat(formData.amountService)
+          amountService: parseFloat(formData.amountService),
+          paymentDueDate: formData.paymentDueDate
         })
       })
 
@@ -113,7 +115,8 @@ const totalAmount =
   parseFloat(formData.amountRoom || '0') +
   parseFloat(formData.amountElec || '0') +
   parseFloat(formData.amountWater || '0') +
-  parseFloat(formData.amountCommonService || '0');
+  parseFloat(formData.amountCommonService || '0') +
+  parseFloat(formData.amountService || '0');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -291,6 +294,20 @@ const totalAmount =
                   placeholder="Phí sửa chữa, dịch vụ khác..."
                 />
                 <p className="text-xs text-tertiary mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-primary mb-1">
+                  Hạn thanh toán
+                </label>
+                <input
+                  type="date"
+                  value={formData.paymentDueDate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, paymentDueDate: e.target.value }))}
+                  required
+                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-tertiary mt-1">Ngày hết hạn thanh toán hóa đơn</p>
               </div>
             </div>
           </div>

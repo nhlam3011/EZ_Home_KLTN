@@ -18,12 +18,7 @@ export async function GET(request: NextRequest) {
       where.floor = parseInt(floor)
     }
     
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } }
-      ]
-    }
-
+    // Note: We'll filter by search term after fetching to support nested relation search
     const rooms = await prisma.room.findMany({
       where,
       include: {
@@ -43,7 +38,36 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' }
     })
 
-    return NextResponse.json(rooms)
+    // Filter by search term if provided (search in room name or tenant name)
+    let filteredRooms = rooms
+    if (search) {
+      const searchLower = search.toLowerCase()
+      filteredRooms = rooms.filter(room => {
+        // Search in room name
+        if (room.name.toLowerCase().includes(searchLower)) {
+          return true
+        }
+        // Search in tenant names (contracts)
+        if (room.contracts && room.contracts.length > 0) {
+          return room.contracts.some(contract => {
+            // Search in main tenant name
+            if (contract.user.fullName.toLowerCase().includes(searchLower)) {
+              return true
+            }
+            // Search in occupant names
+            if (contract.occupants && contract.occupants.length > 0) {
+              return contract.occupants.some(occupant => 
+                occupant.fullName.toLowerCase().includes(searchLower)
+              )
+            }
+            return false
+          })
+        }
+        return false
+      })
+    }
+
+    return NextResponse.json(filteredRooms)
   } catch (error) {
     console.error('Error fetching rooms:', error)
     return NextResponse.json(
@@ -56,7 +80,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, floor, price, area, maxPeople, status, description } = body
+    const { name, floor, price, area, maxPeople, status, roomType, description, amenities } = body
 
     // Validate required fields
     if (!name || !floor || !price) {
@@ -85,15 +109,34 @@ export async function POST(request: NextRequest) {
         price: parseFloat(price),
         area: area ? parseFloat(area) : null,
         maxPeople: maxPeople ? parseInt(maxPeople) : 1,
-        status: status || 'AVAILABLE'
+        status: status || 'AVAILABLE',
+        roomType: roomType || null,
+        description: description || null,
+        amenities: amenities && Array.isArray(amenities) ? amenities : []
       }
     })
 
     return NextResponse.json(room, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating room:', error)
+    
+    // Provide more specific error messages
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Tên phòng đã tồn tại' },
+        { status: 400 }
+      )
+    }
+    
+    if (error.code === 'P2011') {
+      return NextResponse.json(
+        { error: 'Dữ liệu không hợp lệ. Có thể do database schema chưa được cập nhật.' },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create room' },
+      { error: error.message || 'Failed to create room' },
       { status: 500 }
     )
   }

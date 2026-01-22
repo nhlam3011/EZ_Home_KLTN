@@ -1,11 +1,33 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get first tenant user (in production, get from session)
-    const user = await prisma.user.findFirst({
-      where: { role: 'TENANT' },
+    const searchParams = request.nextUrl.searchParams
+    const months = parseInt(searchParams.get('months') || '6')
+    const userId = searchParams.get('userId')
+
+    // Get current tenant user from session
+    const user = await getCurrentUser(request, userId ? parseInt(userId) : undefined)
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login as tenant.' },
+        { status: 401 }
+      )
+    }
+
+    if (user.role !== 'TENANT') {
+      return NextResponse.json(
+        { error: 'Only tenant users can access dashboard' },
+        { status: 403 }
+      )
+    }
+
+    // Get user with contracts
+    const userWithContracts = await prisma.user.findUnique({
+      where: { id: user.id },
       include: {
         contracts: {
           where: { status: 'ACTIVE' },
@@ -18,31 +40,54 @@ export async function GET() {
       }
     })
 
-    if (!user) {
+    if (!userWithContracts) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    const contract = user.contracts[0]
+    const contract = userWithContracts.contracts[0]
 
-    // Get current month invoice
+    // Get current month invoice - prioritize unpaid invoices
     const currentMonth = new Date().getMonth() + 1
     const currentYear = new Date().getFullYear()
     
-    const currentInvoice = await prisma.invoice.findFirst({
-      where: {
-        contractId: contract?.id,
-        month: currentMonth,
-        year: currentYear
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    let currentInvoice = null
+    
+    if (contract?.id) {
+      // First, try to get unpaid/overdue invoice (most recent)
+      currentInvoice = await prisma.invoice.findFirst({
+        where: {
+          contractId: contract.id,
+          status: {
+            in: ['UNPAID', 'OVERDUE']
+          }
+        },
+        orderBy: [
+          { year: 'desc' },
+          { month: 'desc' },
+          { createdAt: 'desc' }
+        ]
+      })
+      
+      // If no unpaid invoice, get current month invoice
+      if (!currentInvoice) {
+        currentInvoice = await prisma.invoice.findFirst({
+          where: {
+            contractId: contract.id,
+            month: currentMonth,
+            year: currentYear
+          },
+          orderBy: { createdAt: 'desc' }
+        })
+      }
+    }
 
-    // Get utility costs for last 6 months
+    // Get utility costs for specified number of months
     const utilityCosts = []
-    for (let i = 5; i >= 0; i--) {
+    const monthsToFetch = Math.min(Math.max(months, 3), 12) // Limit between 3 and 12
+    for (let i = monthsToFetch - 1; i >= 0; i--) {
       const date = new Date()
       date.setMonth(date.getMonth() - i)
       const month = date.getMonth() + 1
@@ -65,26 +110,48 @@ export async function GET() {
       })
     }
 
-    // Calculate cost structure from current invoice
+    // Calculate cost structure from all invoices in current month
+    const monthInvoices = await prisma.invoice.findMany({
+      where: {
+        contractId: contract?.id,
+        month: currentMonth,
+        year: currentYear
+      }
+    })
+
     let costStructure = {
       room: 0,
       services: 0,
-      other: 0
+      other: 0,
+      total: 0
     }
     
-    if (currentInvoice) {
-      const total = Number(currentInvoice.totalAmount || 0)
-      if (total > 0) {
-        const roomAmount = Number(currentInvoice.amountRoom || 0)
-        const commonServiceAmount = Number(currentInvoice.amountCommonService || 0)
-        const serviceAmount = Number(currentInvoice.amountService || 0)
-        const utilityAmount = Number(currentInvoice.amountElec || 0) + Number(currentInvoice.amountWater || 0)
+    if (monthInvoices.length > 0) {
+      let totalRoom = 0
+      let totalServices = 0
+      let totalOther = 0
+      let totalAmount = 0
+
+      monthInvoices.forEach(invoice => {
+        const roomAmount = Number(invoice.amountRoom || 0)
+        const commonServiceAmount = Number(invoice.amountCommonService || 0)
+        const serviceAmount = Number(invoice.amountService || 0)
+        const utilityAmount = Number(invoice.amountElec || 0) + Number(invoice.amountWater || 0)
+        const total = Number(invoice.totalAmount || 0)
         const otherAmount = total - roomAmount - commonServiceAmount - serviceAmount - utilityAmount
-        
+
+        totalRoom += roomAmount
+        totalServices += commonServiceAmount + serviceAmount + utilityAmount
+        totalOther += otherAmount
+        totalAmount += total
+      })
+
+      if (totalAmount > 0) {
         costStructure = {
-          room: Math.round((roomAmount / total) * 100),
-          services: Math.round(((commonServiceAmount + serviceAmount + utilityAmount) / total) * 100),
-          other: Math.round((otherAmount / total) * 100)
+          room: Math.round((totalRoom / totalAmount) * 100),
+          services: Math.round((totalServices / totalAmount) * 100),
+          other: Math.round((totalOther / totalAmount) * 100),
+          total: totalAmount
         }
       }
     }
@@ -107,7 +174,7 @@ export async function GET() {
 
     const recentIssues = await prisma.issue.findMany({
       where: {
-        userId: user.id
+        userId: userWithContracts.id
       },
       take: 5,
       orderBy: { createdAt: 'desc' },
@@ -159,21 +226,54 @@ export async function GET() {
     recentActivities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
     recentActivities.splice(10)
 
-    // Get unread messages count
-    const unreadMessages = await prisma.post.count({
-      where: {
-        userId: user.id,
-        OR: [
-          { content: { startsWith: '[Hóa đơn' } },
-          { content: { startsWith: '[Thông báo' } },
-          { content: { startsWith: '[Tin nhắn' } }
-        ],
-        status: 'PUBLIC',
-        createdAt: {
-          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
-        }
-      }
+    // Get admin user
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN' }
     })
+
+    // Get unread messages count from admin to tenant
+    const unreadMessagesCount = adminUser ? await prisma.message.count({
+      where: {
+        senderId: adminUser.id,
+        receiverId: user.id,
+        isRead: false
+      }
+    }) : 0
+
+    // Get unpaid invoices count and list
+    const unpaidInvoices = await prisma.invoice.findMany({
+      where: {
+        contractId: contract?.id,
+        status: {
+          in: ['UNPAID', 'OVERDUE']
+        }
+      },
+      orderBy: [
+        { year: 'desc' },
+        { month: 'desc' },
+        { createdAt: 'desc' }
+      ],
+      take: 5
+    })
+
+    const unpaidInvoicesCount = unpaidInvoices.length
+    const unpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
+
+    // Get issues count by status
+    const [pendingIssues, processingIssues, doneIssues, cancelledIssues] = await Promise.all([
+      prisma.issue.count({
+        where: { userId: userWithContracts.id, status: 'PENDING' }
+      }),
+      prisma.issue.count({
+        where: { userId: userWithContracts.id, status: 'PROCESSING' }
+      }),
+      prisma.issue.count({
+        where: { userId: userWithContracts.id, status: 'DONE' }
+      }),
+      prisma.issue.count({
+        where: { userId: userWithContracts.id, status: 'CANCELLED' }
+      })
+    ])
 
     return NextResponse.json({
       currentInvoice,
@@ -183,7 +283,16 @@ export async function GET() {
       recentActivities,
       currentMonth,
       currentYear,
-      unreadMessagesCount: unreadMessages
+      unreadMessagesCount,
+      unpaidInvoices,
+      unpaidInvoicesCount,
+      unpaidAmount,
+      issues: {
+        pending: pendingIssues,
+        processing: processingIssues,
+        done: doneIssues,
+        cancelled: cancelledIssues
+      }
     })
   } catch (error) {
     console.error('Error fetching dashboard data:', error)

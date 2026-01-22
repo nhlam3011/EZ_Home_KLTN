@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     const userId = searchParams.get('userId')
+    const roomId = searchParams.get('roomId')
 
     const where: any = {}
     if (status) {
@@ -14,12 +15,18 @@ export async function GET(request: NextRequest) {
     if (userId) {
       where.userId = parseInt(userId)
     }
+    if (roomId) {
+      where.roomId = parseInt(roomId)
+    }
 
     const contracts = await prisma.contract.findMany({
       where,
       include: {
         user: true,
-        room: true
+        room: true,
+        occupants: {
+          orderBy: { createdAt: 'asc' }
+        }
       },
       orderBy: { startDate: 'desc' }
     })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, ShoppingCart, Clock, CheckCircle, XCircle, AlertCircle, Plus, Minus, X } from 'lucide-react'
+import { Search, ShoppingCart, Clock, CheckCircle, XCircle, AlertCircle, Plus, Minus, X, Loader2 } from 'lucide-react'
 
 interface Service {
   id: number
@@ -174,28 +174,28 @@ export default function ServicesPage() {
     const statusMap: Record<string, { label: string; className: string; icon: any }> = {
       PENDING: { 
         label: 'Chờ xử lý', 
-        className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700',
+        className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded',
         icon: Clock
       },
       PROCESSING: { 
         label: 'Đang xử lý', 
-        className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700',
+        className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded',
         icon: AlertCircle
       },
       DONE: { 
         label: 'Hoàn thành', 
-        className: 'badge badge-success border',
+        className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded',
         icon: CheckCircle
       },
       CANCELLED: { 
         label: 'Đã hủy', 
-        className: 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700',
+        className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded',
         icon: XCircle
       }
     }
     return statusMap[status] || { 
       label: status, 
-      className: 'bg-gray-100 text-gray-700 border-primary',
+      className: 'bg-tertiary text-primary',
       icon: AlertCircle
     }
   }
@@ -208,21 +208,21 @@ export default function ServicesPage() {
   const totalPrice = selectedService ? Number(selectedService.unitPrice) * quantity : 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-primary">Dịch vụ</h1>
-        <p className="text-secondary mt-1">Đặt các dịch vụ tiện ích cho căn hộ của bạn</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-primary">Dịch vụ</h1>
+        <p className="text-sm sm:text-base text-secondary mt-1">Đặt các dịch vụ tiện ích cho căn hộ của bạn</p>
       </div>
 
       {/* Tabs */}
       <div className="border-b border-primary">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
           <button 
             onClick={() => setActiveTab('services')}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
               activeTab === 'services'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
@@ -230,15 +230,15 @@ export default function ServicesPage() {
           </button>
           <button 
             onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 relative ${
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 relative whitespace-nowrap ${
               activeTab === 'orders'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
             Đơn hàng của tôi
             {orders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+              <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold">
                 {orders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length}
               </span>
             )}
@@ -250,14 +250,14 @@ export default function ServicesPage() {
       {activeTab === 'services' && (
         <>
           {/* Search Bar */}
-          <div className="card p-4">
+          <div className="card p-3 sm:p-4">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Tìm kiếm dịch vụ (Vệ sinh, sửa chữa, giặt ủi...)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input w-full pl-12 pr-4 py-3"
+                className="input w-full pl-9 sm:pl-12 pr-4 py-2 sm:py-3 text-sm sm:text-base"
               />
             </div>
           </div>
@@ -266,7 +266,7 @@ export default function ServicesPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setCategoryFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 categoryFilter === 'all'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-primary border border-primary text-primary hover:bg-tertiary'
@@ -278,7 +278,7 @@ export default function ServicesPage() {
               <button
                 key={category}
                 onClick={() => setCategoryFilter(category)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                   categoryFilter === category
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'bg-primary border border-primary text-primary hover:bg-tertiary'
@@ -291,12 +291,14 @@ export default function ServicesPage() {
 
           {/* Services Grid */}
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-tertiary">Đang tải dịch vụ...</p>
+            <div className="card">
+              <div className="text-center py-12">
+                <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
+                <p className="text-tertiary">Đang tải dịch vụ...</p>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredServices.map((service) => {
                 const category = getServiceCategory(service.name)
                 const isFree = Number(service.unitPrice) === 0
@@ -361,9 +363,11 @@ export default function ServicesPage() {
       {/* Orders Tab */}
       {activeTab === 'orders' && (
         ordersLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-tertiary">Đang tải đơn hàng...</p>
+          <div className="card">
+            <div className="text-center py-12">
+              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
+              <p className="text-tertiary">Đang tải đơn hàng...</p>
+            </div>
           </div>
         ) : orders.length === 0 ? (
           <div className="card p-12 text-center">
@@ -402,8 +406,8 @@ export default function ServicesPage() {
                         </div>
                       </div>
                     </div>
-                    <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 ${statusBadge.className}`}>
-                      <StatusIcon size={14} />
+                    <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-1.5 whitespace-nowrap ${statusBadge.className}`}>
+                      <StatusIcon size={12} className="sm:w-[14px] sm:h-[14px]" />
                       {statusBadge.label}
                     </span>
                   </div>

@@ -108,20 +108,8 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Check if invoice already exists
-        const existingInvoice = await prisma.invoice.findFirst({
-          where: {
-            contractId: contract.id,
-            month,
-            year
-          }
-        })
-
-        if (existingInvoice) {
-          results.failed++
-          results.errors.push(`Dòng ${i + 2}: Hóa đơn đã tồn tại cho kỳ ${month}/${year}`)
-          continue
-        }
+        // Cho phép tạo nhiều hóa đơn trong cùng tháng (để bổ sung thiếu sót)
+        // Không kiểm tra hóa đơn đã tồn tại
 
         // Calculate total
         const totalAmount = amountRoom + amountElec + amountWater + amountService + amountCommonService

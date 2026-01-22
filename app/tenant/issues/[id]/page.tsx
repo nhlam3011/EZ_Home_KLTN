@@ -65,19 +65,19 @@ export default function IssueDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
-      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' },
-      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 font-semibold' }
+      PENDING: { label: 'Chờ xử lý', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
+      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      DONE: { label: 'Hoàn thành', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      CANCELLED: { label: 'Đã hủy', className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
     }
     return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
   }
 
   const getSeverityBadge = (severity: string) => {
     const severityMap: Record<string, { label: string; className: string }> = {
-      HIGH: { label: 'Cao', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' },
-      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
-      LOW: { label: 'Thấp', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' }
+      HIGH: { label: 'Cao', className: 'bg-red-200 dark:bg-red-900/10 text-red-900 dark:text-red-300 border border-red-400 dark:border-red-700 font-semibold' },
+      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-300 border border-yellow-400 dark:border-yellow-700 font-semibold' },
+      LOW: { label: 'Thấp', className: 'bg-blue-200 dark:bg-blue-900/40 text-blue-900 dark:text-blue-300 border border-blue-400 dark:border-blue-700 font-semibold' }
     }
     return severityMap[severity] || { label: severity, className: 'bg-tertiary text-primary' }
   }
@@ -145,11 +145,11 @@ export default function IssueDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {severityBadge && (
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${severityBadge.className}`}>
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${severityBadge.className}`}>
               {severityBadge.label}
             </span>
           )}
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusBadge.className}`}>
+          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${statusBadge.className}`}>
             {statusBadge.label}
           </span>
         </div>

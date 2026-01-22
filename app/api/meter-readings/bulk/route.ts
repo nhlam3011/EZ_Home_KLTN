@@ -208,54 +208,53 @@ export async function POST(request: NextRequest) {
           const amountService = 0 // Phí xử lý sự cố và dịch vụ khác (mặc định 0)
           const totalAmount = amountRoom + amountElec + amountWater + amountCommonService + amountService
 
-          // Check if invoice already exists for this contract and period
-          const existingInvoice = await prisma.invoice.findFirst({
-            where: {
-              contractId: activeContract.id,
-              month: parseInt(month),
-              year: parseInt(year)
-            }
-          })
-
-          if (existingInvoice) {
-            // Cập nhật lại hóa đơn đã tồn tại với số điện nước và dịch vụ chung đúng
-            // Giữ nguyên amountService (phí xử lý sự cố) nếu đã có
-            const existingAmountService = Number(existingInvoice.amountService || 0)
-            await prisma.invoice.update({
-              where: { id: existingInvoice.id },
+          // Cho phép tạo nhiều hóa đơn trong cùng tháng (để bổ sung thiếu sót)
+          // Không kiểm tra hóa đơn đã tồn tại, luôn tạo hóa đơn mới
+          
+          // Chỉ tạo hóa đơn mới sau khi đã lưu số mới và có số tiêu thụ
+          if (elecConsumption >= 0 && waterConsumption >= 0) {
+            // Calculate payment due date (10 days from now)
+            const paymentDueDate = new Date()
+            paymentDueDate.setDate(paymentDueDate.getDate() + 10)
+            
+            // Create invoice
+            const invoice = await prisma.invoice.create({
               data: {
+                contractId: activeContract.id,
+                month: parseInt(month),
+                year: parseInt(year),
+                amountRoom,
                 amountElec,
                 amountWater,
                 amountCommonService,
-                totalAmount: amountRoom + amountElec + amountWater + amountCommonService + existingAmountService
+                amountService: 0,
+                totalAmount,
+                paymentDueDate,
+                status: 'UNPAID'
               }
             })
-          } else {
-            // Chỉ tạo hóa đơn mới sau khi đã lưu số mới và có số tiêu thụ
-            if (elecConsumption >= 0 && waterConsumption >= 0) {
-              // Create invoice
-              const invoice = await prisma.invoice.create({
-                data: {
-                  contractId: activeContract.id,
-                  month: parseInt(month),
-                  year: parseInt(year),
-                  amountRoom,
-                  amountElec,
-                  amountWater,
-                  amountCommonService,
-                  amountService: 0,
-                  totalAmount,
-                  status: 'UNPAID'
-                }
-              })
-              invoicesCreated.push(invoice.id)
-            }
+            invoicesCreated.push(invoice.id)
           }
         }
       } catch (error: any) {
+        console.error(`Error processing room ${roomId}:`, error)
+        let errorMessage = 'Lỗi khi lưu chỉ số'
+        
+        // Provide more specific error messages
+        if (error.code === 'P2002') {
+          errorMessage = 'Phòng này đã có chỉ số cho kỳ này'
+        } else if (error.code === 'P2003') {
+          errorMessage = 'Phòng không tồn tại hoặc dữ liệu không hợp lệ'
+        } else if (error.code === 'P2025') {
+          errorMessage = 'Không tìm thấy dữ liệu liên quan'
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+        
         errors.push({
           roomId,
-          error: error.message || 'Lỗi khi lưu chỉ số'
+          error: errorMessage,
+          details: error.code || undefined
         })
       }
     }

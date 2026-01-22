@@ -414,10 +414,10 @@ export default function ServicesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Mới', className: 'bg-red-100 dark:bg-red-900/30 text-red-900 dark:text-red-400 font-semibold' },
-      PROCESSING: { label: 'Đang làm', className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 font-semibold' },
-      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-tertiary text-primary' }
+      PENDING: { label: 'Mới', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      PROCESSING: { label: 'Đang làm', className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      DONE: { label: 'Hoàn thành', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      CANCELLED: { label: 'Đã hủy', className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
     }
     return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
   }
@@ -630,7 +630,7 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}>
+                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${statusBadge.className}`}>
                               {statusBadge.label}
                             </span>
                             {order.status === 'CANCELLED' && order.note && order.note.startsWith('Lý do hủy:') && (
@@ -775,7 +775,7 @@ export default function ServicesPage() {
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
                 <h3 className="font-semibold text-primary">Mới</h3>
-                <span className="px-2 py-1 bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 rounded-full text-xs font-semibold">
+                <span className="bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded">
                   {orders.filter(o => o.status === 'PENDING').length}
                 </span>
               </div>
@@ -841,7 +841,7 @@ export default function ServicesPage() {
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                 <h3 className="font-semibold text-primary">Đang làm</h3>
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-400 rounded-full text-xs font-semibold">
+                <span className="bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded">
                   {orders.filter(o => o.status === 'PROCESSING').length}
                 </span>
               </div>
@@ -894,7 +894,7 @@ export default function ServicesPage() {
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
                 <h3 className="font-semibold text-primary">Hoàn thành</h3>
-                <span className="badge badge-success rounded-full text-xs">
+                <span className="bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded">
                   {orders.filter(o => o.status === 'DONE').length}
                 </span>
               </div>
@@ -944,7 +944,7 @@ export default function ServicesPage() {
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 rounded-full bg-secondary"></div>
                 <h3 className="font-semibold text-primary">Đã hủy</h3>
-                <span className="px-2 py-1 bg-tertiary text-primary rounded-full text-xs font-semibold">
+                <span className="bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded">
                   {orders.filter(o => o.status === 'CANCELLED').length}
                 </span>
               </div>
@@ -972,7 +972,7 @@ export default function ServicesPage() {
                           {order.note.replace('Lý do hủy: ', '')}
                         </div>
                       )}
-                      <div className="px-3 py-1.5 bg-tertiary text-secondary rounded-lg text-xs font-medium text-center">
+                      <div className="bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded text-center">
                         Đã hủy
                       </div>
                     </div>

@@ -52,7 +52,8 @@ export async function PUT(
       amountCommonService,
       amountService,
       month,
-      year
+      year,
+      paymentDueDate
     } = body
 
     const updateData: any = {}
@@ -88,6 +89,9 @@ export async function PUT(
     }
     if (year !== undefined) {
       updateData.year = parseInt(year)
+    }
+    if (paymentDueDate !== undefined) {
+      updateData.paymentDueDate = new Date(paymentDueDate)
     }
 
     // Recalculate totalAmount if any amount field is updated
@@ -137,15 +141,56 @@ export async function DELETE(
 ) {
   try {
     const resolvedParams = await Promise.resolve(params)
+    const invoiceId = parseInt(resolvedParams.id)
+
+    // Check if invoice exists
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        payments: true
+      }
+    })
+
+    if (!invoice) {
+      return NextResponse.json(
+        { error: 'Invoice not found' },
+        { status: 404 }
+      )
+    }
+
+    // Delete all related payments first (foreign key constraint)
+    if (invoice.payments.length > 0) {
+      await prisma.payment.deleteMany({
+        where: { invoiceId: invoiceId }
+      })
+    }
+
+    // Now delete the invoice
     await prisma.invoice.delete({
-      where: { id: parseInt(resolvedParams.id) }
+      where: { id: invoiceId }
     })
 
     return NextResponse.json({ message: 'Invoice deleted successfully' })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting invoice:', error)
+    
+    // Provide more specific error messages
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { error: 'Invoice not found' },
+        { status: 404 }
+      )
+    }
+    
+    if (error.code === 'P2003') {
+      return NextResponse.json(
+        { error: 'Cannot delete invoice: related records exist. Please contact administrator.' },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to delete invoice' },
+      { error: error.message || 'Failed to delete invoice' },
       { status: 500 }
     )
   }

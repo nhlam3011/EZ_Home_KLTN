@@ -1,25 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCurrentUser } from '@/lib/auth'
 
 // GET - Lấy danh sách thông báo cho tenant
 export async function GET(request: NextRequest) {
   try {
-    // Get first tenant user (in production, get from session)
-    const user = await prisma.user.findFirst({
-      where: { role: 'TENANT' }
-    })
+    const searchParams = request.nextUrl.searchParams
+    const userId = searchParams.get('userId')
 
-    if (!user) {
-      return NextResponse.json([])
+    // Get current tenant user from session
+    const user = await getCurrentUser(request, userId ? parseInt(userId) : undefined)
+
+    if (!user || user.role !== 'TENANT') {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please login as tenant.' },
+        { status: 401 }
+      )
     }
 
-    // Get notifications from Post table where content contains [Hóa đơn
+    // Get notifications from Post table where content contains [Hóa đơn, [Thông báo, etc.
     const notifications = await prisma.post.findMany({
       where: {
         userId: user.id,
-        content: {
-          contains: '[Hóa đơn'
-        },
+        OR: [
+          { content: { contains: '[Hóa đơn' } },
+          { content: { contains: '[Thông báo' } },
+          { content: { contains: '[Tin nhắn' } }
+        ],
         status: 'PUBLIC'
       },
       orderBy: {

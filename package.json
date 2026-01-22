@@ -1,6 +1,6 @@
 {
   "name": "ez-home",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,6 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@payos/node": "^1.0.10",
     "@prisma/client": "^5.10.2",
     "@types/nodemailer": "^7.0.5",
     "bcryptjs": "^2.4.3",

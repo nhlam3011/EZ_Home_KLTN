@@ -9,7 +9,7 @@ import {
   RefreshCw, 
   FileText, 
   Plus, 
-  Download, 
+  Eye,
   Phone, 
   Mail, 
   MapPin, 
@@ -20,14 +20,13 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  File,
-  Image as ImageIcon,
-  Upload,
-  X,
-  Loader2,
   Camera,
+  Loader2,
+  Trash2,
   Users,
-  Trash2
+  Briefcase,
+  Car,
+  AlertTriangle
 } from 'lucide-react'
 
 interface Resident {
@@ -89,32 +88,17 @@ interface Resident {
   unpaidInvoicesCount: number
 }
 
-interface Document {
-  id: number
-  fileName: string
-  fileUrl: string
-  fileSize: number | null
-  fileType: string | null
-  description: string | null
-  createdAt: Date | string
-}
-
 export default function ResidentDetailPage() {
   const params = useParams()
   const router = useRouter()
   const residentId = params?.id as string
-  const [resident, setResident] = useState<Resident | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'payments' | 'services' | 'history'>('payments')
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [resident, setResident] = useState<Resident | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [uploadingDoc, setUploadingDoc] = useState(false)
-  const [showUploadDoc, setShowUploadDoc] = useState(false)
 
   useEffect(() => {
     if (residentId) {
       fetchResident()
-      fetchDocuments()
     }
   }, [residentId])
 
@@ -138,28 +122,16 @@ export default function ResidentDetailPage() {
     }
   }
 
-  const fetchDocuments = async () => {
-    try {
-      const response = await fetch(`/api/residents/${residentId}/documents`)
-      if (response.ok) {
-        const data = await response.json()
-        setDocuments(data)
-      }
-    } catch (error) {
-      console.error('Error fetching documents:', error)
-    }
-  }
-
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !resident) return
 
     setUploadingAvatar(true)
     try {
       const formData = new FormData()
       formData.append('avatar', file)
 
-      const response = await fetch(`/api/residents/${residentId}/upload-avatar`, {
+      const response = await fetch(`/api/residents/${resident.id}/upload-avatar`, {
         method: 'POST',
         body: formData
       })
@@ -168,116 +140,32 @@ export default function ResidentDetailPage() {
 
       if (response.ok) {
         setResident(prev => prev ? { ...prev, avatarUrl: data.avatarUrl } : null)
-        alert('Cập nhật avatar thành công!')
+        alert('Cập nhật ảnh đại diện thành công!')
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi upload avatar')
+        alert(data.error || 'Có lỗi xảy ra khi upload ảnh')
       }
     } catch (error) {
       console.error('Error uploading avatar:', error)
-      alert('Có lỗi xảy ra khi upload avatar')
+      alert('Có lỗi xảy ra khi upload ảnh')
     } finally {
       setUploadingAvatar(false)
-      e.target.value = '' // Reset input
-    }
-  }
-
-  const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file size
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Kích thước file không được vượt quá 10MB')
       e.target.value = ''
-      return
     }
-
-    setUploadingDoc(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const activeContract = resident?.contracts?.find(c => c.status === 'ACTIVE')
-      if (activeContract) {
-        formData.append('contractId', activeContract.id.toString())
-      }
-
-      const response = await fetch(`/api/residents/${residentId}/documents`, {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        await fetchDocuments()
-        alert('Tải lên hồ sơ thành công!')
-        setShowUploadDoc(false)
-      } else {
-        const errorMsg = data.error || 'Có lỗi xảy ra khi tải lên hồ sơ'
-        let details = ''
-        
-        if (data.code === 'PRISMA_CLIENT_NOT_GENERATED') {
-          details = '\n\n⚠️ VUI LÒNG LÀM THEO CÁC BƯỚC SAU:\n' + 
-                   '1. Mở Terminal/Command Prompt\n' +
-                   '2. Chạy lệnh: npx prisma generate\n' +
-                   '3. Chạy lệnh: npx prisma db push\n' +
-                   '4. Restart dev server (Ctrl+C rồi npm run dev)\n' +
-                   '5. Thử upload lại'
-        } else if (data.details) {
-          details = '\n\nChi tiết: ' + data.details
-        }
-        
-        alert(errorMsg + details)
-        console.error('Upload error:', data)
-      }
-    } catch (error: any) {
-      console.error('Error uploading document:', error)
-      alert(`Có lỗi xảy ra khi tải lên hồ sơ: ${error.message || 'Unknown error'}`)
-    } finally {
-      setUploadingDoc(false)
-      e.target.value = '' // Reset input
-    }
-  }
-
-  const handleDeleteDocument = async (documentId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa hồ sơ này?')) return
-
-    try {
-      const response = await fetch(`/api/residents/${residentId}/documents?documentId=${documentId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        await fetchDocuments()
-        alert('Xóa hồ sơ thành công!')
-      } else {
-        const data = await response.json()
-        alert(data.error || 'Có lỗi xảy ra khi xóa hồ sơ')
-      }
-    } catch (error) {
-      console.error('Error deleting document:', error)
-      alert('Có lỗi xảy ra khi xóa hồ sơ')
-    }
-  }
-
-  const formatFileSize = (bytes: number | null) => {
-    if (!bytes) return 'N/A'
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   const handleResetPassword = async () => {
-    if (!confirm('Bạn có chắc chắn muốn reset mật khẩu cho cư dân này? Mật khẩu mới sẽ là số CCCD.')) return
+    if (!resident) return
+    if (!confirm(`Bạn có chắc chắn muốn reset mật khẩu cho ${resident.fullName}?`)) return
 
     try {
-      const response = await fetch(`/api/residents/${residentId}/reset-password`, {
+      const response = await fetch(`/api/residents/${resident.id}/reset-password`, {
         method: 'POST'
       })
+
       const data = await response.json()
 
       if (response.ok) {
-        alert('Reset mật khẩu thành công! Mật khẩu mới là số CCCD.')
+        alert(`Mật khẩu mới: ${data.newPassword}\n\nVui lòng lưu lại thông tin này.`)
       } else {
         alert(data.error || 'Có lỗi xảy ra')
       }
@@ -287,62 +175,35 @@ export default function ResidentDetailPage() {
     }
   }
 
-  const handleRenewContract = () => {
-    const newEndDate = prompt('Nhập ngày hết hạn mới (DD/MM/YYYY):')
-    if (newEndDate) {
-      // In a real app, this would call API to renew contract
-      alert('Tính năng gia hạn hợp đồng đang được phát triển...')
-    }
-  }
-
-  const handleTerminateContract = async () => {
-    if (!confirm('Bạn có chắc chắn muốn thanh lý hợp đồng này? Hành động này sẽ chấm dứt hợp đồng và chuyển phòng về trạng thái trống.')) return
-
-    try {
-      const response = await fetch(`/api/residents/${residentId}/checkout`, {
-        method: 'POST'
-      })
-      const data = await response.json()
-
-      if (response.ok) {
-        alert('Thanh lý hợp đồng thành công!')
-        fetchResident()
-      } else {
-        alert(data.error || 'Có lỗi xảy ra')
-      }
-    } catch (error) {
-      console.error('Error terminating contract:', error)
-      alert('Có lỗi xảy ra khi thanh lý hợp đồng')
-    }
-  }
-
   const handleDeleteUser = async () => {
-    const activeContract = resident?.contracts?.find(c => c.status === 'ACTIVE')
-    
-    if (activeContract) {
-      alert('Không thể xóa cư dân đang có hợp đồng hoạt động. Vui lòng check-out trước.')
-      return
-    }
-
-    if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN cư dân "${resident?.fullName}"?\n\nHành động này sẽ:\n- Xóa tất cả thông tin cư dân\n- Xóa tất cả hợp đồng, hóa đơn, hồ sơ đính kèm\n- Xóa tất cả dữ liệu liên quan\n\nHành động này KHÔNG THỂ HOÀN TÁC!`)) return
+    if (!resident) return
+    if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN cư dân ${resident.fullName}?\n\nHành động này không thể hoàn tác!`)) return
 
     try {
       const response = await fetch(`/api/residents/${residentId}`, {
         method: 'DELETE'
       })
+
       const data = await response.json()
 
       if (response.ok) {
         alert('Xóa cư dân thành công!')
         router.push('/admin/residents')
-        router.refresh()
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi xóa cư dân')
+        alert(data.error || 'Có lỗi xảy ra')
       }
     } catch (error) {
       console.error('Error deleting user:', error)
       alert('Có lỗi xảy ra khi xóa cư dân')
     }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0
+    }).format(Number(amount))
   }
 
   const formatDate = (date: Date | string | null) => {
@@ -354,36 +215,56 @@ export default function ResidentDetailPage() {
     }).format(new Date(date))
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      PAID: { label: 'Đã thanh toán', className: 'badge badge-success' },
-      UNPAID: { label: 'Chưa thanh toán', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' },
-      OVERDUE: { label: 'Quá hạn', className: 'bg-red-50 dark:bg-red-900/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700 font-semibold' },
-      PENDING: { label: 'Chờ xử lý', className: 'bg-yellow-200 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold' },
-      PROCESSING: { label: 'Đang xử lý', className: 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 font-semibold' },
-      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
-      ACTIVE: { label: 'Đang hiệu lực', className: 'badge badge-success' },
-      TERMINATED: { label: 'Đã chấm dứt', className: 'bg-tertiary text-primary' }
-    }
-    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
+  const formatDateTime = (date: Date | string) => {
+    return new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(date))
   }
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; className: string }> = {
+      'ACTIVE': { label: 'Đang hoạt động', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      'EXPIRED': { label: 'Đã hết hạn', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      'PENDING': { label: 'Chờ xử lý', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
+      'CANCELLED': { label: 'Đã hủy', className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+    }
+    const statusInfo = statusMap[status] || { label: status, className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+    return (
+      <span className={statusInfo.className}>
+        {statusInfo.label}
+      </span>
+    )
+  }
+
+  const getInvoiceStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; className: string }> = {
+      'PAID': { label: 'Đã thanh toán', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
+      'UNPAID': { label: 'Chưa thanh toán', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
+      'OVERDUE': { label: 'Quá hạn', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' }
+    }
+    const statusInfo = statusMap[status] || { label: status, className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+    return (
+      <span className={statusInfo.className}>
+        {statusInfo.label}
+      </span>
+    )
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-tertiary">Đang tải...</p>
+      <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="animate-spin text-blue-600 dark:text-blue-400" size={40} />
+          <p className="text-sm text-secondary">Đang tải...</p>
+        </div>
       </div>
     )
   }
@@ -392,13 +273,13 @@ export default function ResidentDetailPage() {
     return null
   }
 
-  const activeContract = resident.contracts?.find(c => c.status === 'ACTIVE') || resident.contracts?.[0]
+  const activeContract = resident.contracts.find(c => c.status === 'ACTIVE')
   const initials = getInitials(resident.fullName)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 text-sm text-secondary">
+      <div className="flex items-center gap-2 text-xs sm:text-sm text-secondary">
         <Link href="/admin/residents" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
           Danh sách Cư dân
         </Link>
@@ -407,573 +288,413 @@ export default function ResidentDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary">Chi tiết Cư dân</h1>
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary">Chi tiết Cư dân</h1>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={handleResetPassword}
-            className="px-4 py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md text-sm sm:text-base"
           >
-            <RefreshCw size={18} strokeWidth={2} />
-            <span>Reset mật khẩu</span>
+            <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
+            <span className="hidden sm:inline">Reset mật khẩu</span>
+            <span className="sm:hidden">Reset</span>
           </button>
           <Link
             href={`/admin/residents/${residentId}/edit`}
-            className="px-4 py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md text-sm sm:text-base"
           >
-            <Edit size={18} strokeWidth={2} />
-            <span>Sửa thông tin</span>
+            <Edit size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
+            <span className="hidden sm:inline">Sửa thông tin</span>
+            <span className="sm:hidden">Sửa</span>
           </Link>
           <Link
             href={`/admin/residents/new?userId=${residentId}`}
-            className="px-5 py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
+            className="btn-primary flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg font-semibold"
           >
-            <FileText size={19} strokeWidth={2.5} />
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Tạo hợp đồng mới</span>
+            <FileText size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
+            <Plus size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
+            <span className="hidden sm:inline">Tạo hợp đồng mới</span>
+            <span className="sm:hidden">Hợp đồng</span>
           </Link>
           <button
             onClick={handleDeleteUser}
-            className="px-4 py-2.5 bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-sm sm:text-base"
             title="Xóa vĩnh viễn cư dân này"
           >
-            <Trash2 size={18} strokeWidth={2} />
-            <span>Xóa cư dân</span>
+            <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
+            <span className="hidden sm:inline">Xóa cư dân</span>
+            <span className="sm:hidden">Xóa</span>
           </button>
         </div>
       </div>
 
       {/* Resident Summary Card */}
       <div className="card">
-        <div className="flex items-start gap-6">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+          <div className="relative flex-shrink-0 mx-auto sm:mx-0">
             {resident.avatarUrl ? (
-              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-visible shadow-lg relative">
                 <img 
                   src={resident.avatarUrl} 
                   alt={resident.fullName}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover rounded-full"
                 />
+                <label className="absolute bottom-0 right-0 w-6 h-6 sm:w-7 sm:h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                  {uploadingAvatar ? (
+                    <Loader2 size={12} className="sm:w-[14px] sm:h-[14px] text-white animate-spin" strokeWidth={1.5} />
+                  ) : (
+                    <Camera size={12} className="sm:w-[14px] sm:h-[14px] text-white" strokeWidth={1.5} />
+                  )}
+                </label>
               </div>
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-2xl">{initials}</span>
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg relative overflow-visible">
+                <span className="text-white font-bold text-xl sm:text-2xl">{initials}</span>
+                <label className="absolute bottom-0 right-0 w-6 h-6 sm:w-7 sm:h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                  {uploadingAvatar ? (
+                    <Loader2 size={12} className="sm:w-[14px] sm:h-[14px] text-white animate-spin" strokeWidth={1.5} />
+                  ) : (
+                    <Camera size={12} className="sm:w-[14px] sm:h-[14px] text-white" strokeWidth={1.5} />
+                  )}
+                </label>
               </div>
             )}
-            <label className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 rounded-full flex items-center justify-center cursor-pointer transition-colors duration-200 shadow-md">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-                disabled={uploadingAvatar}
-              />
-              {uploadingAvatar ? (
-                <Loader2 size={16} className="text-white animate-spin" />
-              ) : (
-                <Camera size={16} className="text-white" />
-              )}
-            </label>
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold text-primary">{resident.fullName}</h2>
+          <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-primary">{resident.fullName}</h2>
               {activeContract && (
-                <span className="badge badge-success rounded-full text-sm">
+                <span className="bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded inline-block w-fit mx-auto sm:mx-0">
                   Đang thuê
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-6 flex-wrap">
-              <div className="flex items-center gap-2 text-secondary">
-                <Phone size={16} />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-wrap">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-secondary text-sm sm:text-base">
+                <Phone size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
                 <span>{resident.phone}</span>
               </div>
               {resident.email && (
-                <div className="flex items-center gap-2 text-secondary">
-                  <Mail size={16} />
-                  <span>{resident.email}</span>
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-secondary text-sm sm:text-base">
+                  <Mail size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="break-all">{resident.email}</span>
                 </div>
               )}
               {resident.cccdNumber && (
-                <div className="flex items-center gap-2 text-secondary">
-                  <CreditCard size={16} />
+                <div className="flex items-center justify-center sm:justify-start gap-2 text-secondary text-sm sm:text-base">
+                  <CreditCard size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
                   <span>{resident.cccdNumber}</span>
                 </div>
               )}
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-secondary mb-1">CÔNG NỢ HIỆN TẠI</p>
-            <p className="text-2xl font-bold text-primary mb-2">
+          <div className="w-full sm:w-auto text-center sm:text-right border-t sm:border-t-0 pt-4 sm:pt-0 sm:pl-4" style={{ borderColor: 'var(--border-primary)' }}>
+            <p className="text-xs sm:text-sm text-secondary mb-1.5 font-medium">CÔNG NỢ HIỆN TẠI</p>
+            <p className="text-xl sm:text-2xl font-bold text-primary mb-3">
               {formatCurrency(resident.currentDebt || 0)}
             </p>
             {resident.currentDebt === 0 ? (
-              <div className="flex items-center gap-1 text-green-600">
-                <CheckCircle size={16} />
-                <span className="text-sm">Đã thanh toán đủ</span>
+              <div className="flex items-center justify-center sm:justify-end gap-1.5 text-green-600 dark:text-green-400">
+                <CheckCircle size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm">Đã thanh toán đủ</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1 text-red-600">
-                <XCircle size={16} />
-                <span className="text-sm">Còn {resident.unpaidInvoicesCount} hóa đơn chưa thanh toán</span>
+              <div className="flex items-center justify-center sm:justify-end gap-1.5 text-red-600 dark:text-red-400">
+                <XCircle size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="text-xs sm:text-sm">Còn {resident.unpaidInvoicesCount} hóa đơn chưa thanh toán</span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Left Column - Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Personal Information */}
           <div className="card">
-            <h3 className="text-lg font-semibold text-primary mb-4">Thông tin cá nhân</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4">Thông tin cá nhân</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              {resident.dob && (
                 <div>
-                  <label className="text-xs text-tertiary uppercase">Họ và tên</label>
-                  <p className="text-sm font-medium text-primary mt-1">{resident.fullName}</p>
+                  <p className="text-xs text-tertiary mb-1 font-medium">Ngày sinh</p>
+                  <p className="text-sm sm:text-base text-primary flex items-center gap-2">
+                    <Calendar size={16} className="text-secondary" />
+                    {formatDate(resident.dob)}
+                  </p>
                 </div>
+              )}
+              {resident.gender && (
                 <div>
-                  <label className="text-xs text-tertiary uppercase">Số điện thoại</label>
-                  <p className="text-sm font-medium text-primary mt-1">{resident.phone}</p>
+                  <p className="text-xs text-tertiary mb-1 font-medium">Giới tính</p>
+                  <p className="text-sm sm:text-base text-primary">
+                    {resident.gender === 'MALE' ? 'Nam' : resident.gender === 'FEMALE' ? 'Nữ' : 'Khác'}
+                  </p>
                 </div>
+              )}
+              {resident.cccdDate && (
                 <div>
-                  <label className="text-xs text-tertiary uppercase">CCCD/CMND</label>
-                  <p className="text-sm font-medium text-primary mt-1">{resident.cccdNumber || 'N/A'}</p>
+                  <p className="text-xs text-tertiary mb-1 font-medium">Ngày cấp CCCD</p>
+                  <p className="text-sm sm:text-base text-primary flex items-center gap-2">
+                    <Calendar size={16} className="text-secondary" />
+                    {formatDate(resident.cccdDate)}
+                  </p>
                 </div>
+              )}
+              {resident.cccdPlace && (
                 <div>
-                  <label className="text-xs text-tertiary uppercase">Địa chỉ thường trú</label>
-                  <p className="text-sm font-medium text-primary mt-1">{resident.address || 'N/A'}</p>
+                  <p className="text-xs text-tertiary mb-1 font-medium">Nơi cấp CCCD</p>
+                  <p className="text-sm sm:text-base text-primary">{resident.cccdPlace}</p>
                 </div>
-              </div>
-              <div className="space-y-4">
+              )}
+              {resident.address && (
+                <div className="sm:col-span-2">
+                  <p className="text-xs text-tertiary mb-1 font-medium">Địa chỉ thường trú</p>
+                  <p className="text-sm sm:text-base text-primary flex items-start gap-2">
+                    <MapPin size={16} className="text-secondary flex-shrink-0 mt-0.5" />
+                    <span>{resident.address}</span>
+                  </p>
+                </div>
+              )}
+              {resident.job && (
                 <div>
-                  <label className="text-xs text-tertiary uppercase">Ngày sinh</label>
-                  <p className="text-sm font-medium text-primary mt-1">{formatDate(resident.dob)}</p>
+                  <p className="text-xs text-tertiary mb-1 font-medium">Nghề nghiệp</p>
+                  <p className="text-sm sm:text-base text-primary flex items-center gap-2">
+                    <Briefcase size={16} className="text-secondary" />
+                    {resident.job}
+                  </p>
                 </div>
+              )}
+              {resident.licensePlate && (
                 <div>
-                  <label className="text-xs text-tertiary uppercase">Email</label>
-                  <p className="text-sm font-medium text-primary mt-1">{resident.email || 'N/A'}</p>
+                  <p className="text-xs text-tertiary mb-1 font-medium">Biển số xe</p>
+                  <p className="text-sm sm:text-base text-primary flex items-center gap-2">
+                    <Car size={16} className="text-secondary" />
+                    {resident.licensePlate}
+                  </p>
                 </div>
-                <div>
-                  <label className="text-xs text-tertiary uppercase">Nơi cấp</label>
-                  <p className="text-sm font-medium text-primary mt-1">{resident.cccdPlace || 'N/A'}</p>
-                </div>
-                {resident.job && (
-                  <div>
-                    <label className="text-xs text-tertiary uppercase">Nghề nghiệp</label>
-                    <p className="text-sm font-medium text-primary mt-1">{resident.job}</p>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Tabs Section */}
+          {/* Contracts */}
           <div className="card">
-            <div className="border-b border-primary">
-              <div className="flex items-center gap-6 px-6">
-                <button
-                  onClick={() => setActiveTab('payments')}
-                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
-                    activeTab === 'payments'
-                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-secondary hover:text-primary hover:border-primary'
-                  }`}
-                >
-                  Lịch sử thanh toán
-                </button>
-                <button
-                  onClick={() => setActiveTab('services')}
-                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
-                    activeTab === 'services'
-                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-secondary hover:text-primary hover:border-primary'
-                  }`}
-                >
-                  Yêu cầu dịch vụ
-                </button>
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 ${
-                    activeTab === 'history'
-                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-secondary hover:text-primary hover:border-primary'
-                  }`}
-                >
-                  Lịch sử thuê phòng
-                </button>
-              </div>
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-primary">Hợp đồng</h3>
+              <Link
+                href={`/admin/residents/new?userId=${residentId}`}
+                className="btn-primary flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm rounded-lg font-semibold"
+              >
+                <Plus size={14} />
+                <span className="hidden sm:inline">Tạo hợp đồng</span>
+                <span className="sm:hidden">Mới</span>
+              </Link>
             </div>
+            {resident.contracts.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText size={48} className="mx-auto text-tertiary mb-3" />
+                <p className="text-sm text-secondary">Chưa có hợp đồng</p>
+              </div>
+            ) : (
+              <div className="space-y-3 sm:space-y-4">
+                {resident.contracts.map((contract) => (
+                  <div
+                    key={contract.id}
+                    className="border rounded-lg p-4 sm:p-5 hover:shadow-md transition-all"
+                    style={{ borderColor: 'var(--border-primary)' }}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                          <Building2 size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                          <h4 className="font-semibold text-primary text-sm sm:text-base break-words">
+                            {contract.room ? `${contract.room.name} - Tầng ${contract.room.floor}` : 'N/A'}
+                          </h4>
+                          <div className="flex-shrink-0">
+                            {getStatusBadge(contract.status)}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm text-secondary">
+                          <div className="flex items-center gap-2">
+                            <Calendar size={14} />
+                            <span>Bắt đầu: {formatDate(contract.startDate)}</span>
+                          </div>
+                          {contract.endDate && (
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} />
+                              <span>Kết thúc: {formatDate(contract.endDate)}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={14} />
+                            <span>Giá thuê: {formatCurrency(Number(contract.rentPrice))}</span>
+                          </div>
+                          {contract.deposit > 0 && (
+                            <div className="flex items-center gap-2">
+                              <DollarSign size={14} />
+                              <span>Tiền cọc: {formatCurrency(Number(contract.deposit))}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Link
+                        href={`/admin/rooms/${contract.room?.id}/contracts`}
+                        className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 flex-shrink-0"
+                      >
+                        <Eye size={14} className="flex-shrink-0" />
+                        <span className="hidden sm:inline">Xem chi tiết</span>
+                        <span className="sm:hidden">Chi tiết</span>
+                      </Link>
+                    </div>
+                    {contract.occupants && contract.occupants.length > 0 && (
+                      <div className="pt-3 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+                        <p className="text-xs text-tertiary mb-2 font-medium flex items-center gap-1">
+                          <Users size={14} />
+                          Người ở cùng ({contract.occupants.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {contract.occupants.map((occupant) => (
+                            <span
+                              key={occupant.id}
+                              className="text-xs px-2 py-1 rounded bg-secondary text-primary"
+                            >
+                              {occupant.fullName}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            <div className="p-6">
-              {/* Payment History Tab */}
-              {activeTab === 'payments' && (
-                <div className="overflow-x-auto">
+          {/* Invoices */}
+          <div className="card">
+            <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4">Lịch sử hóa đơn</h3>
+            {resident.invoices.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText size={48} className="mx-auto text-tertiary mb-3" />
+                <p className="text-sm text-secondary">Chưa có hóa đơn</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <div className="inline-block min-w-full align-middle px-4 sm:px-0">
                   <table className="w-full">
-                    <thead className="bg-tertiary border-b border-primary">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">MÃ HĐ</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">KỲ THANH TOÁN</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">SỐ TIỀN</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">NGÀY</th>
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                        <th className="text-left py-2 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-primary whitespace-nowrap">Tháng/Năm</th>
+                        <th className="text-right py-2 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-primary whitespace-nowrap">Tổng tiền</th>
+                        <th className="text-center py-2 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-primary whitespace-nowrap">Trạng thái</th>
+                        <th className="text-right py-2 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-primary whitespace-nowrap">Ngày tạo</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-primary">
-                      {resident.invoices && resident.invoices.length > 0 ? (
-                        resident.invoices.map((invoice) => {
-                          const statusBadge = getStatusBadge(invoice.status)
-                          return (
-                            <tr key={invoice.id} className="hover:bg-secondary transition-colors">
-                              <td className="px-4 py-3">
-                                <span className="text-sm font-medium text-primary">
-                                  INV-{invoice.id.toString().padStart(5, '0')}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="text-sm text-secondary">
-                                  Tháng {invoice.month}/{invoice.year}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="text-sm font-semibold text-primary">
-                                  {formatCurrency(Number(invoice.totalAmount))}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}>
-                                  {statusBadge.label}
-                                </span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="text-sm text-secondary">{formatDate(invoice.createdAt)}</span>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-tertiary">
-                            Chưa có lịch sử thanh toán
+                    <tbody>
+                      {resident.invoices.map((invoice) => (
+                        <tr key={invoice.id} className="border-b hover:bg-secondary transition-colors" style={{ borderColor: 'var(--border-primary)' }}>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm text-primary font-medium whitespace-nowrap">
+                            {invoice.month}/{invoice.year}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm text-primary font-semibold text-right whitespace-nowrap">
+                            {formatCurrency(Number(invoice.totalAmount))}
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-center">
+                            <div className="flex justify-center">
+                              {getInvoiceStatusBadge(invoice.status)}
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 sm:px-4 text-xs sm:text-sm text-tertiary text-right whitespace-nowrap">
+                            {formatDate(invoice.createdAt)}
                           </td>
                         </tr>
-                      )}
-                      {/* Deposit entry */}
-                      {activeContract && activeContract.deposit > 0 && (
-                        <tr className="hover:bg-secondary transition-colors">
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-medium text-primary">COC-{activeContract.id.toString().padStart(5, '0')}</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm text-secondary">Tiền cọc phòng</span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm font-semibold text-primary">
-                              {formatCurrency(Number(activeContract.deposit))}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="badge badge-success rounded-full text-xs">
-                              Đã thanh toán
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-sm text-secondary">{formatDate(activeContract.startDate)}</span>
-                          </td>
-                        </tr>
-                      )}
+                      ))}
                     </tbody>
                   </table>
                 </div>
-              )}
+              </div>
+            )}
+          </div>
 
-              {/* Service Requests Tab */}
-              {activeTab === 'services' && (
-                <div className="space-y-4">
-                  {resident.serviceOrders && resident.serviceOrders.length > 0 ? (
-                    resident.serviceOrders.map((order) => {
-                      const statusBadge = getStatusBadge(order.status)
-                      return (
-                        <div key={order.id} className="flex items-center justify-between p-4 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
-                          <div>
-                            <p className="text-sm font-medium text-primary">{order.service.name}</p>
-                            <p className="text-xs text-tertiary mt-1">
-                              Số lượng: {order.quantity} | {formatDate(order.orderDate)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-sm font-semibold text-primary">
-                              {formatCurrency(Number(order.total))}
-                            </span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}>
-                              {statusBadge.label}
-                            </span>
-                          </div>
+          {/* Service Orders */}
+          <div className="card">
+            <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4">Đơn dịch vụ</h3>
+            {resident.serviceOrders.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText size={48} className="mx-auto text-tertiary mb-3" />
+                <p className="text-sm text-secondary">Chưa có đơn dịch vụ</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {resident.serviceOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-all"
+                    style={{ borderColor: 'var(--border-primary)' }}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-primary text-sm sm:text-base mb-1 break-words">{order.service.name}</h4>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:gap-4 text-xs sm:text-sm text-secondary">
+                          <span className="whitespace-nowrap">Số lượng: {order.quantity}</span>
+                          <span className="font-semibold text-primary whitespace-nowrap">
+                            Tổng: {formatCurrency(Number(order.total))}
+                          </span>
+                          <span className="flex items-center gap-1 whitespace-nowrap">
+                            <Clock size={12} className="flex-shrink-0" />
+                            {formatDate(order.orderDate)}
+                          </span>
                         </div>
-                      )
-                    })
-                  ) : (
-                    <div className="text-center py-8 text-tertiary">
-                      Chưa có yêu cầu dịch vụ nào
+                      </div>
+                      <div className="flex-shrink-0">
+                        {getStatusBadge(order.status)}
+                      </div>
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* Rental History Tab */}
-              {activeTab === 'history' && (
-                <div className="space-y-4">
-                  {resident.contracts && resident.contracts.length > 0 ? (
-                    resident.contracts.map((contract) => {
-                      const statusBadge = getStatusBadge(contract.status)
-                      return (
-                        <div key={contract.id} className="p-4 border border-primary rounded-lg hover:bg-tertiary transition-colors">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <p className="text-sm font-medium text-primary">
-                                {contract.room?.name || 'N/A'} - Tầng {contract.room?.floor || 'N/A'}
-                              </p>
-                              <p className="text-xs text-tertiary mt-1">
-                                Mã HĐ: HD-{contract.id.toString().padStart(6, '0')}
-                              </p>
-                            </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.className}`}>
-                              {statusBadge.label}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="text-tertiary">Ngày vào ở:</span>
-                              <span className="ml-2 text-primary">{formatDate(contract.startDate)}</span>
-                            </div>
-                            <div>
-                              <span className="text-tertiary">Hạn hợp đồng:</span>
-                              <span className="ml-2 text-primary">{formatDate(contract.endDate)}</span>
-                            </div>
-                            <div>
-                              <span className="text-tertiary">Tiền thuê/tháng:</span>
-                              <span className="ml-2 text-primary font-semibold">
-                                {formatCurrency(Number(contract.rentPrice))}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-tertiary">Tiền cọc:</span>
-                              <span className="ml-2 text-primary font-semibold">
-                                {formatCurrency(Number(contract.deposit))}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })
-                  ) : (
-                    <div className="text-center py-8 text-tertiary">
-                      Chưa có lịch sử thuê phòng
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Current Contract */}
-          {activeContract && (
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-primary">Hợp đồng hiện tại</h3>
-                <Link
-                  href={`/admin/contracts/${activeContract.id}`}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500"
-                >
-                  Xem chi tiết
-                </Link>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-tertiary mb-1">Đang ở phòng</p>
-                  <p className="text-xl font-bold text-primary">{activeContract.room?.name || 'N/A'}</p>
-                  <p className="text-sm text-secondary mt-1">
-                    {activeContract.room?.area ? `Studio (${activeContract.room.area}m²)` : 'Studio'}
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-primary space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Mã hợp đồng:</span>
-                    <span className="font-medium text-primary">HD-{activeContract.id.toString().padStart(6, '0')}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Ngày vào ở:</span>
-                    <span className="font-medium text-primary">{formatDate(activeContract.startDate)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Hạn hợp đồng:</span>
-                    <span className="font-medium text-primary">{formatDate(activeContract.endDate)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Tiền thuê/tháng:</span>
-                    <span className="font-semibold text-primary">{formatCurrency(Number(activeContract.rentPrice))}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Tiền cọc:</span>
-                    <span className="font-semibold text-primary">
-                      {formatCurrency(Number(activeContract.deposit))}
-                      <span className="ml-2 text-xs text-green-600 dark:text-green-400">(Đã đóng)</span>
-                    </span>
-                  </div>
-                  {activeContract.room && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-secondary">Số người ở:</span>
-                      <span className="font-semibold text-primary">
-                        {1 + (activeContract.occupants?.length || 0)} / {activeContract.room.maxPeople} người
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {activeContract.occupants && activeContract.occupants.length > 0 && (
-                  <div className="pt-4 border-t border-primary">
-                    <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                      <Users size={16} />
-                      <span>Người ở cùng ({activeContract.occupants.length})</span>
-                    </h4>
-                    <div className="space-y-2">
-                      {activeContract.occupants.map((occupant) => (
-                        <div key={occupant.id} className="p-3 bg-tertiary rounded-lg border border-primary">
-                              <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-primary">{occupant.fullName}</p>
-                              <div className="flex items-center gap-4 mt-1 text-xs text-secondary">
-                                {occupant.relationship && (
-                                  <span>Quan hệ: {occupant.relationship}</span>
-                                )}
-                                {occupant.cccdNumber && (
-                                  <span>CCCD: {occupant.cccdNumber}</span>
-                                )}
-                                {occupant.phone && (
-                                  <span>ĐT: {occupant.phone}</span>
-                                )}
-                                {occupant.dob && (
-                                  <span>SN: {formatDate(occupant.dob)}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div className="pt-4 border-t border-primary flex gap-2">
-                  <button
-                    onClick={handleRenewContract}
-                    className="flex-1 px-4 py-2.5 border border-primary rounded-lg hover:bg-tertiary text-sm transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md"
-                  >
-                    Gia hạn
-                  </button>
-                  <button
-                    onClick={handleTerminateContract}
-                    className="flex-1 px-4 py-2.5 bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 text-white rounded-lg text-sm transition-all duration-200 shadow-md hover:shadow-lg font-semibold"
-                  >
-                    Thanh lý
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Attached Files */}
+        {/* Right Column - Stats */}
+        <div className="space-y-4 sm:space-y-6">
+          {/* Quick Stats */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-primary">Hồ sơ đính kèm</h3>
-              <button 
-                onClick={() => setShowUploadDoc(!showUploadDoc)}
-                className="p-2 hover:bg-tertiary rounded-lg transition-colors"
-                title="Tải lên hồ sơ"
-              >
-                <Plus size={18} className="text-secondary" />
-              </button>
-            </div>
-
-            {/* Upload Document Form */}
-            {showUploadDoc && (
-              <div className="mb-4 p-4 border border-primary rounded-lg bg-tertiary">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-primary">Tải lên hồ sơ mới</label>
-                  <button
-                    onClick={() => setShowUploadDoc(false)}
-                    className="text-tertiary hover:text-primary"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-                <input
-                  type="file"
-                  onChange={handleDocumentUpload}
-                  disabled={uploadingDoc}
-                  className="w-full text-sm text-primary file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:btn-primary file:text-white hover:file:bg-[#2a4a6f] disabled:opacity-50"
-                />
-                {uploadingDoc && (
-                  <div className="mt-2 flex items-center gap-2 text-sm text-secondary">
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Đang tải lên...</span>
-                  </div>
-                )}
+            <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4">Thống kê</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="p-3 sm:p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-tertiary mb-1 font-medium">Tổng hợp đồng</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary">{resident.contracts.length}</p>
               </div>
-            )}
-
-            <div className="space-y-3">
-              {documents.length > 0 ? (
-                documents.map((doc) => {
-                  const isImage = doc.fileType?.startsWith('image/')
-                  const Icon = isImage ? ImageIcon : FileText
-                  const iconBg = isImage ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                  const iconColor = isImage ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'
-
-                  return (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border border-primary rounded-lg hover:bg-secondary transition-colors bg-tertiary">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`w-10 h-10 ${iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <Icon className={iconColor} size={20} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-primary truncate">{doc.fileName}</p>
-                          <p className="text-xs text-tertiary">
-                            {formatFileSize(doc.fileSize)} • {formatDate(doc.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <a
-                          href={doc.fileUrl}
-                          download
-                          className="p-2 hover:bg-tertiary rounded-lg transition-colors"
-                          title="Tải xuống"
-                        >
-                          <Download size={16} className="text-secondary" />
-                        </a>
-                        <button
-                          onClick={() => handleDeleteDocument(doc.id)}
-                          className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <X size={16} className="text-red-600 dark:text-red-400" />
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="text-center py-8 text-tertiary">
-                  <FileText size={32} className="mx-auto mb-2 text-tertiary" />
-                  <p className="text-sm">Chưa có hồ sơ đính kèm</p>
-                  <p className="text-xs mt-1">Nhấn nút + để tải lên hồ sơ</p>
-                </div>
-              )}
+              <div className="p-3 sm:p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <p className="text-xs text-tertiary mb-1 font-medium">Hợp đồng đang hoạt động</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary">
+                  {resident.contracts.filter(c => c.status === 'ACTIVE').length}
+                </p>
+              </div>
+              <div className="p-3 sm:p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+                <p className="text-xs text-tertiary mb-1 font-medium">Tổng hóa đơn</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary">{resident.invoices.length}</p>
+              </div>
+              <div className="p-3 sm:p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                <p className="text-xs text-tertiary mb-1 font-medium">Đơn dịch vụ</p>
+                <p className="text-xl sm:text-2xl font-bold text-primary">{resident.serviceOrders.length}</p>
+              </div>
             </div>
           </div>
         </div>

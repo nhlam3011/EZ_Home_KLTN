@@ -21,7 +21,13 @@ export async function GET(
       include: {
         contracts: {
           include: {
-            user: true
+            user: true,
+            occupants: {
+              select: {
+                id: true,
+                fullName: true
+              }
+            }
           }
         },
         assets: true,
@@ -62,7 +68,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, floor, price, area, maxPeople, status } = body
+    const { name, floor, price, area, maxPeople, status, roomType, description, amenities } = body
 
     // Check if room exists first
     const existingRoom = await prisma.room.findUnique({
@@ -76,29 +82,49 @@ export async function PUT(
       )
     }
 
+    const updateData: any = {}
+    if (name) updateData.name = name
+    if (floor) updateData.floor = parseInt(floor)
+    if (price) updateData.price = parseFloat(price)
+    if (area !== undefined) updateData.area = area ? parseFloat(area) : null
+    if (maxPeople) updateData.maxPeople = parseInt(maxPeople)
+    if (status) updateData.status = status
+    if (roomType !== undefined) updateData.roomType = roomType || null
+    if (description !== undefined) updateData.description = description || null
+    if (amenities !== undefined) updateData.amenities = Array.isArray(amenities) ? amenities : []
+
     const room = await prisma.room.update({
       where: { id: roomId },
-      data: {
-        ...(name && { name }),
-        ...(floor && { floor: parseInt(floor) }),
-        ...(price && { price: parseFloat(price) }),
-        ...(area !== undefined && { area: area ? parseFloat(area) : null }),
-        ...(maxPeople && { maxPeople: parseInt(maxPeople) }),
-        ...(status && { status })
-      }
+      data: updateData
     })
 
     return NextResponse.json(room)
   } catch (error: any) {
     console.error('Error updating room:', error)
+    
     if (error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Room not found' },
         { status: 404 }
       )
     }
+    
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Tên phòng đã tồn tại' },
+        { status: 400 }
+      )
+    }
+    
+    if (error.code === 'P2011') {
+      return NextResponse.json(
+        { error: 'Dữ liệu không hợp lệ. Có thể do database schema chưa được cập nhật.' },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to update room' },
+      { error: error.message || 'Failed to update room' },
       { status: 500 }
     )
   }
