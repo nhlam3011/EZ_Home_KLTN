@@ -77,11 +77,12 @@ export async function GET(request: NextRequest) {
         // Update payment status if changed
         // PayOS status can be: PENDING, PROCESSING, PAID, CANCELLED
         if (paymentInfo.status === 'PAID' || paymentInfo.status === 'paid') {
+          const paidAt = new Date()
           await prisma.payment.update({
             where: { id: payment.id },
             data: {
               status: 'SUCCESS',
-              paidAt: paymentInfo.transactionDateTime ? new Date(paymentInfo.transactionDateTime) : new Date()
+              paidAt: paidAt
             }
           })
 
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
               where: { id: payment.invoiceId },
               data: {
                 status: 'PAID',
-                paidAt: paymentInfo.transactionDateTime ? new Date(paymentInfo.transactionDateTime) : new Date()
+                paidAt: paidAt
               }
             })
           }
