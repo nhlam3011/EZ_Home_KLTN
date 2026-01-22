@@ -49,7 +49,7 @@ function getDepositStatus(contract: any) {
   const expectedDeposit = Number(contract.rentPrice)
   const paidDeposit = Number(contract.deposit) || 0
   
-  if (paidDeposit >= expectedDeposit) {
+  if (paidDeposit == expectedDeposit) {
     return { label: 'Đã đủ cọc', color: 'green', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' }
   } else if (paidDeposit > 0) {
     return { label: 'Thiếu cọc', color: 'orange', className: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' }
