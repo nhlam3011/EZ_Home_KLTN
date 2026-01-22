@@ -114,6 +114,10 @@ export async function POST(request: NextRequest) {
         // Calculate total
         const totalAmount = amountRoom + amountElec + amountWater + amountService + amountCommonService
 
+        // Calculate payment due date (10 days from now)
+        const paymentDueDate = new Date()
+        paymentDueDate.setDate(paymentDueDate.getDate() + 10)
+
         // Create invoice
         await prisma.invoice.create({
           data: {
@@ -126,6 +130,7 @@ export async function POST(request: NextRequest) {
             amountService,
             amountCommonService,
             totalAmount,
+            paymentDueDate,
             status: 'UNPAID'
           }
         })
