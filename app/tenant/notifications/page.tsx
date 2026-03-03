@@ -21,7 +21,7 @@ export default function NotificationsPage() {
     try {
       const userData = localStorage.getItem('user')
       if (!userData) return
-      
+
       const user = JSON.parse(userData)
       const response = await fetch(`/api/tenant/notifications?userId=${user.id}`)
       if (response.ok) {

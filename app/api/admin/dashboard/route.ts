@@ -37,96 +37,85 @@ export async function GET() {
       prisma.issue.count({ where: { status: 'CANCELLED' } })
     ])
 
-    // Revenue for last 6 months
-    const revenueData = []
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(currentYear, currentMonth - 1 - i, 1)
-      const month = date.getMonth() + 1
-      const year = date.getFullYear()
-      
-      const revenue = await prisma.invoice.aggregate({
-        where: {
-          status: 'PAID',
-          month,
-          year
-        },
-        _sum: { totalAmount: true }
-      })
-      
-      revenueData.push({
-        month: month,
-        year: year,
-        monthName: date.toLocaleDateString('vi-VN', { month: 'short' }),
-        revenue: Number(revenue._sum.totalAmount || 0)
-      })
-    }
-
-    // Total revenue this year
+    // Preparation for parallel queries
     const yearStart = new Date(currentYear, 0, 1)
-    const yearRevenue = await prisma.invoice.aggregate({
-      where: {
-        status: 'PAID',
-        createdAt: {
-          gte: yearStart
-        }
-      },
-      _sum: { totalAmount: true }
-    })
-
-    // Previous month revenue for comparison
     const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
     const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
-    const prevMonthRevenue = await prisma.invoice.aggregate({
-      where: {
-        status: 'PAID',
-        month: prevMonth,
-        year: prevYear
-      },
-      _sum: { totalAmount: true }
-    })
+
+    const dates = []
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - 1 - i, 1)
+      dates.push({ month: date.getMonth() + 1, year: date.getFullYear(), date })
+    }
+
+    const [
+      yearRevenue,
+      prevMonthRevenue,
+      paidInvoices,
+      overdueInvoices,
+      totalInvoices,
+      unpaidAmount,
+      recentInvoices,
+      recentIssues,
+      ...revenueResults
+    ] = await Promise.all([
+      prisma.invoice.aggregate({
+        where: { status: 'PAID', createdAt: { gte: yearStart } },
+        _sum: { totalAmount: true }
+      }),
+      prisma.invoice.aggregate({
+        where: { status: 'PAID', month: prevMonth, year: prevYear },
+        _sum: { totalAmount: true }
+      }),
+      prisma.invoice.count({ where: { status: 'PAID' } }),
+      prisma.invoice.count({ where: { status: 'OVERDUE' } }),
+      prisma.invoice.count(),
+      prisma.invoice.aggregate({
+        where: { status: 'UNPAID' },
+        _sum: { totalAmount: true }
+      }),
+      prisma.invoice.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          contract: {
+            include: {
+              user: { select: { fullName: true, id: true } },
+              room: { select: { name: true } }
+            }
+          }
+        }
+      }),
+      prisma.issue.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { fullName: true, id: true } },
+          room: { select: { name: true } }
+        }
+      }),
+      ...dates.map(d => prisma.invoice.aggregate({
+        where: { status: 'PAID', month: d.month, year: d.year },
+        _sum: { totalAmount: true }
+      }))
+    ]);
+
+    const revenueData = dates.map((d, i) => ({
+      month: d.month,
+      year: d.year,
+      monthName: d.date.toLocaleDateString('vi-VN', { month: 'short' }),
+      revenue: Number(revenueResults[i]._sum.totalAmount || 0)
+    }));
 
     const revenue = Number(monthlyRevenue._sum.totalAmount || 0)
     const prevRevenue = Number(prevMonthRevenue._sum.totalAmount || 0)
-    const revenueChange = prevRevenue > 0 
-      ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100) 
+    const revenueChange = prevRevenue > 0
+      ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100)
       : 0
 
-    // Invoice status breakdown
-    const paidInvoices = await prisma.invoice.count({ where: { status: 'PAID' } })
-    const overdueInvoices = await prisma.invoice.count({ where: { status: 'OVERDUE' } })
-    const totalInvoices = await prisma.invoice.count()
-    const paymentRate = totalInvoices > 0 
-      ? Math.round((paidInvoices / totalInvoices) * 100) 
+    const paymentRate = totalInvoices > 0
+      ? Math.round((paidInvoices / totalInvoices) * 100)
       : 0
-
-    // Total unpaid amount
-    const unpaidAmount = await prisma.invoice.aggregate({
-      where: { status: 'UNPAID' },
-      _sum: { totalAmount: true }
-    })
-
-    // Recent activities
-    const recentInvoices = await prisma.invoice.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        contract: {
-          include: {
-            user: { select: { fullName: true, id: true } },
-            room: { select: { name: true } }
-          }
-        }
-      }
-    })
-
-    const recentIssues = await prisma.issue.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { fullName: true, id: true } },
-        room: { select: { name: true } }
-      }
-    })
 
     const occupancyRate = totalRooms > 0 ? Math.round((rentedRooms / totalRooms) * 100) : 0
 
@@ -146,7 +135,7 @@ export async function GET() {
       cancelledIssues,
       unpaidInvoices,
       unpaidAmount: Number(unpaidAmount._sum.totalAmount || 0),
-      
+
       // Charts data
       revenueChart: revenueData,
       invoiceStatus: {
@@ -162,7 +151,7 @@ export async function GET() {
         done: doneIssues,
         cancelled: cancelledIssues
       },
-      
+
       // Recent activities
       recentInvoices: recentInvoices.map(inv => ({
         id: inv.id,

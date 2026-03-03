@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { FileText, Calendar, DollarSign, Users, Building2, Download, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { FileText, Calendar, DollarSign, Users, Building2, CheckCircle, XCircle, Clock, RefreshCw, AlertTriangle } from 'lucide-react'
 
 interface Contract {
   id: number
@@ -27,10 +27,23 @@ interface Contract {
   }>
 }
 
+interface RenewalRequest {
+  id: number
+  contractId: number
+  requestDate: string
+  newEndDate: string
+  status: string
+  adminNote: string | null
+}
+
 export default function TenantContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null)
+  const [renewalRequests, setRenewalRequests] = useState<RenewalRequest[]>([])
+  const [showRenewalModal, setShowRenewalModal] = useState(false)
+  const [newEndDate, setNewEndDate] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     fetchContracts()
@@ -46,11 +59,11 @@ export default function TenantContractsPage() {
         return
       }
       const parsedUser = JSON.parse(userData)
-      
+
       // Get user info with userId
       const userRes = await fetch(`/api/tenant/me?userId=${parsedUser.id}`)
       const user = await userRes.json()
-      
+
       if (user.id) {
         const response = await fetch(`/api/contracts?userId=${user.id}`)
         const data = await response.json()
@@ -59,6 +72,17 @@ export default function TenantContractsPage() {
           if (data.length > 0) {
             setSelectedContract(data[0])
           }
+        }
+
+        // Fetch renewal requests for this user
+        try {
+          const renewalRes = await fetch(`/api/contracts/renewals?userId=${user.id}`)
+          if (renewalRes.ok) {
+            const renewalData = await renewalRes.json()
+            setRenewalRequests(Array.isArray(renewalData) ? renewalData : (renewalData.renewals || []))
+          }
+        } catch (err) {
+          console.error('Error fetching renewal requests:', err)
         }
       }
     } catch (error) {
@@ -109,31 +133,31 @@ export default function TenantContractsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string; icon: any }> = {
+    const statusMap: Record<string, { label: string; className: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
       ACTIVE: {
         label: 'Đang hiệu lực',
-        className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded',
+        className: 'badge badge-success',
         icon: CheckCircle
       },
       EXPIRED: {
         label: 'Đã hết hạn',
-        className: 'bg-red-200 dark:bg-red-900/10 text-red-900 dark:text-red-300 border border-red-400 dark:border-red-700 font-semibold',
+        className: 'badge badge-error',
         icon: XCircle
       },
       PENDING: {
         label: 'Chờ xử lý',
-        className: 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-300 border border-yellow-400 dark:border-yellow-700 font-semibold',
+        className: 'badge badge-warning',
         icon: Clock
       },
       CANCELLED: {
         label: 'Đã hủy',
-        className: 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-300 border border-gray-400 dark:border-gray-700 font-semibold',
+        className: 'badge badge-error',
         icon: XCircle
       }
     }
     return statusMap[status] || {
       label: status,
-      className: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700',
+      className: 'badge badge-info',
       icon: FileText
     }
   }
@@ -149,6 +173,87 @@ export default function TenantContractsPage() {
     } catch {
       return null
     }
+  }
+
+  const handleRenewRequest = () => {
+    setNewEndDate('')
+    setShowRenewalModal(true)
+  }
+
+  const submitRenewalRequest = async () => {
+    if (!selectedContract || !newEndDate) return
+
+    const userData = localStorage.getItem('user')
+    if (!userData) return
+    const parsedUser = JSON.parse(userData)
+
+    setSubmitting(true)
+    try {
+      const response = await fetch('/api/contracts/renewals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contractId: selectedContract.id,
+          userId: parsedUser.id,
+          newEndDate: newEndDate
+        })
+      })
+
+      if (response.ok) {
+        alert('Yêu cầu gia hạn hợp đồng đã được gửi thành công!')
+        setShowRenewalModal(false)
+        // Refresh renewal requests
+        const userRes = await fetch(`/api/tenant/me?userId=${parsedUser.id}`)
+        const user = await userRes.json()
+        if (user.id) {
+          const renewalRes = await fetch(`/api/contracts/renewals?userId=${user.id}`)
+          if (renewalRes.ok) {
+            const renewalData = await renewalRes.json()
+            setRenewalRequests(Array.isArray(renewalData) ? renewalData : (renewalData.renewals || []))
+          }
+        }
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Có lỗi xảy ra')
+      }
+    } catch (error) {
+      console.error('Error submitting renewal request:', error)
+      alert('Có lỗi xảy ra')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const getRenewalStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+          <Clock size={12} /> Chờ duyệt
+        </span>
+      case 'APPROVED':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+          <CheckCircle size={12} /> Đã duyệt
+        </span>
+      case 'REJECTED':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+          <XCircle size={12} /> Từ chối
+        </span>
+      default:
+        return status
+    }
+  }
+
+  const getContractRenewalRequests = (contractId: number) => {
+    return renewalRequests.filter(r => r.contractId === contractId)
+  }
+
+  const canRenew = (contract: Contract) => {
+    if (contract.status !== 'ACTIVE') return false
+    const requests = getContractRenewalRequests(contract.id)
+    // Can renew if there's no pending request
+    return !requests.some(r => r.status === 'PENDING')
   }
 
   if (loading) {
@@ -183,34 +288,32 @@ export default function TenantContractsPage() {
                 const statusInfo = getStatusBadge(contract.status)
                 const StatusIcon = statusInfo.icon
                 const isSelected = selectedContract?.id === contract.id
-                
+
                 return (
                   <div
                     key={contract.id}
                     onClick={() => setSelectedContract(contract)}
-                    className={`card cursor-pointer transition-all ${
-                      isSelected 
-                        ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                        : 'hover:shadow-lg'
-                    }`}
+                    className={`card cursor-pointer transition-all ${isSelected
+                      ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'hover:shadow-lg'
+                      }`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h3 className="font-semibold text-primary mb-1">{contract.room.name}</h3>
                         <p className="text-sm text-secondary">Tầng {contract.room.floor}</p>
                       </div>
-                      <StatusIcon 
-                        size={20} 
-                        className={`${
-                          contract.status === 'ACTIVE' ? 'text-green-600 dark:text-green-400' :
+                      <StatusIcon
+                        size={20}
+                        className={`${contract.status === 'ACTIVE' ? 'text-green-600 dark:text-green-400' :
                           contract.status === 'EXPIRED' ? 'text-red-600 dark:text-red-400' :
-                          contract.status === 'PENDING' ? 'text-yellow-600 dark:text-yellow-400' :
-                          'text-gray-600 dark:text-gray-400'
-                        }`}
+                            contract.status === 'PENDING' ? 'text-yellow-600 dark:text-yellow-400' :
+                              'text-gray-600 dark:text-gray-400'
+                          }`}
                       />
                     </div>
                     <div className="flex items-center justify-between mt-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusInfo.className}`}>
+                      <span className={statusInfo.className}>
                         {statusInfo.label}
                       </span>
                       {contract.endDate && contract.status === 'ACTIVE' && (
@@ -237,9 +340,11 @@ export default function TenantContractsPage() {
                     </h2>
                     <p className="text-sm text-secondary">Tầng {selectedContract.room.floor}</p>
                   </div>
-                  <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${getStatusBadge(selectedContract.status).className}`}>
-                    {getStatusBadge(selectedContract.status).label}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={getStatusBadge(selectedContract.status).className}>
+                      {getStatusBadge(selectedContract.status).label}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Contract Info */}
@@ -301,6 +406,22 @@ export default function TenantContractsPage() {
                             <p className="text-xs text-secondary mt-1">
                               Còn {getDaysRemaining(selectedContract.endDate)} ngày
                             </p>
+                          )}
+                          {selectedContract.status === 'ACTIVE' && canRenew(selectedContract) && (
+                            <button
+                              onClick={handleRenewRequest}
+                              className="mt-2 btn btn-primary btn-sm flex items-center gap-1"
+                            >
+                              <RefreshCw size={14} />
+                              Gia hạn
+                            </button>
+                          )}
+                          {selectedContract.status === 'ACTIVE' && !canRenew(selectedContract) && (
+                            <div className="mt-2">
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <Clock size={12} /> Chờ gia hạn
+                              </span>
+                            </div>
                           )}
                         </div>
                       )}
@@ -370,6 +491,44 @@ export default function TenantContractsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Renewal Requests Section */}
+                  {getContractRenewalRequests(selectedContract.id).length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                          <RefreshCw size={18} className="text-white" />
+                        </div>
+                        Lịch sử gia hạn
+                      </h3>
+                      <div className="space-y-3">
+                        {getContractRenewalRequests(selectedContract.id).map((request) => (
+                          <div key={request.id} className="p-4 bg-tertiary rounded-lg border border-primary">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-primary">Yêu cầu gia hạn</span>
+                              {getRenewalStatusBadge(request.status)}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <span className="text-secondary">Ngày yêu cầu:</span>
+                                <span className="ml-2 text-primary">{formatDate(request.requestDate)}</span>
+                              </div>
+                              <div>
+                                <span className="text-secondary">Ngày kết thúc mới:</span>
+                                <span className="ml-2 text-blue-600 font-medium">{formatDate(request.newEndDate)}</span>
+                              </div>
+                            </div>
+                            {request.adminNote && (
+                              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm">
+                                <span className="text-secondary">Ghi chú: </span>
+                                <span className="text-primary">{request.adminNote}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -384,3 +543,4 @@ export default function TenantContractsPage() {
     </div>
   )
 }
+

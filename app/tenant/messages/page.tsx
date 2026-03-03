@@ -43,6 +43,7 @@ export default function MessagesPage() {
   const [deleting, setDeleting] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [viewingImage, setViewingImage] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -107,7 +108,7 @@ export default function MessagesPage() {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          
+
           if (data.type === 'connected') {
             console.log('SSE connected:', data)
             setIsConnected(true)
@@ -122,10 +123,10 @@ export default function MessagesPage() {
                   // Only show notification if page is not focused
                   if (document.hidden || !document.hasFocus()) {
                     const latestMessage = adminMessages[adminMessages.length - 1]
-                    const notificationText = latestMessage.content 
+                    const notificationText = latestMessage.content
                       ? (latestMessage.content.length > 50 ? latestMessage.content.substring(0, 50) + '...' : latestMessage.content)
                       : 'Có hình ảnh đính kèm'
-                    
+
                     new Notification('Tin nhắn mới từ quản lý', {
                       body: notificationText,
                       icon: '/favicon.ico',
@@ -135,12 +136,12 @@ export default function MessagesPage() {
                     })
                   }
                 }
-                
+
                 return [...prev, ...newMessages]
               }
               return prev
             })
-            
+
             // Update unread count
             fetchUnreadCount(user.id)
           } else if (data.type === 'heartbeat') {
@@ -148,7 +149,7 @@ export default function MessagesPage() {
             setIsConnected(true)
           } else if (data.type === 'error') {
             console.error('SSE error:', data.error, data.code)
-            
+
             // Handle different error types
             if (data.code === 'SESSION_EXPIRED' || data.code === 'AUTH_ERROR') {
               // Session expired - check if user is still logged in
@@ -172,17 +173,17 @@ export default function MessagesPage() {
       eventSource.onerror = (error) => {
         setIsConnected(false)
         console.error('SSE connection error:', error)
-        
+
         // Only reconnect if we haven't exceeded max attempts
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++
           console.log(`Reconnecting... (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
-          
+
           // Clear any existing timeout
           if (reconnectTimeout) {
             clearTimeout(reconnectTimeout)
           }
-          
+
           // Reconnect after delay
           reconnectTimeout = setTimeout(() => {
             if (user && admin) {
@@ -223,19 +224,19 @@ export default function MessagesPage() {
     try {
       const response = await fetch(`/api/tenant/messages?userId=${userId}`)
       const data = await response.json()
-      
+
       setMessages(data.messages || [])
       setUnreadCount(data.unreadCount || 0)
-      
+
       // Lấy thông tin admin từ tin nhắn đầu tiên hoặc từ API response
       if (data.messages && data.messages.length > 0) {
         const firstMessage = data.messages[0]
-        const adminUser = firstMessage.sender.role === 'ADMIN' 
-          ? firstMessage.sender 
-          : firstMessage.receiver.role === 'ADMIN' 
-            ? firstMessage.receiver 
+        const adminUser = firstMessage.sender.role === 'ADMIN'
+          ? firstMessage.sender
+          : firstMessage.receiver.role === 'ADMIN'
+            ? firstMessage.receiver
             : null
-        
+
         if (adminUser) {
           setAdmin({
             id: adminUser.id,
@@ -335,12 +336,13 @@ export default function MessagesPage() {
     setSelectedImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleDeleteHistory = async () => {
+  const handleDeleteHistory = () => {
     if (!user) return
-    
-    if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện?')) {
-      return
-    }
+    setShowDeleteModal(true)
+  }
+
+  const confirmDeleteHistory = async () => {
+    if (!user) return
 
     setDeleting(true)
     try {
@@ -386,7 +388,7 @@ export default function MessagesPage() {
         setMessages(prev => [...prev, message])
         setNewMessage('')
         setSelectedImages([])
-        
+
         // Cập nhật thông tin admin nếu chưa có
         if (!admin && message.receiver.role === 'ADMIN') {
           setAdmin({
@@ -395,7 +397,7 @@ export default function MessagesPage() {
             avatarUrl: message.receiver.avatarUrl
           })
         }
-        
+
         setTimeout(() => scrollToBottom(), 100)
       } else {
         const error = await response.json()
@@ -462,7 +464,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="flex flex-col" style={{ 
+    <div className="flex flex-col" style={{
       backgroundColor: 'var(--bg-secondary)',
       height: 'calc(100vh - 4rem)',
       maxHeight: 'calc(100vh - 4rem)',
@@ -514,7 +516,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Chat Area */}
-      <div 
+      <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 messages-container"
         style={{
@@ -537,7 +539,7 @@ export default function MessagesPage() {
             const previousMessage = index > 0 ? messages[index - 1] : null
             const showDateSeparator = shouldShowDateSeparator(message, previousMessage)
             const showAvatar = !previousMessage || previousMessage.sender.id !== message.sender.id
-            
+
             return (
               <div key={message.id}>
                 {showDateSeparator && (
@@ -581,17 +583,16 @@ export default function MessagesPage() {
                       const hasImages = message.images && message.images.length > 0
                       const hasContent = message.content && message.content.trim()
                       const isImageOnly = hasImages && !hasContent
-                      
+
                       return (
-                        <div className={isImageOnly ? '' : `rounded-2xl px-4 py-2 shadow-sm message-bubble ${
-                          isTenant
+                        <div className={isImageOnly ? '' : `rounded-2xl px-4 py-2 shadow-sm message-bubble ${isTenant
                             ? 'bg-blue-500 text-white rounded-tr-sm'
                             : 'rounded-tl-sm'
-                        }`}
-                        style={isImageOnly ? {} : (!isTenant ? {
-                          backgroundColor: 'var(--bg-tertiary)',
-                          color: 'var(--text-primary)'
-                        } : {})}
+                          }`}
+                          style={isImageOnly ? {} : (!isTenant ? {
+                            backgroundColor: 'var(--bg-tertiary)',
+                            color: 'var(--text-primary)'
+                          } : {})}
                         >
                           {hasImages && (
                             <div className={`flex flex-wrap gap-2 ${hasContent ? 'mb-2' : ''} ${message.images.length === 1 ? 'justify-center' : ''}`}>
@@ -651,7 +652,7 @@ export default function MessagesPage() {
             ))}
           </div>
         )}
-        
+
         <div className="flex gap-2 items-end">
           <input
             type="file"
@@ -696,7 +697,7 @@ export default function MessagesPage() {
             placeholder="Nhập tin nhắn..."
             rows={1}
             className="flex-1 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none max-h-32 message-input"
-            style={{ 
+            style={{
               minHeight: '40px',
               borderColor: 'var(--border-primary)',
               backgroundColor: 'var(--bg-secondary)',
@@ -716,7 +717,7 @@ export default function MessagesPage() {
 
       {/* Image Lightbox Modal */}
       {viewingImage && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           onClick={() => setViewingImage(null)}
         >
@@ -727,7 +728,7 @@ export default function MessagesPage() {
           >
             <X size={24} />
           </button>
-          <div 
+          <div
             className="relative max-w-[90vw] max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -737,6 +738,33 @@ export default function MessagesPage() {
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
               style={{ border: 'none' }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">Xóa lịch sử trò chuyện</h2>
+                <button onClick={() => setShowDeleteModal(false)} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện?
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={() => setShowDeleteModal(false)} className="btn btn-secondary btn-md" disabled={deleting}>
+                  Hủy
+                </button>
+                <button onClick={confirmDeleteHistory} className="btn btn-danger btn-md" disabled={deleting}>
+                  {deleting ? 'Đang xóa...' : 'Xóa'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

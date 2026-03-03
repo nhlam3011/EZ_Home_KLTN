@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
           // Tính số người trong phòng: 1 (người chủ hợp đồng) + số người ở cùng
           const occupants = (activeContract as any).occupants || []
           const numberOfPeople = 1 + occupants.length
-          
+
           // Tính tiền dựa trên số tiêu thụ (số mới - số cũ)
           const amountRoom = Number(activeContract.rentPrice)
           const amountElec = elecConsumption * elecPrice // Số tiêu thụ * giá điện
@@ -208,15 +208,71 @@ export async function POST(request: NextRequest) {
           const amountService = 0 // Phí xử lý sự cố và dịch vụ khác (mặc định 0)
           const totalAmount = amountRoom + amountElec + amountWater + amountCommonService + amountService
 
-          // Cho phép tạo nhiều hóa đơn trong cùng tháng (để bổ sung thiếu sót)
-          // Không kiểm tra hóa đơn đã tồn tại, luôn tạo hóa đơn mới
-          
+          // Check if invoice already exists for this period
+          const existingInvoice = await prisma.invoice.findFirst({
+            where: {
+              contractId: activeContract.id,
+              month: parseInt(month),
+              year: parseInt(year)
+            }
+          })
+
+          // Find overdue invoices for this contract to add to current invoice
+          const now = new Date()
+          const overdueInvoices = await prisma.invoice.findMany({
+            where: {
+              contractId: activeContract.id,
+              status: {
+                in: ['UNPAID', 'OVERDUE']
+              },
+              paymentDueDate: {
+                lt: now // Payment due date has passed
+              }
+            }
+          })
+
+          // Calculate total overdue amount
+          const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
+
+          // Prepare overdue invoice details for storage
+          const overdueInvoicesInfo = overdueInvoices.map(inv => ({
+            id: inv.id,
+            month: inv.month,
+            year: inv.year,
+            amount: Number(inv.totalAmount)
+          }))
+
+          // If invoice already exists, update it with new amounts
+          if (existingInvoice) {
+            // Calculate payment due date (10 days from now)
+            const paymentDueDate = new Date()
+            paymentDueDate.setDate(paymentDueDate.getDate() + 10)
+
+            // Update existing invoice with new amounts
+            await prisma.invoice.update({
+              where: { id: existingInvoice.id },
+              data: {
+                amountRoom,
+                amountElec,
+                amountWater,
+                amountCommonService,
+                overdueAmount,
+                overdueInvoices: JSON.stringify(overdueInvoicesInfo),
+                totalAmount: totalAmount + overdueAmount,
+                paymentDueDate,
+                status: 'UNPAID' // Reset to UNPAID when updating
+              }
+            })
+            results.push(meterReading)
+            continue
+          }
+
           // Chỉ tạo hóa đơn mới sau khi đã lưu số mới và có số tiêu thụ
           if (elecConsumption >= 0 && waterConsumption >= 0) {
             // Calculate payment due date (10 days from now)
             const paymentDueDate = new Date()
             paymentDueDate.setDate(paymentDueDate.getDate() + 10)
-            
+
             // Create invoice
             const invoice = await prisma.invoice.create({
               data: {
@@ -228,18 +284,35 @@ export async function POST(request: NextRequest) {
                 amountWater,
                 amountCommonService,
                 amountService: 0,
-                totalAmount,
+                overdueAmount,
+                overdueInvoices: JSON.stringify(overdueInvoicesInfo),
+                totalAmount: totalAmount + overdueAmount,
                 paymentDueDate,
                 status: 'UNPAID'
               }
             })
             invoicesCreated.push(invoice.id)
+
+            // Mark overdue invoices as paid (they are now included in the new invoice)
+            if (overdueInvoices.length > 0) {
+              await prisma.invoice.updateMany({
+                where: {
+                  id: {
+                    in: overdueInvoices.map(inv => inv.id)
+                  }
+                },
+                data: {
+                  status: 'PAID',
+                  paidAt: new Date()
+                }
+              })
+            }
           }
         }
       } catch (error: any) {
         console.error(`Error processing room ${roomId}:`, error)
         let errorMessage = 'Lỗi khi lưu chỉ số'
-        
+
         // Provide more specific error messages
         if (error.code === 'P2002') {
           errorMessage = 'Phòng này đã có chỉ số cho kỳ này'
@@ -250,7 +323,7 @@ export async function POST(request: NextRequest) {
         } else if (error.message) {
           errorMessage = error.message
         }
-        
+
         errors.push({
           roomId,
           error: errorMessage,

@@ -56,6 +56,9 @@ export default function EditResidentPage() {
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [resident, setResident] = useState<Resident | null>(null)
+  const [showDeleteDocModal, setShowDeleteDocModal] = useState(false)
+  const [deleteDocId, setDeleteDocId] = useState<number | null>(null)
+  const [deletingDoc, setDeletingDoc] = useState(false)
 
   useEffect(() => {
     if (residentId) {
@@ -230,11 +233,17 @@ export default function EditResidentPage() {
     }
   }
 
-  const handleDeleteDocument = async (documentId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa hồ sơ này?')) return
+  const handleDeleteDocument = (documentId: number) => {
+    setDeleteDocId(documentId)
+    setShowDeleteDocModal(true)
+  }
 
+  const confirmDeleteDocument = async () => {
+    if (!deleteDocId) return
+
+    setDeletingDoc(true)
     try {
-      const response = await fetch(`/api/residents/${residentId}/documents?documentId=${documentId}`, {
+      const response = await fetch(`/api/residents/${residentId}/documents?documentId=${deleteDocId}`, {
         method: 'DELETE'
       })
 
@@ -248,7 +257,16 @@ export default function EditResidentPage() {
     } catch (error) {
       console.error('Error deleting document:', error)
       alert('Có lỗi xảy ra khi xóa hồ sơ')
+    } finally {
+      setDeletingDoc(false)
+      setShowDeleteDocModal(false)
+      setDeleteDocId(null)
     }
+  }
+
+  const cancelDeleteDocument = () => {
+    setShowDeleteDocModal(false)
+    setDeleteDocId(null)
   }
 
   const formatDate = (date: Date | string | null) => {
@@ -286,7 +304,7 @@ export default function EditResidentPage() {
   const initials = getInitials(resident.fullName)
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -296,7 +314,7 @@ export default function EditResidentPage() {
         <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href={`/admin/residents/${residentId}`}
-            className="px-3 sm:px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-colors text-primary text-sm sm:text-base"
+            className="btn btn-secondary btn-md"
           >
             <X size={16} className="sm:w-[18px] sm:h-[18px]" />
             <span>Hủy</span>
@@ -304,7 +322,7 @@ export default function EditResidentPage() {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold disabled:opacity-50 disabled:hover:shadow-md text-sm sm:text-base"
+            className="btn btn-primary btn-md"
           >
             {saving ? (
               <>
@@ -335,51 +353,37 @@ export default function EditResidentPage() {
           <div className="card">
             <h2 className="text-lg font-semibold text-primary mb-4">Ảnh đại diện</h2>
             <div className="flex items-center gap-6">
-              <div className="relative">
-                {resident.avatarUrl ? (
-                  <div className="w-24 h-24 rounded-full overflow-visible shadow-lg relative">
+              <div className="flex-shrink-0">
+                <div className="w-24 h-24 rounded-full overflow-hidden shadow-md border-2 border-tertiary">
+                  {resident.avatarUrl ? (
                     <img 
                       src={resident.avatarUrl} 
                       alt={resident.fullName}
-                      className="w-full h-full object-cover rounded-full"
+                      className="w-full h-full object-cover"
                     />
-                    <label className="absolute bottom-0 right-0 w-7 h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                        disabled={uploadingAvatar}
-                      />
-                      {uploadingAvatar ? (
-                        <Loader2 size={14} className="text-white animate-spin" strokeWidth={2.5} />
-                      ) : (
-                        <Camera size={14} className="text-white" strokeWidth={2.5} />
-                      )}
-                    </label>
-                  </div>
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg relative overflow-visible">
-                    <span className="text-white font-bold text-3xl">{initials}</span>
-                    <label className="absolute bottom-0 right-0 w-7 h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                        disabled={uploadingAvatar}
-                      />
-                      {uploadingAvatar ? (
-                        <Loader2 size={14} className="text-white animate-spin" strokeWidth={2.5} />
-                      ) : (
-                        <Camera size={14} className="text-white m-1" strokeWidth={2.5} />
-                      )}
-                    </label>
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                      <span className="text-white font-bold text-3xl">{initials}</span>
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
-                <p className="text-sm text-secondary mb-1">Thay đổi ảnh đại diện</p>
+                <label className="btn btn-secondary btn-md cursor-pointer mb-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                  {uploadingAvatar ? (
+                    <Loader2 size={16} className="animate-spin" strokeWidth={2} />
+                  ) : (
+                    <Camera size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
+                  )}
+                  <span>Chọn ảnh</span>
+                </label>
                 <p className="text-xs text-tertiary">JPG, PNG tối đa 5MB</p>
               </div>
             </div>
@@ -641,6 +645,33 @@ export default function EditResidentPage() {
           </div>
         </div>
       </form>
+
+      {/* Delete Document Confirmation Modal */}
+      {showDeleteDocModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={cancelDeleteDocument}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">Xóa hồ sơ</h2>
+                <button onClick={cancelDeleteDocument} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                Bạn có chắc chắn muốn xóa hồ sơ này?
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={cancelDeleteDocument} className="btn btn-secondary btn-md" disabled={deletingDoc}>
+                  Hủy
+                </button>
+                <button onClick={confirmDeleteDocument} className="btn btn-danger btn-md" disabled={deletingDoc}>
+                  {deletingDoc ? 'Đang xóa...' : 'Xóa'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

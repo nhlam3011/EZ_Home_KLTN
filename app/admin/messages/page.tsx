@@ -53,6 +53,7 @@ export default function AdminMessagesPage() {
   const [isConnected, setIsConnected] = useState(false)
   const [viewingImage, setViewingImage] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
@@ -163,48 +164,48 @@ export default function AdminMessagesPage() {
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          
+
           if (data.type === 'connected') {
             console.log('SSE connected:', data)
             setIsConnected(true)
           } else if (data.type === 'messages' && data.messages) {
             setMessagesByTenant(prev => {
               const updated = { ...prev }
-              
+
               // Xử lý từng tin nhắn và lưu vào đúng tenant
               data.messages.forEach((m: Message) => {
                 // Xác định tenant ID từ tin nhắn
                 const tenantId = m.sender.role === 'TENANT' ? m.sender.id : m.receiver.id
-                
+
                 if (!updated[tenantId]) {
                   updated[tenantId] = []
                 }
-                
+
                 // Chỉ thêm nếu chưa có
                 const existingIds = new Set(updated[tenantId].map(msg => msg.id))
                 if (!existingIds.has(m.id)) {
                   updated[tenantId] = [...updated[tenantId], m]
                   // Sắp xếp theo thời gian
-                  updated[tenantId].sort((a, b) => 
+                  updated[tenantId].sort((a, b) =>
                     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
                   )
                 }
               })
-              
+
               // Show push notification for new messages from tenant
               if (selectedTenant) {
-                const tenantMessages = data.messages.filter((m: Message) => 
-                  m.sender.role === 'TENANT' && 
+                const tenantMessages = data.messages.filter((m: Message) =>
+                  m.sender.role === 'TENANT' &&
                   (m.sender.id === selectedTenant.id || m.receiver.id === selectedTenant.id)
                 )
                 if (tenantMessages.length > 0 && 'Notification' in window && Notification.permission === 'granted') {
                   // Only show notification if page is not focused
                   if (document.hidden || !document.hasFocus()) {
                     const latestMessage = tenantMessages[tenantMessages.length - 1]
-                    const notificationText = latestMessage.content 
+                    const notificationText = latestMessage.content
                       ? (latestMessage.content.length > 50 ? latestMessage.content.substring(0, 50) + '...' : latestMessage.content)
                       : 'Có hình ảnh đính kèm'
-                    
+
                     new Notification(`Tin nhắn mới từ ${latestMessage.sender.fullName}`, {
                       body: notificationText,
                       icon: '/favicon.ico',
@@ -215,10 +216,10 @@ export default function AdminMessagesPage() {
                   }
                 }
               }
-              
+
               return updated
             })
-            
+
             // Cập nhật unreadCount cho tất cả tenant khi có tin nhắn mới
             if (data.messages && data.messages.length > 0 && user) {
               fetchUnreadCounts(user.id)
@@ -228,7 +229,7 @@ export default function AdminMessagesPage() {
             setIsConnected(true)
           } else if (data.type === 'error') {
             console.error('SSE error:', data.error, data.code)
-            
+
             // Handle different error types
             if (data.code === 'SESSION_EXPIRED' || data.code === 'AUTH_ERROR') {
               // Session expired - check if user is still logged in
@@ -252,17 +253,17 @@ export default function AdminMessagesPage() {
       eventSource.onerror = (error) => {
         setIsConnected(false)
         console.error('SSE connection error:', error)
-        
+
         // Only reconnect if we haven't exceeded max attempts
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++
           console.log(`Reconnecting... (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`)
-          
+
           // Clear any existing timeout
           if (reconnectTimeout) {
             clearTimeout(reconnectTimeout)
           }
-          
+
           // Reconnect after delay
           reconnectTimeout = setTimeout(() => {
             if (user && selectedTenant) {
@@ -335,10 +336,10 @@ export default function AdminMessagesPage() {
         return
       }
       const data = await response.json()
-      
+
       setTenants(data.tenants || [])
       setUnreadCounts(data.unreadCounts || {})
-      
+
       if (!selectedTenant) {
         if (data.tenantsWithMessages && data.tenantsWithMessages.length > 0) {
           setSelectedTenant(data.tenantsWithMessages[0])
@@ -383,10 +384,10 @@ export default function AdminMessagesPage() {
               const uniqueMessages: Message[] = Array.from(
                 new Map(messages.map((m: Message) => [m.id, m])).values()
               ) as Message[]
-              uniqueMessages.sort((a, b) => 
+              uniqueMessages.sort((a, b) =>
                 new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
               )
-              
+
               setMessagesByTenant(prev => ({
                 ...prev,
                 [tenantId]: uniqueMessages
@@ -409,25 +410,25 @@ export default function AdminMessagesPage() {
         return
       }
       const data = await response.json()
-      
+
       if (data.tenant && data.tenant.room) {
         setSelectedTenant(prev => prev ? { ...prev, room: data.tenant.room } : null)
       }
-      
+
       // Lưu tin nhắn vào cache theo tenant ID
       const messages: Message[] = data.messages || []
       const uniqueMessages: Message[] = Array.from(
         new Map(messages.map((m: Message) => [m.id, m])).values()
       ) as Message[]
-      uniqueMessages.sort((a, b) => 
+      uniqueMessages.sort((a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       )
-      
+
       setMessagesByTenant(prev => ({
         ...prev,
         [tenantId]: uniqueMessages
       }))
-      
+
       if (data.unreadCount !== undefined) {
         setUnreadCounts(prev => ({
           ...prev,
@@ -504,12 +505,13 @@ export default function AdminMessagesPage() {
     setSelectedImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleDeleteHistory = async () => {
+  const handleDeleteHistory = () => {
     if (!selectedTenant || !user) return
-    
-    if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện với ' + selectedTenant.fullName + '?')) {
-      return
-    }
+    setShowDeleteModal(true)
+  }
+
+  const confirmDeleteHistory = async () => {
+    if (!selectedTenant || !user) return
 
     setDeleting(true)
     try {
@@ -562,17 +564,17 @@ export default function AdminMessagesPage() {
         setMessagesByTenant(prev => {
           const tenantId = selectedTenant.id
           const currentMessages = prev[tenantId] || []
-          
+
           // Check if message already exists
           if (currentMessages.some(m => m.id === message.id)) {
             return prev
           }
-          
+
           // Add new message and sort by createdAt
-          const updated = [...currentMessages, message].sort((a, b) => 
+          const updated = [...currentMessages, message].sort((a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           )
-          
+
           return {
             ...prev,
             [tenantId]: updated
@@ -651,7 +653,7 @@ export default function AdminMessagesPage() {
   }
 
   return (
-    <div className="flex relative" style={{ 
+    <div className="flex relative" style={{
       backgroundColor: 'var(--bg-secondary)',
       height: 'calc(100vh - 4rem)',
       maxHeight: 'calc(100vh - 4rem)',
@@ -659,7 +661,7 @@ export default function AdminMessagesPage() {
     }}>
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 lg:hidden transition-opacity"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setSidebarOpen(false)}
@@ -672,12 +674,12 @@ export default function AdminMessagesPage() {
         w-64 sm:w-80 flex flex-col shadow-lg lg:shadow-none
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `} style={{ 
-        borderRight: '1px solid var(--border-primary)',
-        backgroundColor: 'var(--bg-primary)'
-      }}>
+      `} style={{
+          borderRight: '1px solid var(--border-primary)',
+          backgroundColor: 'var(--bg-primary)'
+        }}>
         {/* Header */}
-        <div className="px-2 sm:px-4 py-3" style={{ 
+        <div className="px-2 sm:px-4 py-3" style={{
           borderBottom: '1px solid var(--border-primary)',
           backgroundColor: 'var(--bg-primary)'
         }}>
@@ -685,7 +687,7 @@ export default function AdminMessagesPage() {
             <Link
               href="/admin"
               className="p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0"
-              style={{ 
+              style={{
                 color: 'var(--text-secondary)'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
@@ -707,7 +709,7 @@ export default function AdminMessagesPage() {
               <X size={18} />
             </button>
           </div>
-          
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-[18px] sm:h-[18px]" style={{ color: 'var(--text-tertiary)' }} />
@@ -727,7 +729,7 @@ export default function AdminMessagesPage() {
         </div>
 
         {/* Tenants List */}
-        <div className="flex-1 overflow-y-auto tenants-list" style={{ 
+        <div className="flex-1 overflow-y-auto tenants-list" style={{
           minHeight: 0,
           scrollbarWidth: 'none', /* Firefox */
           msOverflowStyle: 'none' /* IE and Edge */
@@ -743,7 +745,7 @@ export default function AdminMessagesPage() {
             filteredTenants.map((tenant) => {
               const unreadCount = unreadCounts[tenant.id] || 0
               const isSelected = selectedTenant?.id === tenant.id
-              
+
               return (
                 <div
                   key={tenant.id}
@@ -783,7 +785,7 @@ export default function AdminMessagesPage() {
                         </span>
                       </div>
                     )}
-                    
+
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5 sm:mb-1">
@@ -864,7 +866,7 @@ export default function AdminMessagesPage() {
             </div>
 
             {/* Messages */}
-            <div 
+            <div
               ref={messagesContainerRef}
               className="flex-1 overflow-y-auto px-2 sm:px-4 py-2 sm:py-4 messages-container"
               style={{
@@ -888,26 +890,26 @@ export default function AdminMessagesPage() {
                   const isAdmin = message.sender.role === 'ADMIN'
                   const previousMessage = index > 0 ? messages[index - 1] : null
                   const showDateSeparator = shouldShowDateSeparator(message, previousMessage)
-                  
+
                   // Show avatar and name when:
                   // 1. First message
                   // 2. Previous message is from different sender (different sender.id)
                   // 3. Previous message is from different role (admin vs tenant)
-                  const showAvatar = !previousMessage || 
+                  const showAvatar = !previousMessage ||
                     previousMessage.sender.id !== message.sender.id ||
                     previousMessage.sender.role !== message.sender.role
-                  
+
                   // Add spacing when switching between different users
-                  const showUserSeparator = previousMessage && 
+                  const showUserSeparator = previousMessage &&
                     previousMessage.sender.id !== message.sender.id &&
                     previousMessage.sender.role !== 'ADMIN' &&
                     !isAdmin
-                  
+
                   // Show name for admin messages too when switching users
                   const showSenderName = showAvatar && (
                     !isAdmin || (previousMessage && previousMessage.sender.id !== message.sender.id)
                   )
-                  
+
                   // Use a unique key combining message.id and index to prevent duplicate key errors
                   return (
                     <div key={`${message.id}-${index}-${message.createdAt}`}>
@@ -955,17 +957,16 @@ export default function AdminMessagesPage() {
                             const hasImages = message.images && message.images.length > 0
                             const hasContent = message.content && message.content.trim()
                             const isImageOnly = hasImages && !hasContent
-                            
+
                             return (
-                              <div className={isImageOnly ? '' : `rounded-xl sm:rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2 shadow-sm message-bubble ${
-                                isAdmin
-                                  ? 'bg-blue-500 text-white rounded-tr-sm'
-                                  : 'rounded-tl-sm'
-                              }`}
-                              style={isImageOnly ? {} : (!isAdmin ? {
-                                backgroundColor: 'var(--bg-tertiary)',
-                                color: 'var(--text-primary)'
-                              } : {})}
+                              <div className={isImageOnly ? '' : `rounded-xl sm:rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2 shadow-sm message-bubble ${isAdmin
+                                ? 'bg-blue-500 text-white rounded-tr-sm'
+                                : 'rounded-tl-sm'
+                                }`}
+                                style={isImageOnly ? {} : (!isAdmin ? {
+                                  backgroundColor: 'var(--bg-tertiary)',
+                                  color: 'var(--text-primary)'
+                                } : {})}
                               >
                                 {hasImages && (
                                   <div className={`flex flex-wrap gap-1 sm:gap-2 ${hasContent ? 'mb-1 sm:mb-2' : ''} ${message.images.length === 1 ? 'justify-center' : ''}`}>
@@ -1025,7 +1026,7 @@ export default function AdminMessagesPage() {
                   ))}
                 </div>
               )}
-              
+
               <div className="flex gap-1.5 sm:gap-2 items-end">
                 <input
                   type="file"
@@ -1070,7 +1071,7 @@ export default function AdminMessagesPage() {
                   placeholder="Nhập tin nhắn..."
                   rows={1}
                   className="flex-1 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none max-h-32 message-input text-xs sm:text-sm"
-                  style={{ 
+                  style={{
                     minHeight: '36px',
                     borderColor: 'var(--border-primary)',
                     backgroundColor: 'var(--bg-secondary)',
@@ -1082,8 +1083,8 @@ export default function AdminMessagesPage() {
                   disabled={(!newMessage.trim() && selectedImages.length === 0) || sending}
                   className="px-2 sm:px-4 py-1.5 sm:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 sm:gap-2 shadow-md send-button flex-shrink-0 text-xs sm:text-sm"
                 >
-                  <Send size={16} className="sm:w-[18px] sm:h-[18px]" />
-                  <span className="hidden sm:inline">{sending ? 'Đang gửi...' : 'Gửi'}</span>
+                  <Send size={18} />
+                  <span>{sending ? 'Đang gửi...' : 'Gửi'}</span>
                 </button>
               </div>
             </div>
@@ -1100,7 +1101,7 @@ export default function AdminMessagesPage() {
 
       {/* Image Lightbox Modal */}
       {viewingImage && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           onClick={() => setViewingImage(null)}
         >
@@ -1111,7 +1112,7 @@ export default function AdminMessagesPage() {
           >
             <X size={24} />
           </button>
-          <div 
+          <div
             className="relative max-w-[90vw] max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1121,6 +1122,33 @@ export default function AdminMessagesPage() {
               className="max-w-full max-h-[90vh] object-contain rounded-lg"
               style={{ border: 'none' }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedTenant && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">Xóa lịch sử trò chuyện</h2>
+                <button onClick={() => setShowDeleteModal(false)} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                Bạn có chắc chắn muốn xóa toàn bộ lịch sử trò chuyện với <span className="font-semibold">{selectedTenant.fullName}</span>?
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={() => setShowDeleteModal(false)} className="btn btn-secondary btn-md" disabled={deleting}>
+                  Hủy
+                </button>
+                <button onClick={confirmDeleteHistory} className="btn btn-danger btn-md" disabled={deleting}>
+                  {deleting ? 'Đang xóa...' : 'Xóa'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

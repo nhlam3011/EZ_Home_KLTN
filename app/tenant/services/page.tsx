@@ -56,17 +56,17 @@ export default function ServicesPage() {
 
       const response = await fetch(`/api/services?${params.toString()}`)
       const data = await response.json()
-      
+
       // Lọc bỏ các dịch vụ không được phép đặt (điện, nước, dịch vụ chung)
       const excludedServices = ['Điện', 'Nước', 'Dịch vụ chung', 'Phí quản lý', 'Phí dịch vụ']
       const filteredData = data.filter((service: Service) => {
         const serviceName = service.name.toLowerCase()
-        return !excludedServices.some(excluded => 
-          serviceName.includes(excluded.toLowerCase()) || 
+        return !excludedServices.some(excluded =>
+          serviceName.includes(excluded.toLowerCase()) ||
           serviceName === excluded.toLowerCase()
         )
       })
-      
+
       setServices(filteredData)
     } catch (error) {
       console.error('Error fetching services:', error)
@@ -172,30 +172,30 @@ export default function ServicesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string; icon: any }> = {
-      PENDING: { 
-        label: 'Chờ xử lý', 
-        className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded',
+      PENDING: {
+        label: 'Chờ xử lý',
+        className: 'badge badge-warning',
         icon: Clock
       },
-      PROCESSING: { 
-        label: 'Đang xử lý', 
-        className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded',
+      PROCESSING: {
+        label: 'Đang xử lý',
+        className: 'badge badge-info',
         icon: AlertCircle
       },
-      DONE: { 
-        label: 'Hoàn thành', 
-        className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded',
+      DONE: {
+        label: 'Hoàn thành',
+        className: 'badge badge-success',
         icon: CheckCircle
       },
-      CANCELLED: { 
-        label: 'Đã hủy', 
-        className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded',
+      CANCELLED: {
+        label: 'Đã hủy',
+        className: 'badge badge-error',
         icon: XCircle
       }
     }
-    return statusMap[status] || { 
-      label: status, 
-      className: 'bg-tertiary text-primary',
+    return statusMap[status] || {
+      label: status,
+      className: 'badge badge-info',
       icon: AlertCircle
     }
   }
@@ -218,23 +218,21 @@ export default function ServicesPage() {
       {/* Tabs */}
       <div className="border-b border-primary">
         <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
-          <button 
+          <button
             onClick={() => setActiveTab('services')}
-            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-              activeTab === 'services'
-                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'services'
+              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-secondary hover:text-primary'
+              }`}
           >
             Dịch vụ
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('orders')}
-            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 relative whitespace-nowrap ${
-              activeTab === 'orders'
-                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 relative whitespace-nowrap ${activeTab === 'orders'
+              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-secondary hover:text-primary'
+              }`}
           >
             Đơn hàng của tôi
             {orders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length > 0 && (
@@ -249,44 +247,36 @@ export default function ServicesPage() {
       {/* Services Tab */}
       {activeTab === 'services' && (
         <>
-          {/* Search Bar */}
+          {/* Search and Filters */}
           <div className="card p-3 sm:p-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Tìm kiếm dịch vụ (Vệ sinh, sửa chữa, giặt ủi...)"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input w-full pl-9 sm:pl-12 pr-4 py-2 sm:py-3 text-sm sm:text-base"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="flex items-center gap-2">
+                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">DANH MỤC:</label>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="select flex-1"
+                >
+                  <option value="all">Tất cả</option>
+                  <option value="Vệ sinh">Vệ sinh</option>
+                  <option value="Giặt ủi">Giặt ủi</option>
+                  <option value="Sửa chữa">Sửa chữa</option>
+                  <option value="Tiện ích">Tiện ích</option>
+                </select>
+              </div>
+              <div className="sm:col-span-2 lg:col-span-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm dịch vụ (Vệ sinh, sửa chữa, giặt ủi...)"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="input input-with-icon w-full pl-9 sm:pl-12 pr-4 py-2 text-sm"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* Category Filters */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setCategoryFilter('all')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                categoryFilter === 'all'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-primary border border-primary text-primary hover:bg-tertiary'
-              }`}
-            >
-              Tất cả
-            </button>
-            {['Vệ sinh', 'Giặt ủi', 'Sửa chữa', 'Tiện ích'].map(category => (
-              <button
-                key={category}
-                onClick={() => setCategoryFilter(category)}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                  categoryFilter === category
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-primary border border-primary text-primary hover:bg-tertiary'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
           </div>
 
           {/* Services Grid */}
@@ -358,211 +348,216 @@ export default function ServicesPage() {
             </div>
           )}
         </>
-      )}
+      )
+      }
 
       {/* Orders Tab */}
-      {activeTab === 'orders' && (
-        ordersLoading ? (
-          <div className="card">
-            <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-              <p className="text-tertiary">Đang tải đơn hàng...</p>
+      {
+        activeTab === 'orders' && (
+          ordersLoading ? (
+            <div className="card">
+              <div className="text-center py-12">
+                <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
+                <p className="text-tertiary">Đang tải đơn hàng...</p>
+              </div>
             </div>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="card p-12 text-center">
-            <ShoppingCart className="mx-auto text-tertiary mb-4" size={48} />
-            <h3 className="text-lg font-semibold text-primary mb-2">Chưa có đơn hàng</h3>
-            <p className="text-tertiary">Bạn chưa đặt dịch vụ nào. Hãy xem các dịch vụ có sẵn!</p>
-            <button
-              onClick={() => setActiveTab('services')}
-              className="btn btn-primary btn-md mt-4"
-            >
-              Xem dịch vụ
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => {
-              const statusBadge = getStatusBadge(order.status)
-              const StatusIcon = statusBadge.icon
+          ) : orders.length === 0 ? (
+            <div className="card p-12 text-center">
+              <ShoppingCart className="mx-auto text-tertiary mb-4" size={48} />
+              <h3 className="text-lg font-semibold text-primary mb-2">Chưa có đơn hàng</h3>
+              <p className="text-tertiary">Bạn chưa đặt dịch vụ nào. Hãy xem các dịch vụ có sẵn!</p>
+              <button
+                onClick={() => setActiveTab('services')}
+                className="btn btn-primary btn-md mt-4"
+              >
+                Xem dịch vụ
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {orders.map((order) => {
+                const statusBadge = getStatusBadge(order.status)
+                const StatusIcon = statusBadge.icon
 
-              return (
-                <div
-                  key={order.id}
-                  className="card rounded-xl p-6 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-2xl">
-                          {getServiceIcon(order.service.name)}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-primary">{order.service.name}</h3>
-                          <p className="text-sm text-tertiary">
-                            Đặt ngày: {formatDate(order.orderDate)}
-                          </p>
+                return (
+                  <div
+                    key={order.id}
+                    className="card rounded-xl p-6 hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-2xl">
+                            {getServiceIcon(order.service.name)}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-primary">{order.service.name}</h3>
+                            <p className="text-sm text-tertiary">
+                              Đặt ngày: {formatDate(order.orderDate)}
+                            </p>
+                          </div>
                         </div>
                       </div>
+                      <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-1.5 whitespace-nowrap ${statusBadge.className}`}>
+                        <StatusIcon size={12} className="sm:w-[14px] sm:h-[14px]" />
+                        {statusBadge.label}
+                      </span>
                     </div>
-                    <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-1.5 whitespace-nowrap ${statusBadge.className}`}>
-                      <StatusIcon size={12} className="sm:w-[14px] sm:h-[14px]" />
-                      {statusBadge.label}
-                    </span>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="bg-tertiary rounded-lg p-3">
-                      <p className="text-xs text-tertiary mb-1">Số lượng</p>
-                      <p className="text-sm font-semibold text-primary">
-                        {order.quantity} {order.service.unit}
-                      </p>
-                    </div>
-                    <div className="bg-tertiary rounded-lg p-3">
-                      <p className="text-xs text-tertiary mb-1">Tổng tiền</p>
-                      <p className="text-sm font-semibold text-primary">
-                        {formatCurrency(order.total)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {order.note && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3 mb-4">
-                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Ghi chú:</p>
-                      <p className="text-sm text-blue-900 dark:text-blue-200">{order.note}</p>
-                    </div>
-                  )}
-
-                  {order.status === 'DONE' && (
-                    <div className="pt-4 border-t border-primary">
-                      <div className="flex items-center gap-2 text-sm text-green-600">
-                        <CheckCircle size={16} />
-                        <span>Dịch vụ đã được hoàn thành</span>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-tertiary rounded-lg p-3">
+                        <p className="text-xs text-tertiary mb-1">Số lượng</p>
+                        <p className="text-sm font-semibold text-primary">
+                          {order.quantity} {order.service.unit}
+                        </p>
+                      </div>
+                      <div className="bg-tertiary rounded-lg p-3">
+                        <p className="text-xs text-tertiary mb-1">Tổng tiền</p>
+                        <p className="text-sm font-semibold text-primary">
+                          {formatCurrency(order.total)}
+                        </p>
                       </div>
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+
+                    {order.note && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-3 mb-4">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-1">Ghi chú:</p>
+                        <p className="text-sm text-blue-900 dark:text-blue-200">{order.note}</p>
+                      </div>
+                    )}
+
+                    {order.status === 'DONE' && (
+                      <div className="pt-4 border-t border-primary">
+                        <div className="flex items-center gap-2 text-sm text-green-600">
+                          <CheckCircle size={16} />
+                          <span>Dịch vụ đã được hoàn thành</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
         )
-      )}
+      }
 
       {/* Order Modal */}
-      {showOrderModal && selectedService && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="card rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-primary">Đặt dịch vụ</h2>
-                <button
-                  onClick={() => {
-                    setShowOrderModal(false)
-                    setSelectedService(null)
-                    setQuantity(1)
-                    setOrderNote('')
-                  }}
-                  className="p-2 hover:bg-tertiary rounded-lg transition-colors"
-                >
-                  <X size={20} className="text-tertiary" />
-                </button>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-3xl">
-                    {getServiceIcon(selectedService.name)}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-primary">{selectedService.name}</h3>
-                    <p className="text-sm text-tertiary">{selectedService.description || `Dịch vụ ${selectedService.name.toLowerCase()}`}</p>
-                  </div>
+      {
+        showOrderModal && selectedService && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="card rounded-xl shadow-2xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-primary">Đặt dịch vụ</h2>
+                  <button
+                    onClick={() => {
+                      setShowOrderModal(false)
+                      setSelectedService(null)
+                      setQuantity(1)
+                      setOrderNote('')
+                    }}
+                    className="p-2 hover:bg-tertiary rounded-lg transition-colors"
+                  >
+                    <X size={20} className="text-tertiary" />
+                  </button>
                 </div>
 
-                <div className="bg-tertiary rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-secondary">Đơn giá:</span>
-                    <span className="text-sm font-semibold text-primary">
-                      {formatCurrency(Number(selectedService.unitPrice))} / {selectedService.unit}
-                    </span>
+                <div className="mb-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-3xl">
+                      {getServiceIcon(selectedService.name)}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-primary">{selectedService.name}</h3>
+                      <p className="text-sm text-tertiary">{selectedService.description || `Dịch vụ ${selectedService.name.toLowerCase()}`}</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Số lượng
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 rounded-lg border border-primary flex items-center justify-center hover:bg-tertiary transition-colors"
-                    >
-                      <Minus size={18} className="text-secondary" />
-                    </button>
-                    <input
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="input w-20 text-center text-lg font-semibold py-2"
+                  <div className="bg-tertiary rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-secondary">Đơn giá:</span>
+                      <span className="text-sm font-semibold text-primary">
+                        {formatCurrency(Number(selectedService.unitPrice))} / {selectedService.unit}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-primary mb-2">
+                      Số lượng
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-10 h-10 rounded-lg border border-primary flex items-center justify-center hover:bg-tertiary transition-colors"
+                      >
+                        <Minus size={18} className="text-secondary" />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="input w-20 text-center text-lg font-semibold py-2"
+                      />
+                      <button
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-10 h-10 rounded-lg border border-primary flex items-center justify-center hover:bg-tertiary transition-colors"
+                      >
+                        <Plus size={18} className="text-secondary" />
+                      </button>
+                      <span className="text-sm text-secondary ml-2">{selectedService.unit}</span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-primary mb-2">
+                      Ghi chú (tùy chọn)
+                    </label>
+                    <textarea
+                      value={orderNote}
+                      onChange={(e) => setOrderNote(e.target.value)}
+                      placeholder="Nhập ghi chú hoặc yêu cầu đặc biệt..."
+                      rows={3}
+                      className="input w-full px-4 py-2 resize-none"
                     />
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 rounded-lg border border-primary flex items-center justify-center hover:bg-tertiary transition-colors"
-                    >
-                      <Plus size={18} className="text-secondary" />
-                    </button>
-                    <span className="text-sm text-secondary ml-2">{selectedService.unit}</span>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-primary">Tổng cộng:</span>
+                      <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                        {formatCurrency(totalPrice)}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Ghi chú (tùy chọn)
-                  </label>
-                  <textarea
-                    value={orderNote}
-                    onChange={(e) => setOrderNote(e.target.value)}
-                    placeholder="Nhập ghi chú hoặc yêu cầu đặc biệt..."
-                    rows={3}
-                    className="input w-full px-4 py-2 resize-none"
-                  />
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setShowOrderModal(false)
+                      setSelectedService(null)
+                      setQuantity(1)
+                      setOrderNote('')
+                    }}
+                    className="flex-1 px-4 py-2.5 border-2 border-primary text-primary rounded-lg hover:bg-tertiary transition-colors font-medium"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleOrder}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
+                  >
+                    Xác nhận đặt
+                  </button>
                 </div>
-
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-primary">Tổng cộng:</span>
-                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      {formatCurrency(totalPrice)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setShowOrderModal(false)
-                    setSelectedService(null)
-                    setQuantity(1)
-                    setOrderNote('')
-                  }}
-                  className="flex-1 px-4 py-2.5 border-2 border-primary text-primary rounded-lg hover:bg-tertiary transition-colors font-medium"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleOrder}
-                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-semibold shadow-md hover:shadow-lg"
-                >
-                  Xác nhận đặt
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   )
 }

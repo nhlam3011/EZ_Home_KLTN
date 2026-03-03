@@ -166,13 +166,13 @@ export default function EditRoomPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'RENTED':
-        return 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-error'
       case 'AVAILABLE':
-        return 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-success'
       case 'MAINTENANCE':
-        return 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-warning'
       default:
-        return 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-info'
     }
   }
 
@@ -207,7 +207,7 @@ export default function EditRoomPage() {
   const activeContract = room.contracts?.find(c => c.user) || null
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">

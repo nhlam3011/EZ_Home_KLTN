@@ -8,29 +8,7 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month') || (new Date().getMonth() + 1).toString()
     const year = searchParams.get('year') || new Date().getFullYear().toString()
 
-    // Get all rooms with active contracts
-    const rooms = await prisma.room.findMany({
-      where: {
-        status: 'RENTED',
-        contracts: {
-          some: {
-            status: 'ACTIVE'
-          }
-        }
-      },
-      include: {
-        contracts: {
-          where: { status: 'ACTIVE' },
-          include: {
-            user: true
-          },
-          take: 1
-        }
-      },
-      orderBy: { name: 'asc' }
-    })
-
-    // Get last month's readings
+    // Calculate dates for history
     let lastMonth = parseInt(month) - 1
     let lastYear = parseInt(year)
     if (lastMonth === 0) {
@@ -38,21 +16,34 @@ export async function GET(request: NextRequest) {
       lastYear -= 1
     }
 
-    // Get current month's readings (if any)
-    const currentReadings = await prisma.meterReading.findMany({
-      where: {
-        month: parseInt(month),
-        year: parseInt(year)
-      }
-    })
+    // Parallelize all data fetching
+    const [rooms, currentReadings, lastReadings] = await Promise.all([
+      // Get all rooms with active contracts
+      prisma.room.findMany({
+        where: {
+          status: 'RENTED',
+          contracts: { some: { status: 'ACTIVE' } }
+        },
+        include: {
+          contracts: {
+            where: { status: 'ACTIVE' },
+            include: { user: true },
+            take: 1
+          }
+        },
+        orderBy: { name: 'asc' }
+      }),
 
-    // Get last month's readings
-    const lastReadings = await prisma.meterReading.findMany({
-      where: {
-        month: lastMonth,
-        year: lastYear
-      }
-    })
+      // Get current month's readings
+      prisma.meterReading.findMany({
+        where: { month: parseInt(month), year: parseInt(year) }
+      }),
+
+      // Get last month's readings
+      prisma.meterReading.findMany({
+        where: { month: lastMonth, year: lastYear }
+      })
+    ])
 
     // Map readings by roomId
     const currentReadingsMap = new Map(
@@ -76,7 +67,7 @@ export async function GET(request: NextRequest) {
         waterOld: lastReading ? lastReading.waterNew : 0,
         elecNew: currentReading ? currentReading.elecNew : null,
         waterNew: currentReading ? currentReading.waterNew : null,
-        elecConsumption: currentReading 
+        elecConsumption: currentReading
           ? currentReading.elecNew - (lastReading ? lastReading.elecNew : 0)
           : null,
         waterConsumption: currentReading

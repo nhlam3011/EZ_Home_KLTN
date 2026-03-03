@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { TrendingUp, TrendingDown, AlertTriangle, Building2, DollarSign, Info, BarChart3 } from 'lucide-react'
+
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 interface ForecastData {
   revenueForecast: {
@@ -277,71 +280,99 @@ export default function ForecastPage() {
           <h2 className="text-lg font-semibold text-primary mb-2">Dự đoán doanh thu</h2>
           <p className="text-sm text-secondary">Lịch sử 12 tháng và dự đoán 6 tháng tới</p>
         </div>
-        <div className="h-80 flex items-end justify-between gap-2">
-          {chartData.length === 0 ? (
-            <div className="w-full h-64 flex items-center justify-center text-tertiary">
-              <p>Chưa có dữ liệu để hiển thị</p>
+        {chartData.length === 0 ? (
+          <div className="w-full h-64 sm:h-80 flex items-center justify-center text-tertiary">
+            <p>Chưa có dữ liệu để hiển thị</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="h-64 sm:h-80 min-w-[600px]">
+              <Chart
+                type="area"
+                height="100%"
+                options={{
+                  chart: {
+                    id: 'revenue-forecast',
+                    toolbar: { show: false },
+                    zoom: { enabled: false },
+                    fontFamily: 'var(--font-inter)',
+                    background: 'transparent',
+                    animations: {
+                      enabled: true,
+                      speed: 800,
+                      animateGradually: { enabled: true, delay: 150 },
+                      dynamicAnimation: { enabled: true, speed: 350 }
+                    }
+                  },
+                  colors: ['#8b5cf6', '#3b82f6'],
+                  fill: {
+                    type: 'gradient',
+                    gradient: {
+                      shadeIntensity: 1,
+                      opacityFrom: 0.4,
+                      opacityTo: 0.05,
+                      stops: [0, 100],
+                      shade: 'dark'
+                    }
+                  },
+                  stroke: { curve: 'smooth' },
+                  dataLabels: { enabled: false },
+                  xaxis: {
+                    categories: chartData.map(d => d.monthName),
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: {
+                      style: {
+                        colors: 'var(--text-tertiary)'
+                      }
+                    }
+                  },
+                  yaxis: {
+                    labels: {
+                      style: {
+                        colors: 'var(--text-tertiary)'
+                      },
+                      formatter: (val: number) => formatLargeCurrency(val)
+                    }
+                  },
+                  tooltip: {
+                    y: {
+                      formatter: (val: number) => formatLargeCurrency(val)
+                    }
+                  },
+                  grid: {
+                    borderColor: 'var(--border-primary)',
+                    strokeDashArray: 4
+                  },
+                  legend: {
+                    position: 'top',
+                    horizontalAlign: 'right',
+                    labels: {
+                      colors: 'var(--text-secondary)'
+                    }
+                  }
+                }}
+                series={[
+                  {
+                    name: 'Doanh thu thực tế',
+                    data: chartData.map(d => d.type === 'history' ? d.value : null)
+                  },
+                  {
+                    name: 'Doanh thu dự đoán',
+                    data: chartData.map(d => d.type === 'forecast' ? d.value : null)
+                  }
+                ]}
+              />
             </div>
-          ) : (
-            chartData.map((item, index) => {
-              const isForecast = item.type === 'forecast'
-              const value = item.value || 0
-              const height = maxRevenue > 0 ? (value / maxRevenue) * 100 : 0
-              const forecastItem = isForecast ? item as any : null
-              
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center group">
-                  <div className="w-full flex flex-col items-center justify-end h-64 relative">
-                    {/* Confidence interval for forecast */}
-                    {isForecast && forecastItem && forecastItem.maxRevenue && forecastItem.minRevenue && (
-                      <div
-                        className="absolute w-full bg-blue-200 dark:bg-blue-800 opacity-20 rounded-t"
-                        style={{
-                          height: `${Math.max(((forecastItem.maxRevenue - forecastItem.minRevenue) / maxRevenue) * 100, 2)}%`,
-                          bottom: `${Math.max((forecastItem.minRevenue / maxRevenue) * 100, 0)}%`
-                        }}
-                      ></div>
-                    )}
-                    <div
-                      className={`w-full rounded-t transition-all cursor-pointer relative ${
-                        isForecast
-                          ? 'bg-gradient-to-t from-blue-500 to-blue-400 dark:from-blue-600 dark:to-blue-500 border-2 border-blue-300 dark:border-blue-400 border-b-0'
-                          : 'bg-gradient-to-t from-gray-500 to-gray-400 dark:from-gray-600 dark:to-gray-500'
-                      }`}
-                      style={{ height: `${Math.max(height, 2)}%`, minHeight: value > 0 ? '4px' : '0' }}
-                    >
-                      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 dark:bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
-                        {isForecast
-                          ? `${formatLargeCurrency(forecastItem?.predictedRevenue || 0)} (Dự đoán)`
-                          : formatLargeCurrency(item.revenue || 0)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-xs text-secondary font-medium text-center min-h-[2rem]">
-                    {item.monthName}
-                  </div>
-                  {isForecast && forecastItem && (
-                    <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded mt-1 ${
-                      forecastItem.confidence === 'HIGH' ? 'bg-success-soft border border-success-subtle text-fg-success-strong' :
-                      forecastItem.confidence === 'MEDIUM' ? 'bg-warning-soft border border-warning-subtle text-warning' :
-                      'bg-danger-soft border border-danger-subtle text-fg-danger-strong'
-                    }`}>
-                      {forecastItem.confidence === 'HIGH' ? 'Cao' :
-                       forecastItem.confidence === 'MEDIUM' ? 'TB' : 'Thấp'}
-                    </span>
-                  )}
-                </div>
-              )
-            })
-          )}
-        </div>
+          </div>
+        )}
         <div className="flex items-center gap-4 mt-6 justify-center">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-500 dark:bg-gray-400 rounded"></div>
+            <div className="w-4 h-4 bg-violet-500 rounded"></div>
             <span className="text-sm text-secondary">Lịch sử</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-500 dark:bg-blue-400 rounded border-2 border-blue-300 dark:border-blue-400"></div>
+            <div className="w-4 h-4 bg-blue-500 rounded"></div>
             <span className="text-sm text-secondary">Dự đoán</span>
           </div>
         </div>
@@ -429,10 +460,9 @@ export default function ForecastPage() {
                         <p className="text-sm text-primary">
                           {new Date(risk.endDate).toLocaleDateString('vi-VN')}
                         </p>
-                        <p className={`text-xs ${
-                          risk.daysUntilExpiry <= 30 ? 'text-red-600 dark:text-red-400 font-semibold' :
+                        <p className={`text-xs ${risk.daysUntilExpiry <= 30 ? 'text-red-600 dark:text-red-400 font-semibold' :
                           risk.daysUntilExpiry <= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-tertiary'
-                        }`}>
+                          }`}>
                           Còn {risk.daysUntilExpiry} ngày
                         </p>
                       </div>
@@ -441,10 +471,9 @@ export default function ForecastPage() {
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-tertiary rounded-full h-2">
                           <div
-                            className={`h-2 rounded-full ${
-                              risk.riskLevel === 'HIGH' ? 'bg-red-500 dark:bg-red-400' :
+                            className={`h-2 rounded-full ${risk.riskLevel === 'HIGH' ? 'bg-red-500 dark:bg-red-400' :
                               risk.riskLevel === 'MEDIUM' ? 'bg-yellow-600 dark:bg-yellow-400' : 'bg-green-500 dark:bg-green-400'
-                            }`}
+                              }`}
                             style={{ width: `${risk.riskScore}%` }}
                           ></div>
                         </div>
@@ -457,13 +486,12 @@ export default function ForecastPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${
-                        risk.riskLevel === 'HIGH' ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong' :
+                      <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${risk.riskLevel === 'HIGH' ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong' :
                         risk.riskLevel === 'MEDIUM' ? 'bg-warning-soft border border-warning-subtle text-warning' :
-                        'bg-success-soft border border-success-subtle text-fg-success-strong'
-                      }`}>
+                          'bg-success-soft border border-success-subtle text-fg-success-strong'
+                        }`}>
                         {risk.riskLevel === 'HIGH' ? 'CAO' :
-                         risk.riskLevel === 'MEDIUM' ? 'TRUNG BÌNH' : 'THẤP'}
+                          risk.riskLevel === 'MEDIUM' ? 'TRUNG BÌNH' : 'THẤP'}
                       </span>
                     </td>
                   </tr>

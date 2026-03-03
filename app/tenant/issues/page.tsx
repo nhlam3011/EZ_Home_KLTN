@@ -63,12 +63,12 @@ export default function IssuesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Chờ xử lý', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
-      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      DONE: { label: 'Hoàn thành', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' }
+      PENDING: { label: 'Chờ xử lý', className: 'badge badge-warning' },
+      PROCESSING: { label: 'Đang sửa chữa', className: 'badge badge-info' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      CANCELLED: { label: 'Đã hủy', className: 'badge badge-error' }
     }
-    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
+    return statusMap[status] || { label: status, className: 'badge badge-info' }
   }
 
   const getCategoryIcon = (category: string) => {
@@ -125,254 +125,260 @@ export default function IssuesPage() {
 
       {/* Search and Filter */}
       <div className="card p-3 sm:p-4">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="flex-1 relative min-w-0">
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tiêu đề..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base"
-            />
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="input px-3 sm:px-4 py-2 text-xs sm:text-sm min-w-[140px] sm:min-w-[160px]"
+              className="select flex-1"
             >
-              <option value="all">Tất cả trạng thái</option>
+              <option value="all">Tất cả</option>
               <option value="PENDING">Chờ xử lý</option>
               <option value="PROCESSING">Đang sửa chữa</option>
               <option value="DONE">Hoàn thành</option>
               <option value="CANCELLED">Đã hủy</option>
             </select>
           </div>
+          <div className="sm:col-span-2 lg:col-span-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tiêu đề..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input input-with-icon w-full pl-9 pr-4 py-2 text-sm"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Issues Table - Desktop */}
-      {loading ? (
-        <div className="card">
-          <div className="text-center py-12">
-            <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-            <p className="text-tertiary">Đang tải...</p>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Desktop Table */}
-          <div className="hidden lg:block card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-tertiary border-b border-primary">
-                  <tr>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">NGÀY GỬI</th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU ĐỀ SỰ CỐ</th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">MỨC ĐỘ</th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TRẠNG THÁI XỬ LÝ</th>
-                    <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">HÀNH ĐỘNG</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-primary">
-                  {paginatedIssues.map((issue) => {
-                    const severityBadge = getSeverityBadge(issue.severity || 'MEDIUM')
-                    const statusBadge = getStatusBadge(issue.status)
-                    const progress = issue.progress || (issue.status === 'DONE' ? 100 : issue.status === 'PROCESSING' ? 80 : 0)
-
-                    return (
-                      <tr key={issue.id} className="hover:bg-tertiary transition-colors">
-                        <td className="px-4 xl:px-6 py-4">
-                          <span className="text-xs sm:text-sm text-secondary">
-                            {formatDate(issue.createdAt)}
-                          </span>
-                        </td>
-                        <td className="px-4 xl:px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg sm:text-xl flex-shrink-0">{getCategoryIcon(issue.category || '')}</span>
-                            <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-medium text-primary truncate">{issue.title}</p>
-                              <p className="text-xs text-tertiary">{issue.category || 'Khác'}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 xl:px-6 py-4">
-                          <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded whitespace-nowrap ${severityBadge.className}`}>
-                            {severityBadge.label}
-                          </span>
-                        </td>
-                        <td className="px-4 xl:px-6 py-4">
-                          <div className="space-y-1">
-                            <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded whitespace-nowrap ${statusBadge.className}`}>
-                              {statusBadge.label}
-                            </span>
-                            {issue.status === 'PROCESSING' && (
-                              <div className="w-32 h-2 bg-tertiary rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-primary rounded-full transition-all"
-                                  style={{ width: `${progress}%` }}
-                                ></div>
-                              </div>
-                            )}
-                            {issue.status === 'DONE' && (
-                              <div className="w-32 h-2 bg-tertiary rounded-full overflow-hidden">
-                                <div className="h-full bg-green-500 dark:bg-green-600 rounded-full" style={{ width: '100%' }}></div>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 xl:px-6 py-4">
-                          {issue.status === 'DONE' ? (
-                            <button 
-                              onClick={() => handleRate(issue.id)}
-                              className="btn btn-ghost btn-sm text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 flex items-center gap-1.5"
-                            >
-                              <Star size={14} className="sm:w-4 sm:h-4" />
-                              <span className="text-xs sm:text-sm">Đánh giá</span>
-                            </button>
-                          ) : (
-                            <Link
-                              href={`/tenant/issues/${issue.id}`}
-                              className="btn btn-ghost btn-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5"
-                            >
-                              <Eye size={14} className="sm:w-4 sm:h-4" />
-                              <span className="text-xs sm:text-sm">Chi tiết</span>
-                            </Link>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+      {
+        loading ? (
+          <div className="card">
+            <div className="text-center py-12">
+              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
+              <p className="text-tertiary">Đang tải...</p>
             </div>
           </div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden lg:block card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-tertiary border-b border-primary">
+                    <tr>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">NGÀY GỬI</th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU ĐỀ SỰ CỐ</th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">MỨC ĐỘ</th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TRẠNG THÁI XỬ LÝ</th>
+                      <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">HÀNH ĐỘNG</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary">
+                    {paginatedIssues.map((issue) => {
+                      const severityBadge = getSeverityBadge(issue.severity || 'MEDIUM')
+                      const statusBadge = getStatusBadge(issue.status)
+                      const progress = issue.progress || (issue.status === 'DONE' ? 100 : issue.status === 'PROCESSING' ? 80 : 0)
 
-          {/* Mobile/Tablet Card View */}
-          <div className="lg:hidden space-y-3">
-            {paginatedIssues.map((issue) => {
-              const severityBadge = getSeverityBadge(issue.severity || 'MEDIUM')
-              const statusBadge = getStatusBadge(issue.status)
-              const progress = issue.progress || (issue.status === 'DONE' ? 100 : issue.status === 'PROCESSING' ? 80 : 0)
+                      return (
+                        <tr key={issue.id} className="hover:bg-tertiary transition-colors">
+                          <td className="px-4 xl:px-6 py-4">
+                            <span className="text-xs sm:text-sm text-secondary">
+                              {formatDate(issue.createdAt)}
+                            </span>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg sm:text-xl flex-shrink-0">{getCategoryIcon(issue.category || '')}</span>
+                              <div className="min-w-0">
+                                <p className="text-xs sm:text-sm font-medium text-primary truncate">{issue.title}</p>
+                                <p className="text-xs text-tertiary">{issue.category || 'Khác'}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4">
+                            <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded whitespace-nowrap ${severityBadge.className}`}>
+                              {severityBadge.label}
+                            </span>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4">
+                            <div className="space-y-1">
+                              <span className={statusBadge.className}>
+                                {statusBadge.label}
+                              </span>
+                              {issue.status === 'PROCESSING' && (
+                                <div className="w-32 h-2 bg-tertiary rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary rounded-full transition-all"
+                                    style={{ width: `${progress}%` }}
+                                  ></div>
+                                </div>
+                              )}
+                              {issue.status === 'DONE' && (
+                                <div className="w-32 h-2 bg-tertiary rounded-full overflow-hidden">
+                                  <div className="h-full bg-green-500 dark:bg-green-600 rounded-full" style={{ width: '100%' }}></div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 xl:px-6 py-4">
+                            {issue.status === 'DONE' ? (
+                              <button
+                                onClick={() => handleRate(issue.id)}
+                                className="btn btn-ghost btn-sm text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 flex items-center gap-1.5"
+                              >
+                                <Star size={14} className="sm:w-4 sm:h-4" />
+                                <span className="text-xs sm:text-sm">Đánh giá</span>
+                              </button>
+                            ) : (
+                              <Link
+                                href={`/tenant/issues/${issue.id}`}
+                                className="btn btn-ghost btn-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5"
+                              >
+                                <Eye size={14} className="sm:w-4 sm:h-4" />
+                                <span className="text-xs sm:text-sm">Chi tiết</span>
+                              </Link>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-              return (
-                <div key={issue.id} className="card p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg flex-shrink-0">{getCategoryIcon(issue.category || '')}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-primary truncate">{issue.title}</p>
-                          <p className="text-xs text-tertiary">{issue.category || 'Khác'}</p>
+            {/* Mobile/Tablet Card View */}
+            <div className="lg:hidden space-y-3">
+              {paginatedIssues.map((issue) => {
+                const severityBadge = getSeverityBadge(issue.severity || 'MEDIUM')
+                const statusBadge = getStatusBadge(issue.status)
+                const progress = issue.progress || (issue.status === 'DONE' ? 100 : issue.status === 'PROCESSING' ? 80 : 0)
+
+                return (
+                  <div key={issue.id} className="card p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-lg flex-shrink-0">{getCategoryIcon(issue.category || '')}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-primary truncate">{issue.title}</p>
+                            <p className="text-xs text-tertiary">{issue.category || 'Khác'}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded flex-shrink-0 ml-2 ${statusBadge.className}`}>
-                      {statusBadge.label}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-tertiary">Ngày gửi:</span>
-                      <span className="text-xs text-secondary">{formatDate(issue.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-tertiary">Mức độ:</span>
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${severityBadge.className}`}>
-                        {severityBadge.label}
+                      <span className={`flex-shrink-0 ml-2 ${statusBadge.className}`}>
+                        {statusBadge.label}
                       </span>
                     </div>
-                    {(issue.status === 'PROCESSING' || issue.status === 'DONE') && (
-                      <div className="space-y-1">
-                        <div className="w-full h-2 bg-tertiary rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              issue.status === 'DONE' 
-                                ? 'bg-green-500 dark:bg-green-600' 
-                                : 'bg-primary'
-                            }`}
-                            style={{ width: `${progress}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-tertiary text-right">{progress}%</p>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-2 pt-3 border-t border-primary">
-                    {issue.status === 'DONE' ? (
-                      <button 
-                        onClick={() => handleRate(issue.id)}
-                        className="btn btn-ghost btn-sm flex-1 text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 flex items-center justify-center gap-1.5"
-                      >
-                        <Star size={14} />
-                        <span className="text-xs">Đánh giá</span>
-                      </button>
-                    ) : (
-                      <Link
-                        href={`/tenant/issues/${issue.id}`}
-                        className="btn btn-ghost btn-sm flex-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center justify-center gap-1.5"
-                      >
-                        <Eye size={14} />
-                        <span className="text-xs">Chi tiết</span>
-                      </Link>
-                    )}
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-tertiary">Ngày gửi:</span>
+                        <span className="text-xs text-secondary">{formatDate(issue.createdAt)}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-tertiary">Mức độ:</span>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${severityBadge.className}`}>
+                          {severityBadge.label}
+                        </span>
+                      </div>
+                      {(issue.status === 'PROCESSING' || issue.status === 'DONE') && (
+                        <div className="space-y-1">
+                          <div className="w-full h-2 bg-tertiary rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${issue.status === 'DONE'
+                                ? 'bg-green-500 dark:bg-green-600'
+                                : 'bg-primary'
+                                }`}
+                              style={{ width: `${progress}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-tertiary text-right">{progress}%</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-3 border-t border-primary">
+                      {issue.status === 'DONE' ? (
+                        <button
+                          onClick={() => handleRate(issue.id)}
+                          className="btn btn-ghost btn-sm flex-1 text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 flex items-center justify-center gap-1.5"
+                        >
+                          <Star size={14} />
+                          <span className="text-xs">Đánh giá</span>
+                        </button>
+                      ) : (
+                        <Link
+                          href={`/tenant/issues/${issue.id}`}
+                          className="btn btn-ghost btn-sm flex-1 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center justify-center gap-1.5"
+                        >
+                          <Eye size={14} />
+                          <span className="text-xs">Chi tiết</span>
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        </>
-      )}
+                )
+              })}
+            </div>
+          </>
+        )
+      }
 
       {/* Pagination */}
-      {issues.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 card p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-secondary text-center sm:text-left">
-            Hiển thị {startIndex + 1}-{Math.min(endIndex, issues.length)} trong số {issues.length} sự cố
-          </p>
-          <div className="flex items-center justify-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="btn btn-secondary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              &lt;
-            </button>
-            {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => {
-              let pageNum
-              if (totalPages <= 3) {
-                pageNum = i + 1
-              } else if (currentPage === 1) {
-                pageNum = i + 1
-              } else if (currentPage === totalPages) {
-                pageNum = totalPages - 2 + i
-              } else {
-                pageNum = currentPage - 1 + i
-              }
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`btn btn-sm ${
-                    currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              )
-            })}
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="btn btn-secondary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              &gt;
-            </button>
+      {
+        issues.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 card p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-secondary text-center sm:text-left">
+              Hiển thị {startIndex + 1}-{Math.min(endIndex, issues.length)} trong số {issues.length} sự cố
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="btn btn-secondary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &lt;
+              </button>
+              {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => {
+                let pageNum
+                if (totalPages <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage === 1) {
+                  pageNum = i + 1
+                } else if (currentPage === totalPages) {
+                  pageNum = totalPages - 2 + i
+                } else {
+                  pageNum = currentPage - 1 + i
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
+                      }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary btn-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &gt;
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   )
 }

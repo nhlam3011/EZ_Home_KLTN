@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
+import * as XLSX from 'xlsx'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,26 +11,40 @@ export async function GET(request: NextRequest) {
     const floor = searchParams.get('floor')
     const status = searchParams.get('status')
 
-    const where: any = {
-      role: 'TENANT'
-    }
+    const where: any = { role: 'TENANT' }
 
     if (search) {
       where.OR = [
         { fullName: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
+        { email: { contains: search, mode: 'insensitive' } },
+        {
+          contracts: {
+            some: { room: { name: { contains: search, mode: 'insensitive' } } }
+          }
+        }
       ]
+    }
+
+    // Restore DB-level filtering for building, floor, and status
+    if (building !== 'all' || floor !== 'all' || status !== 'all') {
+      where.contracts = {
+        some: {
+          ...(status === 'renting' || status === 'ACTIVE' ? { status: 'ACTIVE' } : status === 'INACTIVE' ? { status: { not: 'ACTIVE' } } : {}),
+          room: {
+            ...(building && building !== 'all' ? { name: { contains: building } } : {}),
+            ...(floor && floor !== 'all' ? { floor: parseInt(floor) } : {})
+          }
+        }
+      }
     }
 
     const users = await prisma.user.findMany({
       where,
       include: {
         contracts: {
-          where: status === 'renting' ? { status: 'ACTIVE' } : undefined,
-          include: {
-            room: true
-          },
+          where: status === 'renting' || status === 'ACTIVE' ? { status: 'ACTIVE' } : undefined,
+          include: { room: true },
           take: 1,
           orderBy: { startDate: 'desc' }
         }
@@ -37,39 +52,9 @@ export async function GET(request: NextRequest) {
       orderBy: { fullName: 'asc' }
     })
 
-    // Filter by floor and building if specified
-    let filteredUsers = users
-    if (floor && floor !== 'all') {
-      filteredUsers = filteredUsers.filter(user => {
-        const contract = user.contracts[0]
-        return contract?.room?.floor === parseInt(floor)
-      })
-    }
-
-    if (building && building !== 'all') {
-      filteredUsers = filteredUsers.filter(user => {
-        const contract = user.contracts[0]
-        const roomName = contract?.room?.name || ''
-        return roomName.includes(building)
-      })
-    }
-
-    // Filter by status
-    if (status && status !== 'all') {
-      if (status === 'ACTIVE') {
-        filteredUsers = filteredUsers.filter(user => {
-          return user.contracts.length > 0 && user.contracts[0]?.status === 'ACTIVE'
-        })
-      } else if (status === 'INACTIVE') {
-        filteredUsers = filteredUsers.filter(user => {
-          return user.contracts.length === 0 || user.contracts[0]?.status !== 'ACTIVE'
-        })
-      }
-    }
-
     return NextResponse.json({
-      residents: filteredUsers,
-      total: filteredUsers.length
+      residents: users,
+      total: users.length
     })
   } catch (error) {
     console.error('Error fetching residents:', error)
@@ -146,7 +131,7 @@ export async function POST(request: NextRequest) {
     // Check if CCCD already exists (only if provided and not empty)
     if (cccdNumber && cccdNumber.trim()) {
       const existingCCCD = await prisma.user.findFirst({
-        where: { 
+        where: {
           cccdNumber: cccdNumber.trim()
         }
       })
@@ -162,7 +147,7 @@ export async function POST(request: NextRequest) {
     // Check if email already exists (only if provided and not empty)
     if (email && email.trim()) {
       const existingEmail = await prisma.user.findFirst({
-        where: { 
+        where: {
           email: email.trim()
         }
       })
@@ -195,7 +180,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Get occupants data (if provided) - filter out empty occupants
-    const occupants = (body.occupants || []).filter((occ: any) => 
+    const occupants = (body.occupants || []).filter((occ: any) =>
       occ && occ.fullName && occ.fullName.trim()
     ) // Only include occupants with at least a name
 
@@ -232,7 +217,7 @@ export async function POST(request: NextRequest) {
       // If exceeds maxPeople, update maxPeople to match
       await prisma.room.update({
         where: { id: parseInt(roomId) },
-        data: { 
+        data: {
           status: 'RENTED',
           maxPeople: totalPeople // Update maxPeople to accommodate all occupants
         }
@@ -258,7 +243,7 @@ export async function POST(request: NextRequest) {
       message: error.message,
       stack: error.stack
     })
-    
+
     // Handle specific Prisma errors
     if (error.code === 'P2002') {
       // Unique constraint violation
@@ -294,13 +279,162 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Lỗi khi tạo cư dân',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       },
       { status: 500 }
     )
+  }
+}
+
+// Export residents to Excel
+export async function PUT(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const action = searchParams.get('action')
+
+    if (action === 'export') {
+      const users = await prisma.user.findMany({
+        where: { role: 'TENANT' },
+        include: {
+          contracts: {
+            where: { status: 'ACTIVE' },
+            include: { room: true },
+            take: 1
+          }
+        },
+        orderBy: { fullName: 'asc' }
+      })
+
+      const exportData = users.map(user => ({
+        'Họ tên': user.fullName,
+        'Số điện thoại': user.phone,
+        'Email': user.email || '',
+        'CCCD': user.cccdNumber || '',
+        'Ngày sinh': user.dob ? new Date(user.dob).toLocaleDateString('vi-VN') : '',
+        'Địa chỉ': user.address || '',
+        'Phòng': user.contracts && user.contracts.length > 0 ? user.contracts[0].room.name : '',
+        'Ngày vào ở': user.contracts && user.contracts.length > 0 && user.contracts[0].startDate ? new Date(user.contracts[0].startDate).toLocaleDateString('vi-VN') : '',
+        'Giá thuê': user.contracts && user.contracts.length > 0 ? user.contracts[0].rentPrice : ''
+      }))
+
+      const ws = XLSX.utils.json_to_sheet(exportData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Cư dân')
+
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+
+      return new NextResponse(buffer, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': 'attachment; filename="danh-sach-cu-dan.xlsx"'
+        }
+      })
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (error) {
+    console.error('Error exporting residents:', error)
+    return NextResponse.json({ error: 'Failed to export residents' }, { status: 500 })
+  }
+}
+
+// Import residents from Excel
+export async function PATCH(request: NextRequest) {
+  try {
+    const formData = await request.formData()
+    const file = formData.get('file') as File
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
+    }
+
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array' })
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
+    const data = XLSX.utils.sheet_to_json(worksheet)
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ error: 'No data in file' }, { status: 400 })
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[]
+    }
+
+    for (const row of data as any[]) {
+      try {
+        const phone = row['Số điện thoại'] || row['phone']
+        const fullName = row['Họ tên'] || row['fullName']
+
+        if (!phone || !fullName) {
+          results.failed++
+          results.errors.push(`Thiếu SĐT hoặc Họ tên`)
+          continue
+        }
+
+        const roomName = row['Phòng'] || row['room']
+
+        // Find or create room if provided
+        let roomId: number | undefined
+        if (roomName) {
+          const room = await prisma.room.findUnique({
+            where: { name: roomName }
+          })
+          roomId = room?.id
+        }
+
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({
+          where: { phone }
+        })
+
+        if (existingUser) {
+          // Update existing user
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: {
+              fullName,
+              email: row['Email'] || row['email'] || null,
+              cccdNumber: row['CCCD'] || row['cccdNumber'] || null,
+              dob: row['Ngày sinh'] ? new Date(row['Ngày sinh']) : null,
+              address: row['Địa chỉ'] || row['address'] || null
+            }
+          })
+        } else {
+          // Create new user
+          const hashedPassword = await hashPassword(phone)
+          await prisma.user.create({
+            data: {
+              phone,
+              password: hashedPassword,
+              fullName,
+              email: row['Email'] || row['email'] || null,
+              cccdNumber: row['CCCD'] || row['cccdNumber'] || null,
+              dob: row['Ngày sinh'] ? new Date(row['Ngày sinh']) : null,
+              address: row['Địa chỉ'] || row['address'] || null,
+              role: 'TENANT',
+              isFirstLogin: true
+            }
+          })
+        }
+
+        results.success++
+      } catch (err: any) {
+        results.failed++
+        results.errors.push(`Lỗi: ${err.message}`)
+      }
+    }
+
+    return NextResponse.json(results)
+  } catch (error: any) {
+    console.error('Error importing residents:', error)
+    return NextResponse.json({ error: error.message || 'Failed to import residents' }, { status: 500 })
   }
 }

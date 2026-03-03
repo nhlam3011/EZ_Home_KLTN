@@ -87,6 +87,33 @@ export default function TenantLayout({
     router.push('/login')
   }
 
+  const getPageTitle = () => {
+    const titleMap: Record<string, string> = {
+      '/tenant': 'Tenant Dashboard',
+      '/tenant/rooms': 'Phòng của tôi',
+      '/tenant/contracts': 'Hợp đồng',
+      '/tenant/invoices': 'Hóa đơn',
+      '/tenant/services': 'Dịch vụ',
+      '/tenant/issues': 'Báo hỏng',
+      '/tenant/community': 'Cộng đồng',
+      '/tenant/messages': 'Tin nhắn',
+      '/tenant/notifications': 'Thông báo',
+      '/tenant/settings': 'Cài đặt',
+    }
+    
+    if (titleMap[pathname]) {
+      return titleMap[pathname]
+    }
+    
+    for (const [path, title] of Object.entries(titleMap)) {
+      if (pathname?.startsWith(path + '/')) {
+        return title
+      }
+    }
+    
+    return 'Tenant Dashboard'
+  }
+
   if (!user) {
     return null
   }
@@ -370,10 +397,11 @@ export default function TenantLayout({
           className="h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm"
           style={{
             backgroundColor: 'var(--bg-primary)',
-            borderBottom: '1px solid var(--border-primary)'
+            borderBottom: '1px solid var(--border-primary)',
+            borderLeft: '1px solid var(--border-primary)'
           }}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg transition-colors"
@@ -384,6 +412,9 @@ export default function TenantLayout({
             >
               <Menu size={20} />
             </button>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+              {getPageTitle()}
+            </h2>
           </div>
           
           <div className="flex items-center gap-3">

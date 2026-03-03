@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, X, Loader2, User, Plus, Users } from 'lucide-react'
+import { ArrowLeft, Save, X, Loader2, User, Plus, Users, Upload } from 'lucide-react'
 
 interface Occupant {
   fullName: string
@@ -84,7 +84,7 @@ export default function NewResidentPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    
+
     // Auto-fill password with CCCD when CCCD is entered
     if (name === 'cccdNumber') {
       // This will be handled server-side
@@ -112,35 +112,42 @@ export default function NewResidentPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Check-in Cư dân mới</h1>
-          <p className="text-sm sm:text-base text-secondary mt-1">Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => router.push('/admin/residents')}
-            disabled={loading}
-            className="px-5 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-sm disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/residents"
+            className="btn btn-ghost btn-icon"
           >
-            <X size={18} strokeWidth={2.5} />
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">Check-in Cư dân mới</h1>
+            <p className="text-secondary mt-1 text-sm sm:text-base">Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <Link
+            href="/admin/residents"
+            className="btn btn-secondary btn-sm sm:btn-md"
+          >
+            <X size={18} />
             <span>Hủy</span>
-          </button>
+          </Link>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-5 py-2.5 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg flex items-center justify-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold disabled:opacity-50 disabled:hover:shadow-md disabled:cursor-not-allowed"
+            className="btn btn-primary btn-sm sm:btn-md"
           >
             {loading ? (
               <>
-                <Loader2 className="animate-spin" size={19} strokeWidth={2} />
+                <Loader2 size={18} className="animate-spin" />
                 <span>Đang tạo...</span>
               </>
             ) : (
               <>
-                <Save size={19} strokeWidth={2.5} />
+                <Save size={18} strokeWidth={2.5} />
                 <span className="hidden sm:inline">Lưu và tạo hợp đồng</span>
                 <span className="sm:hidden">Lưu</span>
               </>
@@ -354,7 +361,7 @@ export default function NewResidentPage() {
             ) : (
               <div className="space-y-4">
                 {occupants.map((occupant, index) => (
-                  <div key={index} className="p-4 border border-primary rounded-lg bg-tertiary">
+                  <div key={index} className="p-4 border border-primary rounded-lg background: #5d6e8517 ">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-medium text-primary">Người ở #{index + 1}</h3>
                       <button
@@ -374,7 +381,7 @@ export default function NewResidentPage() {
                           type="text"
                           value={occupant.fullName}
                           onChange={(e) => updateOccupant(index, 'fullName', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input"
                           placeholder="Nhập họ tên"
                           required
                         />
@@ -386,7 +393,7 @@ export default function NewResidentPage() {
                         <select
                           value={occupant.relationship}
                           onChange={(e) => updateOccupant(index, 'relationship', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input"
                         >
                           <option value="">Chọn quan hệ</option>
                           <option value="Vợ/Chồng">Vợ/Chồng</option>
@@ -404,7 +411,7 @@ export default function NewResidentPage() {
                           type="text"
                           value={occupant.cccdNumber}
                           onChange={(e) => updateOccupant(index, 'cccdNumber', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input"
                           placeholder="Nhập số CCCD"
                         />
                       </div>
@@ -416,7 +423,7 @@ export default function NewResidentPage() {
                           type="tel"
                           value={occupant.phone}
                           onChange={(e) => updateOccupant(index, 'phone', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input"
                           placeholder="Nhập số điện thoại"
                         />
                       </div>
@@ -428,7 +435,7 @@ export default function NewResidentPage() {
                           type="date"
                           value={occupant.dob}
                           onChange={(e) => updateOccupant(index, 'dob', e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="input"
                         />
                       </div>
                     </div>
@@ -437,7 +444,7 @@ export default function NewResidentPage() {
                 {occupants.length > 0 && (
                   <div className="p-3 bg-tertiary border border-primary rounded-lg">
                     <p className="text-xs text-secondary">
-                      <strong>Lưu ý:</strong> Tổng số người ở = 1 (người chủ hợp đồng) + {occupants.length} (người ở) = <strong>{1 + occupants.length} người</strong>. 
+                      <strong>Lưu ý:</strong> Tổng số người ở = 1 (người chủ hợp đồng) + {occupants.length} (người ở) = <strong>{1 + occupants.length} người</strong>.
                       Hệ thống sẽ tự động cập nhật số lượng người tối đa của phòng nếu cần.
                     </p>
                   </div>
@@ -484,7 +491,7 @@ export default function NewResidentPage() {
             </div>
           )}
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   )
 }

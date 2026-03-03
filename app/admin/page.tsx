@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { 
-  DollarSign, 
-  Building2, 
-  AlertTriangle, 
+import dynamic from 'next/dynamic'
+import {
+  DollarSign,
+  Building2,
+  AlertTriangle,
   Wrench,
   TrendingUp,
   TrendingDown,
@@ -17,6 +18,9 @@ import {
   XCircle,
   ArrowRight
 } from 'lucide-react'
+
+// Dynamic import for ApexCharts to avoid SSR issues
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 interface DashboardStats {
   totalRooms: number
@@ -182,9 +186,8 @@ export default function DashboardPage() {
               <DollarSign className="text-white" size={24} />
             </div>
             {stats.revenueChange !== 0 && (
-              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-                stats.revenueChange > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              }`}>
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${stats.revenueChange > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
                 {stats.revenueChange > 0 ? (
                   <TrendingUp size={14} />
                 ) : (
@@ -264,34 +267,78 @@ export default function DashboardPage() {
         <div className="card card-elevated">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-primary">Doanh thu 6 tháng gần đây</h2>
-              <p className="text-sm text-secondary mt-1 font-medium">Tổng doanh thu theo tháng</p>
+              <h2 className="text-base sm:text-lg font-semibold text-primary">Doanh thu 6 tháng gần đây</h2>
+              <p className="text-xs sm:text-sm text-secondary mt-1 font-medium">Tổng doanh thu theo tháng</p>
             </div>
           </div>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {stats.revenueChart.map((data, index) => {
-              const height = (data.revenue / maxRevenue) * 100
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center">
-                  <div className="w-full flex flex-col items-center justify-end h-48">
-                    <div
-                      className="w-full bg-gradient-to-t from-green-500 to-emerald-400 rounded-t-lg transition-all hover:from-green-600 hover:to-emerald-500 cursor-pointer group relative"
-                      style={{ height: `${Math.max(height, 5)}%` }}
-                    >
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-primary dark:bg-secondary text-inverse dark:text-primary text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg border border-primary">
-                        {formatLargeCurrency(data.revenue)}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-xs text-primary font-semibold">
-                    {data.monthName}
-                  </div>
-                  <div className="text-xs text-tertiary mt-1">
-                    {data.year}
-                  </div>
-                </div>
-              )
-            })}
+          <div className="h-64">
+            <Chart
+              type="bar"
+              height={250}
+              options={{
+                chart: {
+                  toolbar: { show: false },
+                  zoom: { enabled: false }
+                },
+                plotOptions: {
+                  bar: {
+                    borderRadius: 4,
+                    columnWidth: '50%',
+                    dataLabels: {
+                      position: 'top'
+                    }
+                  }
+                },
+                dataLabels: {
+                  enabled: false
+                },
+                xaxis: {
+                  categories: stats.revenueChart.map(d => d.monthName),
+                  labels: {
+                    style: {
+                      colors: '#6b7280'
+                    }
+                  }
+                },
+                yaxis: {
+                  labels: {
+                    style: {
+                      colors: '#6b7280'
+                    },
+                    formatter: (val: number) => {
+                      if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)} tỷ`
+                      if (val >= 1000000) return `${(val / 1000000).toFixed(0)} triệu`
+                      return String(val)
+                    }
+                  }
+                },
+                colors: ['#10b981'],
+                fill: {
+                  type: 'gradient',
+                  gradient: {
+                    shade: 'light',
+                    type: 'vertical',
+                    shadeIntensity: 0.5,
+                    gradientToColors: ['#34d399'],
+                    inverseColors: false,
+                    stops: [0, 100]
+                  }
+                },
+                tooltip: {
+                  y: {
+                    formatter: (val: number) => formatCurrency(val)
+                  }
+                },
+                grid: {
+                  borderColor: '#e5e7eb',
+                  strokeDashArray: 4
+                }
+              }}
+              series={[{
+                name: 'Doanh thu',
+                data: stats.revenueChart.map(d => d.revenue)
+              }]}
+            />
           </div>
         </div>
 
@@ -299,8 +346,8 @@ export default function DashboardPage() {
         <div className="card card-elevated">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold text-primary">Trạng thái hóa đơn</h2>
-              <p className="text-sm text-secondary mt-1 font-medium">Tỷ lệ thanh toán: {stats.paymentRate}%</p>
+              <h2 className="text-base sm:text-lg font-semibold text-primary">Trạng thái hóa đơn</h2>
+              <p className="text-xs sm:text-sm text-secondary mt-1 font-medium">Tỷ lệ thanh toán: {stats.paymentRate}%</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -441,15 +488,14 @@ export default function DashboardPage() {
                     <p className="text-xs text-tertiary">Phòng {issue.room}</p>
                     <p className="text-xs text-secondary mt-1 line-clamp-1">{issue.title}</p>
                   </div>
-                  <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                    getStatusColor(issue.status).includes('green') 
-                      ? 'bg-success-soft border border-success-subtle text-fg-success-strong' 
-                      : getStatusColor(issue.status).includes('red') 
-                      ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong' 
-                      : getStatusColor(issue.status).includes('yellow') 
-                      ? 'bg-warning-soft border border-warning-subtle text-warning' 
-                      : 'bg-neutral-secondary-medium border border-default-medium text-heading'
-                  }`}>
+                  <span className={`badge ${getStatusColor(issue.status).includes('green')
+                    ? 'badge-success'
+                    : getStatusColor(issue.status).includes('red')
+                      ? 'badge-error'
+                      : getStatusColor(issue.status).includes('yellow')
+                        ? 'badge-warning'
+                        : 'badge bg-neutral-secondary-medium border border-default-medium text-heading'
+                    }`}>
                     {getStatusLabel(issue.status)}
                   </span>
                 </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { markOverdueInvoicesAsPaid } from '@/lib/invoices'
 
 export async function POST(
   request: NextRequest,
@@ -50,6 +51,9 @@ export async function POST(
         paidAt: new Date()
       }
     })
+
+    // Mark overdue invoices as PAID
+    await markOverdueInvoicesAsPaid(invoiceId)
 
     return NextResponse.json({
       success: true,

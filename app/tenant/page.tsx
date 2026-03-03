@@ -1,12 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { DollarSign, FileText, MessageSquare, TrendingUp, ArrowRight, Bell, Wrench, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Receipt } from 'lucide-react'
+import { DollarSign, FileText, MessageSquare, TrendingUp, ArrowRight, Bell, Wrench, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Receipt, X } from 'lucide-react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 interface DashboardData {
   currentInvoice: any
   contract: any
+  contractStatus: {
+    isExpired: boolean
+    daysUntilExpiry: number | null
+  }
   walletBalance: number
   rewardPoints: number
   utilityCosts: any[]
@@ -29,18 +36,36 @@ interface DashboardData {
 export default function TenantDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedUtilityBar, setSelectedUtilityBar] = useState<{type: 'elec' | 'water', index: number} | null>(null)
-  const [utilityMonths, setUtilityMonths] = useState(6)
+  const [utilityMonths, setUtilityMonths] = useState(3)
+  const [showRenewModal, setShowRenewModal] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
+
+    // Detect dark mode
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark')
+      setIsDarkMode(isDark)
+    }
+
+    checkDarkMode()
+
+    // Listen for theme changes
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+
+    return () => observer.disconnect()
   }, [utilityMonths])
 
   const fetchDashboardData = async () => {
     try {
       const userData = localStorage.getItem('user')
       if (!userData) return
-      
+
       const user = JSON.parse(userData)
       const response = await fetch(`/api/tenant/dashboard?months=${utilityMonths}&userId=${user.id}`)
       const data = await response.json()
@@ -76,10 +101,69 @@ export default function TenantDashboard() {
   }
 
   const handleRenewContract = () => {
-    const confirmed = confirm('Bạn có muốn gia hạn hợp đồng thuê? Chúng tôi sẽ liên hệ với bạn để xác nhận chi tiết.')
-    if (confirmed) {
-      // In a real app, this would send to API
-      alert('Yêu cầu gia hạn hợp đồng đã được gửi. Chúng tôi sẽ liên hệ với bạn trong vòng 24 giờ.')
+    setShowRenewModal(true)
+  }
+
+  const confirmRenewContract = async () => {
+    // Get user from localStorage
+    const userData = localStorage.getItem('user')
+    if (!userData) {
+      alert('Vui lòng đăng nhập lại')
+      return
+    }
+
+    let user
+    try {
+      user = JSON.parse(userData)
+    } catch (e) {
+      alert('Vui lòng đăng nhập lại')
+      return
+    }
+
+    // Get contract info
+    const contractRes = await fetch(`/api/contracts?userId=${user.id}`)
+    if (!contractRes.ok) {
+      alert('Không tìm thấy hợp đồng')
+      return
+    }
+
+    const contracts = await contractRes.json()
+    const activeContract = contracts.find((c: any) => c.status === 'ACTIVE')
+
+    if (!activeContract) {
+      alert('Không tìm thấy hợp đồng đang hoạt động')
+      return
+    }
+
+    // Calculate new end date (default: extend by 1 year)
+    const currentEndDate = new Date(activeContract.endDate)
+    const newEndDate = new Date(currentEndDate)
+    newEndDate.setFullYear(newEndDate.getFullYear() + 1)
+
+    try {
+      const response = await fetch('/api/contracts/renewals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contractId: activeContract.id,
+          userId: user.id,
+          newEndDate: newEndDate.toISOString()
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert('Yêu cầu gia hạn hợp đồng đã được gửi. Chúng tôi sẽ liên hệ với bạn trong vòng 24 giờ.')
+        setShowRenewModal(false)
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Có lỗi xảy ra')
+      }
+    } catch (error) {
+      console.error('Error submitting renewal request:', error)
+      alert('Có lỗi xảy ra khi gửi yêu cầu')
     }
   }
 
@@ -105,16 +189,14 @@ export default function TenantDashboard() {
       {/* Key Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Invoice Card - Shows unpaid invoices count or current month invoice */}
-        <div className={`card relative overflow-hidden flex flex-col h-full ${
-          data.unpaidInvoicesCount > 0
-            ? 'stat-card-red'
-            : 'stat-card-blue'
-        }`}>
-          <div className={`absolute top-0 right-0 w-35 h-35 rounded-full -mr-16 -mt-16 opacity-50 ${
-            data.unpaidInvoicesCount > 0
-              ? 'bg-red-50 dark:bg-red-900/20'
-              : 'bg-blue-50 dark:bg-blue-900/20'
-          }`}></div>
+        <div className={`card relative overflow-hidden flex flex-col h-full ${data.unpaidInvoicesCount > 0
+          ? 'stat-card-red'
+          : 'stat-card-blue'
+          }`}>
+          <div className={`absolute top-0 right-0 w-35 h-35 rounded-full -mr-16 -mt-16 opacity-50 ${data.unpaidInvoicesCount > 0
+            ? 'bg-red-50 dark:bg-red-900/20'
+            : 'bg-blue-50 dark:bg-blue-900/20'
+            }`}></div>
           <div className="relative flex flex-col flex-1">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-xs sm:text-sm font-medium text-primary">
@@ -141,7 +223,7 @@ export default function TenantDashboard() {
                 <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
                   {formatCurrency(data.unpaidAmount || 0)}
                 </p>
-                <span className="bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded">
+                <span className="badge badge-error">
                   {data.unpaidInvoicesCount} hóa đơn chưa thanh toán
                 </span>
                 <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
@@ -161,11 +243,7 @@ export default function TenantDashboard() {
                 <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
                   {formatCurrency(data.currentInvoice?.totalAmount || 0)}
                 </p>
-                <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                  data.currentInvoice?.status === 'PAID'
-                    ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
-                    : 'bg-neutral-secondary-medium border border-default-medium text-heading'
-                }`}>
+                <span className={`badge ${data.currentInvoice?.status === 'PAID' ? 'badge-success' : 'badge-warning'}`}>
                   {data.currentInvoice?.status === 'PAID' ? 'Đã thanh toán' : 'Chưa có hóa đơn'}
                 </span>
                 <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
@@ -185,32 +263,88 @@ export default function TenantDashboard() {
         </div>
 
         {/* Contract Card */}
-        <div className="card stat-card-green relative overflow-hidden flex flex-col h-full">
-          <div className="absolute top-0 right-0 w-35 h-35 bg-green-50 dark:bg-green-900/30 rounded-full -mr-16 -mt-16 opacity-50"></div>
-          <div className="relative flex flex-col flex-1">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-xs sm:text-sm font-medium text-primary">Hợp đồng thuê</h3>
-              <FileText className="text-green-500 flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6" />
-            </div>
-            <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
-              {formatDate(data.contract?.endDate || new Date())}
-            </p>
-            <span className="bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded">
-              Đang hiệu lực
-            </span>
-            <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
-              Còn hiệu lực: {getDaysRemaining(data.contract?.endDate || new Date())} ngày
-            </p>
-            <div className="mt-auto">
-              <button 
-                onClick={handleRenewContract}
-                className="btn btn-secondary btn-sm sm:btn-md w-full text-xs sm:text-sm"
-              >
-                Gia hạn hợp đồng
-              </button>
+        {data.contractStatus?.isExpired ? (
+          <div className="card stat-card-red relative overflow-hidden flex flex-col h-full">
+            <div className="absolute top-0 right-0 w-35 h-35 bg-red-50 dark:bg-red-900/30 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-xs sm:text-sm font-medium text-primary">Hợp đồng thuê</h3>
+                <FileText className="text-red-500 flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
+                {formatDate(data.contract?.endDate || new Date())}
+              </p>
+              <span className="badge badge-danger">
+                Hết hiệu lực
+              </span>
+              <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
+                Hợp đồng của bạn đã hết hạn. Vui lòng liên hệ quản lý để gia hạn.
+              </p>
+              <div className="mt-auto">
+                <Link
+                  href="/tenant/contracts"
+                  className="btn btn-primary btn-sm sm:btn-md w-full text-xs sm:text-sm"
+                >
+                  Xem chi tiết hợp đồng
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+        ) : data.contractStatus?.daysUntilExpiry !== null && data.contractStatus?.daysUntilExpiry <= 30 ? (
+          <div className="card stat-card-orange relative overflow-hidden flex flex-col h-full">
+            <div className="absolute top-0 right-0 w-35 h-35 bg-orange-50 dark:bg-orange-900/30 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-xs sm:text-sm font-medium text-primary">Hợp đồng thuê</h3>
+                <FileText className="text-orange-500 flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
+                {formatDate(data.contract?.endDate || new Date())}
+              </p>
+              <span className="badge" style={{ backgroundColor: '#f97316', color: 'white' }}>
+                Sắp hết hạn
+              </span>
+              <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
+                Còn hiệu lực: {data.contractStatus?.daysUntilExpiry || 0} ngày
+              </p>
+              <div className="mt-auto">
+                <button
+                  onClick={handleRenewContract}
+                  className="btn btn-secondary btn-sm sm:btn-md w-full text-xs sm:text-sm"
+                >
+                  Gia hạn hợp đồng
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card stat-card-green relative overflow-hidden flex flex-col h-full">
+            <div className="absolute top-0 right-0 w-35 h-35 bg-green-50 dark:bg-green-900/30 rounded-full -mr-16 -mt-16 opacity-50"></div>
+            <div className="relative flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 className="text-xs sm:text-sm font-medium text-primary">Hợp đồng thuê</h3>
+                <FileText className="text-green-500 flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-primary mb-2">
+                {formatDate(data.contract?.endDate || new Date())}
+              </p>
+              <span className="badge badge-success">
+                Đang hiệu lực
+              </span>
+              <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
+                Còn hiệu lực: {getDaysRemaining(data.contract?.endDate || new Date())} ngày
+              </p>
+              <div className="mt-auto">
+                <button
+                  onClick={handleRenewContract}
+                  className="btn btn-secondary btn-sm sm:btn-md w-full text-xs sm:text-sm"
+                >
+                  Gia hạn hợp đồng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Messages Card */}
         <div className="card stat-card-purple relative overflow-hidden flex flex-col h-full">
@@ -248,44 +382,38 @@ export default function TenantDashboard() {
       {/* Unpaid Invoices List */}
       {data.unpaidInvoicesCount > 0 && (
         <div className="card">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-6">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-primary">Hóa đơn chưa thanh toán</h3>
-              <p className="text-xs sm:text-sm text-secondary mt-1">Danh sách các hóa đơn cần thanh toán</p>
+              <p className="text-xs sm:text-sm text-secondary mt-0.5 sm:mt-1">{data.unpaidInvoicesCount} hóa đơn • {formatCurrency(data.unpaidAmount || 0)}</p>
             </div>
             <Link href="/tenant/invoices" className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors">
               Xem tất cả
               <ArrowRight size={14} className="sm:w-4 sm:h-4" />
             </Link>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {data.unpaidInvoices.slice(0, 5).map((invoice: any) => (
-              <div key={invoice.id} className="flex items-center justify-between p-3 sm:p-4 bg-tertiary rounded-lg hover:bg-secondary transition-colors border border-primary">
+              <div key={invoice.id} className="flex items-center justify-between p-2.5 sm:p-4 bg-tertiary rounded-lg hover:bg-secondary transition-colors border border-primary gap-2 sm:gap-0">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-1">
-                    <h4 className="text-sm sm:text-base font-semibold text-primary">
-                      Hóa đơn tháng {invoice.month}/{invoice.year}
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
+                    <h4 className="text-xs sm:text-base font-semibold text-primary whitespace-nowrap">
+                      T{invoice.month}/{invoice.year}
                     </h4>
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                      invoice.status === 'OVERDUE'
-                        ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong'
-                        : 'bg-warning-soft border border-warning-subtle text-warning'
-                    }`}>
-                      {invoice.status === 'OVERDUE' ? 'Quá hạn' : 'Chưa thanh toán'}
+                    <span className={`badge text-[10px] sm:text-xs ${invoice.status === 'OVERDUE' ? 'badge-error' : 'badge-warning'}`}>
+                      {invoice.status === 'OVERDUE' ? 'Quá hạn' : 'Chờ'}
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-secondary">
-                    Tổng tiền: <span className="font-semibold text-primary">{formatCurrency(invoice.totalAmount || 0)}</span>
+                    <span className="font-semibold text-primary">{formatCurrency(invoice.totalAmount || 0)}</span>
+                    {invoice.paymentDueDate && (
+                      <span className="hidden sm:inline"> • Hạn {formatDate(invoice.paymentDueDate)}</span>
+                    )}
                   </p>
-                  {invoice.paymentDueDate && (
-                    <p className="text-xs text-tertiary mt-1">
-                      Hạn thanh toán: {formatDate(invoice.paymentDueDate)}
-                    </p>
-                  )}
                 </div>
                 <Link
                   href={`/tenant/invoices`}
-                  className="btn btn-primary btn-sm flex-shrink-0 ml-3 sm:ml-4 text-xs sm:text-sm"
+                  className="btn btn-primary btn-sm flex-shrink-0 text-xs sm:text-sm"
                 >
                   Thanh toán
                 </Link>
@@ -362,14 +490,11 @@ export default function TenantDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Utility Costs Chart */}
         <div className="card">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-primary">Chi phí Điện & Nước</h3>
-            <select 
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-primary">Điện & Nước</h3>
+            <select
               value={utilityMonths}
-              onChange={(e) => {
-                setUtilityMonths(parseInt(e.target.value))
-                setSelectedUtilityBar(null) // Reset selection when changing months
-              }}
+              onChange={(e) => setUtilityMonths(parseInt(e.target.value))}
               className="input text-xs sm:text-sm px-2 sm:px-3 py-1 w-full sm:w-auto"
             >
               <option value={3}>3 tháng gần nhất</option>
@@ -377,60 +502,130 @@ export default function TenantDashboard() {
               <option value={12}>12 tháng gần nhất</option>
             </select>
           </div>
-          <div className="flex items-end justify-between gap-1 sm:gap-2 overflow-x-auto pb-2 pt-14 sm:pt-16 min-h-[200px] sm:min-h-[280px]">
-            {data.utilityCosts?.map((cost, idx) => {
-              const maxValue = Math.max(...data.utilityCosts.map(c => Math.max(c.elec, c.water)), 1)
-              const isElecSelected = selectedUtilityBar?.type === 'elec' && selectedUtilityBar?.index === idx
-              const isWaterSelected = selectedUtilityBar?.type === 'water' && selectedUtilityBar?.index === idx
-              const elecHeight = Math.max((cost.elec / maxValue) * 100, 5)
-              const waterHeight = Math.max((cost.water / maxValue) * 100, 5)
-              const totalHeight = elecHeight + waterHeight
-              const showTooltipAbove = totalHeight > 70 // Show tooltip above if bar is tall
-              
-              return (
-                <div key={idx} className="flex-1 min-w-[40px] sm:min-w-0 flex flex-col items-center gap-1 sm:gap-2">
-                  <div className="w-full flex flex-col gap-1 h-36 sm:h-48 justify-end relative">
-                    <div 
-                      onClick={() => setSelectedUtilityBar(isElecSelected ? null : { type: 'elec', index: idx })}
-                      className={`w-full bg-blue-500 rounded-t transition-all cursor-pointer relative ${isElecSelected ? 'bg-blue-600 ring-2 ring-blue-400' : 'hover:bg-blue-600'}`}
-                      style={{ height: `${elecHeight}%` }}
-                    >
-                      {isElecSelected && (
-                        <div className={`absolute left-1/2 transform -translate-x-1/2 bg-primary dark:bg-secondary text-inverse dark:text-primary text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg border border-primary z-10 ${
-                          showTooltipAbove ? '-top-12' : 'top-full mt-1'
-                        }`}>
-                          Điện: {formatCurrency(cost.elec)}
-                        </div>
-                      )}
-                    </div>
-                    <div 
-                      onClick={() => setSelectedUtilityBar(isWaterSelected ? null : { type: 'water', index: idx })}
-                      className={`w-full bg-cyan-500 dark:bg-cyan-400 rounded-t transition-all cursor-pointer relative ${isWaterSelected ? 'bg-cyan-600 dark:bg-cyan-500 ring-2 ring-cyan-400' : 'hover:bg-cyan-600 dark:hover:bg-cyan-500'}`}
-                      style={{ height: `${waterHeight}%` }}
-                    >
-                      {isWaterSelected && (
-                        <div className={`absolute left-1/2 transform -translate-x-1/2 bg-primary dark:bg-secondary text-inverse dark:text-primary text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg border border-primary z-10 ${
-                          showTooltipAbove ? '-top-12' : 'top-full mt-1'
-                        }`}>
-                          Nước: {formatCurrency(cost.water)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-xs text-primary font-semibold text-center">{cost.monthName || `${cost.month}/${cost.year}`}</span>
-                </div>
-              )
-            })}
-          </div>
-          <div className="flex items-center gap-3 sm:gap-4 mt-4 justify-center flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span className="text-xs sm:text-sm text-primary font-medium">Điện</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-cyan-500 dark:bg-cyan-400 rounded-full"></div>
-              <span className="text-xs sm:text-sm text-primary font-medium">Nước</span>
-            </div>
+          <div className="min-h-[320px]">
+            <Chart
+              type="bar"
+              height={320}
+              options={{
+                chart: {
+                  toolbar: { show: false },
+                  zoom: { enabled: false },
+                  fontFamily: 'var(--font-inter)',
+                  background: 'transparent',
+                  animations: {
+                    enabled: true,
+                    speed: 800,
+                    animateGradually: { enabled: true, delay: 150 },
+                    dynamicAnimation: { enabled: true, speed: 350 }
+                  }
+                },
+                colors: isDarkMode ? ['#facc15', '#60a5fa'] : ['#eab308', '#3b82f6'],
+                plotOptions: {
+                  bar: {
+                    horizontal: false,
+                    columnWidth: '65%',
+                    borderRadius: 6,
+                    borderRadiusApplication: 'end',
+                    dataLabels: {
+                      position: 'top'
+                    },
+                    distributed: false
+                  }
+                },
+                dataLabels: {
+                  enabled: false
+                },
+                stroke: {
+                  show: true,
+                  width: 2,
+                  colors: ['transparent'],
+                  curve: 'smooth'
+                },
+                fill: {
+                  type: 'gradient',
+                  gradient: {
+                    shade: 'light',
+                    type: 'vertical',
+                    stops: [0, 90, 100]
+                  }
+                },
+                xaxis: {
+                  categories: data.utilityCosts?.map(c => c.monthName || `${c.month}/${c.year}`) || [],
+                  axisBorder: { show: false },
+                  axisTicks: { show: false },
+                  tickPlacement: 'between',
+                  labels: {
+                    style: {
+                      colors: 'var(--text-tertiary)',
+                      fontSize: '11px',
+                      fontWeight: 500
+                    }
+                  }
+                },
+                yaxis: {
+                  labels: {
+                    style: {
+                      colors: 'var(--text-tertiary)',
+                      fontSize: '11px',
+                      fontWeight: 500
+                    },
+                    formatter: (val: number) => {
+                      return new Intl.NumberFormat('vi-VN', {
+                        style: 'currency',
+                        currency: 'VND',
+                        minimumFractionDigits: 0
+                      }).format(val).replace('₫', '').trim().slice(0, -3) + 'K'
+                    }
+                  }
+                },
+                tooltip: {
+                  theme: 'light',
+                  style: { fontSize: '13px' },
+                  y: {
+                    formatter: (val: number) => formatCurrency(val)
+                  }
+                },
+                legend: {
+                  position: 'top',
+                  horizontalAlign: 'center',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  itemMargin: {
+                    horizontal: 16,
+                    vertical: 0
+                  }
+                },
+                grid: {
+                  borderColor: 'var(--border-primary)',
+                  strokeDashArray: 5,
+                  xaxis: { lines: { show: false } },
+                  yaxis: { lines: { show: false } },
+                  padding: { left: 10, right: 10 }
+                },
+                states: {
+                  hover: {
+                    filter: {
+                      type: '' as const
+                    }
+                  },
+                  active: {
+                    filter: {
+                      type: 'darken' as const
+                    }
+                  }
+                }
+              }}
+              series={[
+                {
+                  name: 'Điện',
+                  data: data.utilityCosts?.map(c => c.elec) || []
+                },
+                {
+                  name: 'Nước',
+                  data: data.utilityCosts?.map(c => c.water) || []
+                }
+              ]}
+            />
           </div>
         </div>
 
@@ -440,81 +635,111 @@ export default function TenantDashboard() {
             Cơ cấu chi phí tháng {data.currentMonth}/{data.currentYear}
           </h3>
           <div className="flex items-center justify-center">
-            <div className="relative w-40 h-40 sm:w-48 sm:h-48">
-              <svg className="transform -rotate-90 w-full h-full" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="#e5e7eb"
-                  strokeWidth="20"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="20"
-                  strokeDasharray={`${(data.costStructure?.room || 0) * 2 * Math.PI * 40 / 100} ${2 * Math.PI * 40}`}
-                  strokeDashoffset="0"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="#60a5fa"
-                  strokeWidth="20"
-                  strokeDasharray={`${(data.costStructure?.services || 0) * 2 * Math.PI * 40 / 100} ${2 * Math.PI * 40}`}
-                  strokeDashoffset={`-${(data.costStructure?.room || 0) * 2 * Math.PI * 40 / 100}`}
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="#93c5fd"
-                  strokeWidth="20"
-                  strokeDasharray={`${(data.costStructure?.other || 0) * 2 * Math.PI * 40 / 100} ${2 * Math.PI * 40}`}
-                  strokeDashoffset={`-${((data.costStructure?.room || 0) + (data.costStructure?.services || 0)) * 2 * Math.PI * 40 / 100}`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-base sm:text-lg font-bold text-primary">
-                    {data.costStructure?.total 
-                      ? formatCurrency(data.costStructure.total).replace('₫', '').trim()
-                      : '0 VNĐ'
+            <div className="w-full max-w-[280px] sm:max-w-[640px]">
+              <Chart
+                type="bar"
+                height={240}
+                options={{
+                  chart: {
+                    fontFamily: 'var(--font-inter)',
+                    background: 'transparent',
+                    toolbar: { show: false },
+                    animations: {
+                      enabled: true,
+                      speed: 800,
+                      animateGradually: {
+                        enabled: true,
+                        delay: 150
+                      },
+                      dynamicAnimation: {
+                        enabled: true,
+                        speed: 350
+                      }
                     }
-                  </p>
-                  <p className="text-xs text-secondary font-medium">Tổng cộng</p>
-                </div>
-              </div>
+                  },
+                  colors: isDarkMode ? ['#facc15', '#60a5fa', '#34d399'] : ['#eab308', '#3b82f6', '#10b981'],
+                  plotOptions: {
+                    bar: {
+                      horizontal: true,
+                      borderRadius: 8,
+                      borderRadiusApplication: 'end',
+                      barHeight: '60%',
+                      distributed: true,
+                      dataLabels: {
+                        position: 'top',
+                        maxItems: 100,
+                        hideOverflowingLabels: true
+                      }
+                    }
+                  },
+                  dataLabels: {
+                    enabled: true,
+                    style: {
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      colors: [isDarkMode ? '#1f2937' : '#ffffff']
+                    },
+                    offsetX: 30
+                  },
+                  xaxis: {
+                    categories: ['Tiền phòng', 'Dịch vụ', 'Khác'],
+                    max: 100,
+                    labels: {
+                      style: {
+                        colors: 'var(--text-tertiary)',
+                        fontSize: '12px'
+                      },
+                      formatter: (val: number) => `${val}%`
+                    }
+                  },
+                  yaxis: {
+                    labels: {
+                      style: {
+                        colors: 'var(--text-tertiary)',
+                        fontSize: '12px',
+                        fontWeight: 500
+                      }
+                    }
+                  },
+                  grid: {
+                    borderColor: 'var(--border-primary)',
+                    strokeDashArray: 4,
+                    xaxis: { lines: { show: true } },
+                    yaxis: { lines: { show: false } }
+                  },
+                  legend: {
+                    show: false
+                  },
+                  tooltip: {
+                    enabled: true,
+                    theme: 'light',
+                    style: { fontSize: '13px' },
+                    y: {
+                      formatter: (val: number) => `${val}%`
+                    }
+                  }
+                }}
+                series={[{
+                  data: [data.costStructure?.room || 0, data.costStructure?.services || 0, data.costStructure?.other || 0]
+                }]}
+              />
             </div>
           </div>
-          <div className="mt-4 sm:mt-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded"></div>
-                <span className="text-xs sm:text-sm text-primary font-medium">Tiền phòng</span>
-              </div>
-              <span className="text-xs sm:text-sm font-semibold text-primary">{data.costStructure?.room || 0}%</span>
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-50'}`}>
+              <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-yellow-400' : 'bg-yellow-500'}`}></div>
+              <p className="text-xs text-primary font-medium mb-1">Tiền phòng</p>
+              <p className="text-sm font-bold text-primary">{data.costStructure?.room || 0}%</p>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-300 rounded"></div>
-                <span className="text-xs sm:text-sm text-primary font-medium">Dịch vụ & Tiện ích</span>
-              </div>
-              <span className="text-xs sm:text-sm font-semibold text-primary">{data.costStructure?.services || 0}%</span>
+            <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+              <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-blue-400' : 'bg-blue-500'}`}></div>
+              <p className="text-xs text-primary font-medium mb-1">Dịch vụ</p>
+              <p className="text-sm font-bold text-primary">{data.costStructure?.services || 0}%</p>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-200 rounded"></div>
-                <span className="text-xs sm:text-sm text-primary font-medium">Khác</span>
-              </div>
-              <span className="text-xs sm:text-sm font-semibold text-primary">{data.costStructure?.other || 0}%</span>
+            <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
+              <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`}></div>
+              <p className="text-xs text-primary font-medium mb-1">Khác</p>
+              <p className="text-sm font-bold text-primary">{data.costStructure?.other || 0}%</p>
             </div>
           </div>
         </div>
@@ -522,7 +747,7 @@ export default function TenantDashboard() {
 
       {/* Recent Activities */}
       <div className="card">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4 sm:mb-6">
           <h3 className="text-base sm:text-lg font-semibold text-primary">Hoạt động gần đây</h3>
           <Link href="/tenant/activities" className="text-xs sm:text-sm text-primary hover:text-secondary flex items-center gap-1 transition-colors">
             Xem tất cả
@@ -630,6 +855,34 @@ export default function TenantDashboard() {
           )}
         </div>
       </div>
+
+      {/* Renew Contract Confirmation Modal */}
+      {showRenewModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowRenewModal(false)}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">Gia hạn hợp đồng</h2>
+                <button onClick={() => setShowRenewModal(false)} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                Bạn có muốn gia hạn hợp đồng thuê? Chúng tôi sẽ liên hệ với bạn để xác nhận chi tiết.
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={() => setShowRenewModal(false)} className="btn btn-secondary btn-md">
+                  Hủy
+                </button>
+                <button onClick={confirmRenewContract} className="btn btn-primary btn-md">
+                  Xác nhận
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

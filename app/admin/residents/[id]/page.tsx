@@ -26,7 +26,8 @@ import {
   Users,
   Briefcase,
   Car,
-  AlertTriangle
+  AlertTriangle,
+  X
 } from 'lucide-react'
 
 interface Resident {
@@ -95,6 +96,9 @@ export default function ResidentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [resident, setResident] = useState<Resident | null>(null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'reset' | 'delete' } | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     if (residentId) {
@@ -153,10 +157,16 @@ export default function ResidentDetailPage() {
     }
   }
 
-  const handleResetPassword = async () => {
+  const handleResetPassword = () => {
     if (!resident) return
-    if (!confirm(`Bạn có chắc chắn muốn reset mật khẩu cho ${resident.fullName}?`)) return
+    setConfirmAction({ type: 'reset' })
+    setShowConfirmModal(true)
+  }
 
+  const confirmResetPassword = async () => {
+    if (!resident) return
+
+    setActionLoading(true)
     try {
       const response = await fetch(`/api/residents/${resident.id}/reset-password`, {
         method: 'POST'
@@ -172,13 +182,23 @@ export default function ResidentDetailPage() {
     } catch (error) {
       console.error('Error resetting password:', error)
       alert('Có lỗi xảy ra khi reset mật khẩu')
+    } finally {
+      setActionLoading(false)
+      setShowConfirmModal(false)
+      setConfirmAction(null)
     }
   }
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = () => {
     if (!resident) return
-    if (!confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN cư dân ${resident.fullName}?\n\nHành động này không thể hoàn tác!`)) return
+    setConfirmAction({ type: 'delete' })
+    setShowConfirmModal(true)
+  }
 
+  const confirmDeleteUser = async () => {
+    if (!resident) return
+
+    setActionLoading(true)
     try {
       const response = await fetch(`/api/residents/${residentId}`, {
         method: 'DELETE'
@@ -195,7 +215,16 @@ export default function ResidentDetailPage() {
     } catch (error) {
       console.error('Error deleting user:', error)
       alert('Có lỗi xảy ra khi xóa cư dân')
+    } finally {
+      setActionLoading(false)
+      setShowConfirmModal(false)
+      setConfirmAction(null)
     }
+  }
+
+  const cancelConfirm = () => {
+    setShowConfirmModal(false)
+    setConfirmAction(null)
   }
 
   const formatCurrency = (amount: number) => {
@@ -231,12 +260,12 @@ export default function ResidentDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      'ACTIVE': { label: 'Đang hoạt động', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      'EXPIRED': { label: 'Đã hết hạn', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      'PENDING': { label: 'Chờ xử lý', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
-      'CANCELLED': { label: 'Đã hủy', className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+      'ACTIVE': { label: 'Đang hoạt động', className: 'badge badge-success' },
+      'EXPIRED': { label: 'Đã hết hạn', className: 'badge badge-error' },
+      'PENDING': { label: 'Chờ xử lý', className: 'badge badge-warning' },
+      'CANCELLED': { label: 'Đã hủy', className: 'badge badge-info' }
     }
-    const statusInfo = statusMap[status] || { label: status, className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+    const statusInfo = statusMap[status] || { label: status, className: 'badge badge-info' }
     return (
       <span className={statusInfo.className}>
         {statusInfo.label}
@@ -246,11 +275,11 @@ export default function ResidentDetailPage() {
 
   const getInvoiceStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      'PAID': { label: 'Đã thanh toán', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      'UNPAID': { label: 'Chưa thanh toán', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
-      'OVERDUE': { label: 'Quá hạn', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' }
+      'PAID': { label: 'Đã thanh toán', className: 'badge badge-success' },
+      'UNPAID': { label: 'Chưa thanh toán', className: 'badge badge-warning' },
+      'OVERDUE': { label: 'Quá hạn', className: 'badge badge-error' }
     }
-    const statusInfo = statusMap[status] || { label: status, className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+    const statusInfo = statusMap[status] || { label: status, className: 'badge badge-info' }
     return (
       <span className={statusInfo.className}>
         {statusInfo.label}
@@ -277,7 +306,7 @@ export default function ResidentDetailPage() {
   const initials = getInitials(resident.fullName)
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6">
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-xs sm:text-sm text-secondary">
         <Link href="/admin/residents" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
@@ -291,9 +320,24 @@ export default function ResidentDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-xl sm:text-2xl font-bold text-primary">Chi tiết Cư dân</h1>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <label className="btn btn-secondary btn-md cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              disabled={uploadingAvatar}
+            />
+            {uploadingAvatar ? (
+              <Loader2 size={16} className="sm:w-[18px] sm:h-[18px] animate-spin" strokeWidth={2} />
+            ) : (
+              <Camera size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
+            )}
+            <span className="hidden sm:inline">Đổi ảnh</span>
+          </label>
           <button
             onClick={handleResetPassword}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md text-sm sm:text-base"
+            className="btn btn-secondary btn-md"
           >
             <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
             <span className="hidden sm:inline">Reset mật khẩu</span>
@@ -301,7 +345,7 @@ export default function ResidentDetailPage() {
           </button>
           <Link
             href={`/admin/residents/${residentId}/edit`}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2 transition-all duration-200 text-primary font-semibold shadow-sm hover:shadow-md text-sm sm:text-base"
+            className="btn btn-secondary btn-md"
           >
             <Edit size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
             <span className="hidden sm:inline">Sửa thông tin</span>
@@ -309,7 +353,7 @@ export default function ResidentDetailPage() {
           </Link>
           <Link
             href={`/admin/residents/new?userId=${residentId}`}
-            className="btn-primary flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base rounded-lg font-semibold"
+            className="btn btn-primary btn-md"
           >
             <FileText size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
             <Plus size={14} className="sm:w-4 sm:h-4" strokeWidth={2} />
@@ -318,7 +362,7 @@ export default function ResidentDetailPage() {
           </Link>
           <button
             onClick={handleDeleteUser}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-red-500 dark:bg-red-600 hover:bg-red-600 dark:hover:bg-red-500 text-white rounded-lg flex items-center gap-2 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-sm sm:text-base"
+            className="btn btn-danger btn-md"
             title="Xóa vĩnh viễn cư dân này"
           >
             <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2} />
@@ -331,54 +375,26 @@ export default function ResidentDetailPage() {
       {/* Resident Summary Card */}
       <div className="card">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-          <div className="relative flex-shrink-0 mx-auto sm:mx-0">
-            {resident.avatarUrl ? (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-visible shadow-lg relative">
+          <div className="flex-shrink-0 mx-auto sm:mx-0">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-tertiary">
+              {resident.avatarUrl ? (
                 <img 
                   src={resident.avatarUrl} 
                   alt={resident.fullName}
-                  className="w-full h-full object-cover rounded-full"
+                  className="w-full h-full object-cover"
                 />
-                <label className="absolute bottom-0 right-0 w-6 h-6 sm:w-7 sm:h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={uploadingAvatar}
-                  />
-                  {uploadingAvatar ? (
-                    <Loader2 size={12} className="sm:w-[14px] sm:h-[14px] text-white animate-spin" strokeWidth={1.5} />
-                  ) : (
-                    <Camera size={12} className="sm:w-[14px] sm:h-[14px] text-white" strokeWidth={1.5} />
-                  )}
-                </label>
-              </div>
-            ) : (
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-lg relative overflow-visible">
-                <span className="text-white font-bold text-xl sm:text-2xl">{initials}</span>
-                <label className="absolute bottom-0 right-0 w-6 h-6 sm:w-7 sm:h-7 bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 shadow-lg border-2 border-white dark:border-gray-800 hover:scale-110 active:scale-95">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarUpload}
-                    className="hidden"
-                    disabled={uploadingAvatar}
-                  />
-                  {uploadingAvatar ? (
-                    <Loader2 size={12} className="sm:w-[14px] sm:h-[14px] text-white animate-spin" strokeWidth={1.5} />
-                  ) : (
-                    <Camera size={12} className="sm:w-[14px] sm:h-[14px] text-white" strokeWidth={1.5} />
-                  )}
-                </label>
-              </div>
-            )}
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-2xl sm:text-3xl">{initials}</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
               <h2 className="text-xl sm:text-2xl font-bold text-primary">{resident.fullName}</h2>
               {activeContract && (
-                <span className="bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded inline-block w-fit mx-auto sm:mx-0">
+                <span className="badge badge-success">
                   Đang thuê
                 </span>
               )}
@@ -497,7 +513,7 @@ export default function ResidentDetailPage() {
               <h3 className="text-base sm:text-lg font-semibold text-primary">Hợp đồng</h3>
               <Link
                 href={`/admin/residents/new?userId=${residentId}`}
-                className="btn-primary flex items-center gap-2 px-3 py-1.5 text-xs sm:text-sm rounded-lg font-semibold"
+                className="btn btn-primary btn-sm"
               >
                 <Plus size={14} />
                 <span className="hidden sm:inline">Tạo hợp đồng</span>
@@ -699,6 +715,42 @@ export default function ResidentDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && confirmAction && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={cancelConfirm}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">
+                  {confirmAction.type === 'reset' ? 'Reset mật khẩu' : 'Xóa cư dân'}
+                </h2>
+                <button onClick={cancelConfirm} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                {confirmAction.type === 'reset' 
+                  ? `Bạn có chắc chắn muốn reset mật khẩu cho ${resident?.fullName}?`
+                  : `Bạn có chắc chắn muốn XÓA VĨNH VIỄN cư dân ${resident?.fullName}? Hành động này không thể hoàn tác!`
+                }
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={cancelConfirm} className="btn btn-secondary btn-md" disabled={actionLoading}>
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmAction.type === 'reset' ? confirmResetPassword : confirmDeleteUser}
+                  disabled={actionLoading}
+                  className="btn btn-danger btn-md"
+                >
+                  {actionLoading ? 'Đang xử lý...' : confirmAction.type === 'reset' ? 'Reset' : 'Xóa'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

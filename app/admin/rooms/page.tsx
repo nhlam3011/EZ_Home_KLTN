@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Badge } from 'flowbite-react'
 import { Plus, Download, Search, Edit, Trash2, Building2, Users, DollarSign, X, Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle } from 'lucide-react'
 
 interface Room {
@@ -52,6 +53,9 @@ export default function RoomsPage() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [deleteRoomId, setDeleteRoomId] = useState<number | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     fetchRooms()
@@ -65,7 +69,14 @@ export default function RoomsPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (floorFilter !== 'all') params.append('floor', floorFilter)
 
-      const response = await fetch(`/api/rooms?${params.toString()}`)
+      const currentMonth = new Date().getMonth() + 1
+      const currentYear = new Date().getFullYear()
+
+      const [response, revenueRes] = await Promise.all([
+        fetch(`/api/rooms?${params.toString()}`),
+        fetch(`/api/invoices?status=PAID&month=${currentMonth}&year=${currentYear}`)
+      ])
+
       const data = await response.json()
       setRooms(data)
 
@@ -75,14 +86,8 @@ export default function RoomsPage() {
       const vacant = data.filter((r: Room) => r.status === 'AVAILABLE').length
 
       // Fetch revenue
-      const revenueRes = await fetch('/api/invoices?status=PAID')
       const invoices = await revenueRes.json()
-      const currentMonth = new Date().getMonth() + 1
-      const currentYear = new Date().getFullYear()
-      const monthlyInvoices = invoices.filter(
-        (inv: any) => inv.month === currentMonth && inv.year === currentYear
-      )
-      const revenue = monthlyInvoices.reduce(
+      const revenue = invoices.reduce(
         (sum: number, inv: any) => sum + Number(inv.totalAmount),
         0
       )
@@ -95,11 +100,17 @@ export default function RoomsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa phòng này? Hành động này không thể hoàn tác.')) return
+  const handleDelete = (id: number) => {
+    setDeleteRoomId(id)
+    setShowConfirmModal(true)
+  }
 
+  const confirmDelete = async () => {
+    if (!deleteRoomId) return
+
+    setDeleteLoading(true)
     try {
-      const response = await fetch(`/api/rooms/${id}`, {
+      const response = await fetch(`/api/rooms/${deleteRoomId}`, {
         method: 'DELETE'
       })
 
@@ -114,7 +125,16 @@ export default function RoomsPage() {
     } catch (error) {
       console.error('Error deleting room:', error)
       alert('Có lỗi xảy ra khi xóa phòng. Vui lòng thử lại sau.')
+    } finally {
+      setDeleteLoading(false)
+      setShowConfirmModal(false)
+      setDeleteRoomId(null)
     }
+  }
+
+  const cancelDelete = () => {
+    setShowConfirmModal(false)
+    setDeleteRoomId(null)
   }
 
   const formatCurrency = (amount: number) => {
@@ -154,13 +174,13 @@ export default function RoomsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'RENTED':
-        return 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'failure'
       case 'AVAILABLE':
-        return 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'success'
       case 'MAINTENANCE':
-        return 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'warning'
       default:
-        return 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'gray'
     }
   }
 
@@ -233,71 +253,69 @@ export default function RoomsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-primary">Danh sách phòng</h1>
           <p className="text-secondary mt-1 text-sm sm:text-base">Quản lý trạng thái và thông tin cư dân</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <button 
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <button
             onClick={handleExport}
-            className="btn btn-secondary btn-sm sm:btn-md flex-1 sm:flex-initial"
+            className="btn btn-secondary btn-sm sm:btn-md"
           >
-            <Download size={18} />
-            <span className="hidden sm:inline">Export</span>
+            <Download size={18} strokeWidth={2} />
+            <span>Export</span>
           </button>
           <Link
             href="/admin/rooms/new"
-            className="btn btn-primary btn-sm sm:btn-md flex-1 sm:flex-initial"
+            className="btn btn-primary btn-sm sm:btn-md"
           >
-            <Plus size={19} strokeWidth={3} />
-            <span className="hidden sm:inline">Thêm phòng mới</span>
-            <span className="sm:hidden">Thêm mới</span>
+            <Plus size={18} />
+            <span>Thêm phòng mới</span>
           </Link>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="card">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary" size={20} />
-            <input
-              type="text"
-              placeholder="Tìm theo số phòng, tên khách thuê..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-            />
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setStatusFilter('all')}
-              className={`btn-filter text-xs sm:text-sm ${statusFilter === 'all' ? 'active' : ''}`}
-            >
-              Tất cả
-            </button>
-            <button
-              onClick={() => setStatusFilter('AVAILABLE')}
-              className={`btn-filter flex items-center gap-1 text-xs sm:text-sm ${statusFilter === 'AVAILABLE' ? 'active' : ''}`}
-            >
-              <span className="w-2 h-2 rounded-full bg-current opacity-80"></span>
-              <span className="hidden sm:inline">Trống</span>
-              <span className="sm:hidden">Trống</span>
-            </button>
-            <button
-              onClick={() => setStatusFilter('RENTED')}
-              className={`btn-filter flex items-center gap-1 text-xs sm:text-sm ${statusFilter === 'RENTED' ? 'active' : ''}`}
-            >
-              <span className="w-2 h-2 rounded-full bg-current opacity-80"></span>
-              <span className="hidden sm:inline">Có khách</span>
-              <span className="sm:hidden">Có khách</span>
-            </button>
+      <div className="card p-3 sm:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TẦNG:</label>
             <select
               value={floorFilter}
-              onChange={(e) => setFloorFilter(e.target.value)}
-              className="px-3 sm:px-4 py-2 border border-primary rounded-lg text-xs sm:text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 sm:flex-initial min-w-[120px]"
+              onChange={(e) => {
+                setFloorFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="select flex-1"
             >
-              <option value="all">Tất cả tầng</option>
+              <option value="all">Tất cả</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(floor => (
                 <option key={floor} value={floor}>Tầng {floor}</option>
               ))}
             </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="select flex-1"
+            >
+              <option value="all">Tất cả</option>
+              <option value="AVAILABLE">Trống</option>
+              <option value="RENTED">Có khách</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2 lg:col-span-1">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Tìm theo số phòng, tên khách thuê..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input input-with-icon w-full pr-4 py-2 text-sm"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+            </div>
           </div>
         </div>
       </div>
@@ -363,7 +381,7 @@ export default function RoomsPage() {
             {paginatedRooms.map((room) => {
               const activeContract = room.contracts.find(c => c.status === 'ACTIVE') || room.contracts[0]
               // Calculate total occupants: 1 (main tenant) + number of occupants
-              const currentOccupants = activeContract 
+              const currentOccupants = activeContract
                 ? 1 + (activeContract.occupants?.length || 0)
                 : 0
 
@@ -382,9 +400,9 @@ export default function RoomsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs sm:text-sm text-secondary">Trạng thái:</span>
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusBadge(room.status)}`}>
+                      <Badge color={getStatusBadge(room.status)} className="rounded font-semibold">
                         {getStatusLabel(room.status)}
-                      </span>
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs sm:text-sm text-secondary">Giá thuê:</span>
@@ -399,27 +417,25 @@ export default function RoomsPage() {
                       </span>
                     </div>
                   </div>
-                  <div 
+                  <div
                     className="flex items-center gap-2 mt-4 pt-4 border-t border-primary"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Link
                       href={`/admin/rooms/${room.id}`}
-                      className="btn btn-secondary btn-sm flex-1 text-xs sm:text-sm"
+                      className="btn btn-ghost btn-icon text-primary flex-1"
                       title="Chỉnh sửa thông tin phòng"
                     >
-                      <Edit size={14} />
-                      <span>Sửa</span>
+                      <Edit size={16} />
                     </Link>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDelete(room.id)
                       }}
-                      className="btn btn-outline-danger btn-sm text-xs sm:text-sm"
+                      className="btn btn-ghost btn-icon text-danger flex-1"
                     >
-                      <Trash2 size={14} />
-                      <span className="hidden sm:inline">Xóa</span>
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -434,7 +450,7 @@ export default function RoomsPage() {
                 Hiển thị {startIndex + 1} đến {Math.min(endIndex, rooms.length)} của {rooms.length} phòng
               </p>
               <div className="flex items-center justify-center gap-2">
-                <button 
+                <button
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   className="btn btn-secondary btn-sm"
@@ -456,15 +472,14 @@ export default function RoomsPage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`btn btn-sm ${
-                        currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
-                      }`}
+                      className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
+                        }`}
                     >
                       {pageNum}
                     </button>
                   )
                 })}
-                <button 
+                <button
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
                   className="btn btn-secondary btn-sm"
@@ -479,7 +494,7 @@ export default function RoomsPage() {
 
       {/* Room Detail Modal */}
       {showDetailModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -743,7 +758,7 @@ export default function RoomsPage() {
                 </div>
               </>
             ) : null}
-            
+
             {/* Footer Actions */}
             {selectedRoom && (
               <div className="border-t-2 border-primary bg-gradient-to-r from-tertiary to-secondary/50 p-3 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
@@ -770,6 +785,33 @@ export default function RoomsPage() {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={cancelDelete}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">Xóa phòng</h2>
+                <button onClick={cancelDelete} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                Bạn có chắc chắn muốn xóa phòng này? Hành động này không thể hoàn tác.
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={cancelDelete} className="btn btn-secondary btn-md" disabled={deleteLoading}>
+                  Hủy
+                </button>
+                <button onClick={confirmDelete} className="btn btn-danger btn-md" disabled={deleteLoading}>
+                  {deleteLoading ? 'Đang xóa...' : 'Xóa'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

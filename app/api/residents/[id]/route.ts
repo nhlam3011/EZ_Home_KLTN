@@ -285,6 +285,18 @@ export async function DELETE(
     })
     const contractIdList = contractIds.map(c => c.id)
     if (contractIdList.length > 0) {
+      // First delete payments related to invoices
+      const invoices = await prisma.invoice.findMany({
+        where: { contractId: { in: contractIdList } },
+        select: { id: true }
+      })
+      const invoiceIds = invoices.map(i => i.id)
+      if (invoiceIds.length > 0) {
+        await prisma.payment.deleteMany({
+          where: { invoiceId: { in: invoiceIds } }
+        })
+      }
+      // Then delete invoices
       await prisma.invoice.deleteMany({
         where: { contractId: { in: contractIdList } }
       })

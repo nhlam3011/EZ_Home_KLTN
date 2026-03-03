@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, X, Search } from 'lucide-react'
+import { ArrowLeft, Save, X, Loader2, Search, FileText, Zap, Droplet, DollarSign } from 'lucide-react'
 
 interface Contract {
   id: number
@@ -64,7 +64,7 @@ export default function NewInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!selectedContract) {
       alert('Vui lòng chọn hợp đồng')
       return
@@ -111,12 +111,12 @@ export default function NewInvoicePage() {
     contract.user.phone.includes(search)
   )
 
-const totalAmount =
-  parseFloat(formData.amountRoom || '0') +
-  parseFloat(formData.amountElec || '0') +
-  parseFloat(formData.amountWater || '0') +
-  parseFloat(formData.amountCommonService || '0') +
-  parseFloat(formData.amountService || '0');
+  const totalAmount =
+    parseFloat(formData.amountRoom || '0') +
+    parseFloat(formData.amountElec || '0') +
+    parseFloat(formData.amountWater || '0') +
+    parseFloat(formData.amountCommonService || '0') +
+    parseFloat(formData.amountService || '0');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -127,16 +127,25 @@ const totalAmount =
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Tạo hóa đơn mới</h1>
-          <p className="text-secondary mt-1">Tạo hóa đơn thanh toán cho cư dân</p>
-        </div>
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/invoices"
-            className="px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2"
+            className="btn btn-ghost btn-icon"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">Tạo hóa đơn mới</h1>
+            <p className="text-secondary mt-1 text-sm sm:text-base">Tạo hóa đơn thanh toán cho cư dân</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <Link
+            href="/admin/invoices"
+            className="btn btn-secondary btn-sm sm:btn-md"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -144,26 +153,41 @@ const totalAmount =
           <button
             onClick={handleSubmit}
             disabled={loading || !selectedContract}
-            className="px-4 py-2 btn-primary text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50"
+            className="btn btn-primary btn-sm sm:btn-md"
           >
-            <Save size={18} />
-            <span>{loading ? 'Đang tạo...' : 'Tạo hóa đơn'}</span>
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Đang tạo...</span>
+              </>
+            ) : (
+              <>
+                <Save size={18} strokeWidth={2.5} />
+                <span>Tạo hóa đơn</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Contract Selection */}
-          <div className="bg-primary rounded-lg shadow-sm border border-primary p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Chọn hợp đồng</h2>
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                <FileText className="text-white" size={20} />
+              </div>
+              <h2 className="text-lg font-semibold text-primary">Chọn hợp đồng</h2>
+            </div>
             <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={16} />
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tên, số phòng, SĐT..."
+                placeholder="Tìm kiếm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input input-with-icon w-full pr-4 py-2 text-sm"
               />
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -172,11 +196,10 @@ const totalAmount =
                   key={contract.id}
                   type="button"
                   onClick={() => setSelectedContract(contract.id)}
-                  className={`w-full p-3 text-left border rounded-lg transition-colors ${
-                    selectedContract === contract.id
-                      ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-primary hover:bg-tertiary'
-                  }`}
+                  className={`w-full p-3 text-left border rounded-lg transition-colors ${selectedContract === contract.id
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-primary hover:bg-tertiary'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -193,18 +216,23 @@ const totalAmount =
           </div>
 
           {/* Invoice Details */}
-          <div className="bg-primary rounded-lg shadow-sm border border-primary p-6">
-            <h2 className="text-lg font-semibold text-primary mb-4">Chi tiết hóa đơn</h2>
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                <DollarSign className="text-white" size={20} />
+              </div>
+              <h2 className="text-lg font-semibold text-primary">Chi tiết hóa đơn</h2>
+            </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">
+                  <label className="block text-sm font-medium text-primary mb-2">
                     Tháng
                   </label>
                   <select
                     value={formData.month}
                     onChange={(e) => setFormData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                    className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => (
                       <option key={month} value={month}>Tháng {month}</option>
@@ -212,7 +240,7 @@ const totalAmount =
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-1">
+                  <label className="block text-sm font-medium text-primary mb-2">
                     Năm
                   </label>
                   <input
@@ -221,13 +249,13 @@ const totalAmount =
                     onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
                     min="2020"
                     max="2030"
-                    className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tiền phòng (VND)
                 </label>
                 <input
@@ -236,12 +264,13 @@ const totalAmount =
                   onChange={(e) => setFormData(prev => ({ ...prev, amountRoom: e.target.value }))}
                   required
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Nhập tiền phòng"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tiền điện (VND)
                 </label>
                 <input
@@ -249,12 +278,13 @@ const totalAmount =
                   value={formData.amountElec}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountElec: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Nhập tiền điện"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tiền nước (VND)
                 </label>
                 <input
@@ -262,12 +292,13 @@ const totalAmount =
                   value={formData.amountWater}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountWater: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Nhập tiền nước"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Phí dịch vụ chung (VND)
                 </label>
                 <input
@@ -275,14 +306,14 @@ const totalAmount =
                   value={formData.amountCommonService}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountCommonService: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                   placeholder="Phí quản lý, vệ sinh, bảo vệ..."
                 />
                 <p className="text-xs text-tertiary mt-1">Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ, thang máy...)</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Phí xử lý sự cố & Dịch vụ khác (VND)
                 </label>
                 <input
@@ -290,14 +321,14 @@ const totalAmount =
                   value={formData.amountService}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountService: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                   placeholder="Phí sửa chữa, dịch vụ khác..."
                 />
                 <p className="text-xs text-tertiary mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Hạn thanh toán
                 </label>
                 <input
@@ -305,7 +336,7 @@ const totalAmount =
                   value={formData.paymentDueDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, paymentDueDate: e.target.value }))}
                   required
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 />
                 <p className="text-xs text-tertiary mt-1">Ngày hết hạn thanh toán hóa đơn</p>
               </div>
@@ -314,8 +345,8 @@ const totalAmount =
         </div>
 
         {/* Summary */}
-        <div className="space-y-6">
-          <div className="bg-primary rounded-lg shadow-sm border border-primary p-6 sticky top-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card stat-card-blue">
             <h2 className="text-lg font-semibold text-primary mb-4">Tổng kết</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -343,7 +374,7 @@ const totalAmount =
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-secondary">Phí xử lý sự cố & Dịch vụ khác:</span>
+                <span className="text-sm text-secondary">Phí xử lý sự cố:</span>
                 <span className="text-sm font-semibold text-primary">
                   {formatCurrency(parseFloat(formData.amountService || '0'))}
                 </span>
@@ -351,7 +382,7 @@ const totalAmount =
               <div className="pt-3 border-t border-primary">
                 <div className="flex items-center justify-between">
                   <span className="text-base font-semibold text-primary">Tổng cộng:</span>
-                  <span className="text-lg font-bold text-[#1e3a5f]">
+                  <span className="text-lg font-bold text-blue-600">
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>

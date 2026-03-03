@@ -3,12 +3,12 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  FileText, 
-  Wrench, 
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  FileText,
+  Wrench,
   Settings,
   Bell,
   LogOut,
@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   Users as CommunityIcon,
-  MessageSquare
+  MessageSquare,
+  RefreshCw
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
@@ -25,7 +26,9 @@ const menuItems = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   { href: '/admin/rooms', label: 'Quản lý Phòng', icon: Building2 },
   { href: '/admin/residents', label: 'Cư dân', icon: Users },
+  { href: '/admin/invoices', label: 'Hóa đơn', icon: FileText },
   { href: '/admin/finance', label: 'Tài chính', icon: FileText },
+  { href: '/admin/renewals', label: 'Gia hạn HĐ', icon: RefreshCw, badge: true },
   { href: '/admin/maintenance', label: 'Bảo trì & Sự cố', icon: Wrench, badge: true },
   { href: '/admin/community', label: 'Cộng đồng', icon: CommunityIcon, badge: true },
   { href: '/admin/messages', label: 'Tin nhắn', icon: MessageSquare },
@@ -45,6 +48,7 @@ export default function AdminLayout({
   const router = useRouter()
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingPostsCount, setPendingPostsCount] = useState(0)
+  const [pendingRenewalsCount, setPendingRenewalsCount] = useState(0)
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
   const [user, setUser] = useState<any>(null)
@@ -65,20 +69,20 @@ export default function AdminLayout({
       '/admin/forecast': 'Dự đoán AI',
       '/admin/services': 'Cấu hình Dịch vụ',
     }
-    
+
     // Check exact match first
     if (titleMap[pathname]) {
       return titleMap[pathname]
     }
-    
+
     // Check for sub-routes
     for (const [path, title] of Object.entries(titleMap)) {
       if (pathname?.startsWith(path + '/')) {
         return title
       }
     }
-    
-    return 'Admin Dashboard'
+
+    return ''
   }
 
   useEffect(() => {
@@ -104,12 +108,12 @@ export default function AdminLayout({
     fetch('/api/maintenance/count')
       .then(res => res.json())
       .then(data => setPendingCount(data.count || 0))
-      .catch(() => {})
+      .catch(() => { })
 
     fetch('/api/admin/posts?status=PENDING')
       .then(res => res.json())
       .then(data => setPendingPostsCount(data.length || 0))
-      .catch(() => {})
+      .catch(() => { })
 
     // Fetch unread messages count
     if (parsedUser.id) {
@@ -119,7 +123,7 @@ export default function AdminLayout({
           const totalUnread = Object.values(data.unreadCounts || {}).reduce((sum: number, count: any) => sum + count, 0)
           setUnreadMessagesCount(totalUnread)
         })
-        .catch(() => {})
+        .catch(() => { })
 
       // Fetch unread notifications count (new posts in last 7 days)
       fetch(`/api/admin/notifications?userId=${parsedUser.id}`)
@@ -133,7 +137,15 @@ export default function AdminLayout({
           })
           setUnreadNotificationsCount(recentNotifications.length)
         })
-        .catch(() => {})
+        .catch(() => { })
+
+      // Fetch pending renewals count
+      fetch('/api/contracts/renewals?status=PENDING')
+        .then(res => res.json())
+        .then(data => {
+          setPendingRenewalsCount(Array.isArray(data) ? data.length : (data.renewals?.length || 0))
+        })
+        .catch(() => { })
     }
   }, [router])
 
@@ -151,7 +163,7 @@ export default function AdminLayout({
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)' }}>
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 lg:hidden transition-opacity"
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
           onClick={() => setSidebarOpen(false)}
@@ -159,7 +171,7 @@ export default function AdminLayout({
       )}
 
       {/* Sidebar - Beautiful Design */}
-      <aside 
+      <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-50
           w-64 flex flex-col
@@ -167,18 +179,18 @@ export default function AdminLayout({
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           shadow-2xl lg:shadow-none
         `}
-        style={{ 
+        style={{
           backgroundColor: 'var(--bg-primary)',
           borderRight: '1px solid var(--border-primary)'
         }}
       >
         {/* Logo Section */}
-        <div 
+        <div
           className="h-16 px-5 flex items-center justify-between"
           style={{ borderBottom: '1px solid var(--border-primary)' }}
         >
-          <Link 
-            href="/admin" 
+          <Link
+            href="/admin"
             className="flex items-center gap-3 group"
             onClick={() => setSidebarOpen(false)}
           >
@@ -204,7 +216,7 @@ export default function AdminLayout({
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1.5 rounded-lg transition-colors"
-            style={{ 
+            style={{
               color: 'var(--text-secondary)',
             }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
@@ -218,7 +230,7 @@ export default function AdminLayout({
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           {/* Main Menu */}
           <div className="mb-5">
-            <p 
+            <p
               className="px-3 mb-3 text-[10px] font-bold uppercase tracking-wider"
               style={{ color: 'var(--text-tertiary)' }}
             >
@@ -227,18 +239,20 @@ export default function AdminLayout({
             <div className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon
-                const isActive = item.href === '/admin' 
+                const isActive = item.href === '/admin'
                   ? pathname === '/admin'
                   : pathname === item.href || pathname?.startsWith(item.href + '/')
                 const showBadge = item.badge && (
                   item.href === '/admin/maintenance' ? pendingCount > 0 :
-                  item.href === '/admin/community' ? pendingPostsCount > 0 :
-                  false
+                    item.href === '/admin/community' ? pendingPostsCount > 0 :
+                      item.href === '/admin/renewals' ? pendingRenewalsCount > 0 :
+                        false
                 ) || (item.href === '/admin/messages' && unreadMessagesCount > 0)
                 const badgeCount = item.href === '/admin/maintenance' ? pendingCount :
-                                  item.href === '/admin/community' ? pendingPostsCount :
-                                  item.href === '/admin/messages' ? unreadMessagesCount : 0
-                
+                  item.href === '/admin/community' ? pendingPostsCount :
+                    item.href === '/admin/renewals' ? pendingRenewalsCount :
+                      item.href === '/admin/messages' ? unreadMessagesCount : 0
+
                 return (
                   <Link
                     key={item.href}
@@ -268,9 +282,9 @@ export default function AdminLayout({
                     {isActive && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></div>
                     )}
-                    
+
                     {/* Icon */}
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
                       style={{
                         backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
@@ -279,15 +293,15 @@ export default function AdminLayout({
                     >
                       <Icon size={18} />
                     </div>
-                    
+
                     {/* Label */}
                     <span className="flex-1 text-sm font-semibold">
                       {item.label}
                     </span>
-                    
+
                     {/* Badge */}
                     {showBadge && (
-                      <span 
+                      <span
                         className="min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
                         style={{
                           backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : '#ef4444'
@@ -303,11 +317,11 @@ export default function AdminLayout({
           </div>
 
           {/* System Menu */}
-          <div 
+          <div
             className="pt-5"
             style={{ borderTop: '1px solid var(--border-primary)' }}
           >
-            <p 
+            <p
               className="px-3 mb-3 text-[10px] font-bold uppercase tracking-wider"
               style={{ color: 'var(--text-tertiary)' }}
             >
@@ -345,7 +359,7 @@ export default function AdminLayout({
                     {isActive && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full"></div>
                     )}
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
                       style={{
                         backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
@@ -365,14 +379,14 @@ export default function AdminLayout({
         </nav>
 
         {/* User Section */}
-        <div 
+        <div
           className="p-4 space-y-2"
-          style={{ 
+          style={{
             borderTop: '1px solid var(--border-primary)',
             backgroundColor: 'var(--bg-tertiary)'
           }}
         >
-          <div 
+          <div
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg border shadow-sm"
             style={{
               backgroundColor: 'var(--bg-primary)',
@@ -407,7 +421,7 @@ export default function AdminLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header - Seamless with sidebar */}
-        <header 
+        <header
           className="h-16 flex items-center justify-between sticky top-0 z-30"
           style={{
             backgroundColor: 'var(--bg-primary)',
@@ -430,7 +444,7 @@ export default function AdminLayout({
               {getPageTitle()}
             </h2>
           </div>
-          
+
           <div className="flex items-center gap-3 px-6">
             <DarkModeToggle />
             <Link
@@ -442,9 +456,9 @@ export default function AdminLayout({
             >
               <Bell size={20} />
               {unreadNotificationsCount > 0 && (
-                <span 
+                <span
                   className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2"
-                  style={{ 
+                  style={{
                     backgroundColor: '#ef4444',
                     borderColor: 'var(--bg-primary)'
                   }}
@@ -455,8 +469,8 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <main 
-          className={`flex-1 overflow-y-auto ${pathname === '/admin/messages' || pathname === '/admin/notifications' ? '' : 'p-6'}`} 
+        <main
+          className={`flex-1 overflow-y-auto ${pathname === '/admin/messages' || pathname === '/admin/notifications' ? '' : 'p-6'}`}
           style={{ backgroundColor: 'var(--bg-secondary)' }}
         >
           {children}

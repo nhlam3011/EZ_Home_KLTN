@@ -32,17 +32,16 @@ export async function GET(request: NextRequest) {
 
     const where: any = {}
 
-    if (contractId) {
-      where.contractId = parseInt(contractId)
-    }
-    if (month) {
-      where.month = parseInt(month)
-    }
-    if (year) {
-      where.year = parseInt(year)
-    }
-    if (status && status !== 'all') {
-      where.status = status.toUpperCase()
+    if (contractId) where.contractId = parseInt(contractId)
+    if (month && month !== 'all') where.month = parseInt(month)
+    if (year && year !== 'all') where.year = parseInt(year)
+    if (status && status !== 'all') where.status = status.toUpperCase()
+
+    if (search) {
+      where.OR = [
+        { contract: { user: { fullName: { contains: search, mode: 'insensitive' } } } },
+        { contract: { room: { name: { contains: search, mode: 'insensitive' } } } }
+      ]
     }
 
     const invoices = await prisma.invoice.findMany({
@@ -50,27 +49,15 @@ export async function GET(request: NextRequest) {
       include: {
         contract: {
           include: {
-            user: true,
-            room: true
+            user: { select: { fullName: true } },
+            room: { select: { name: true } }
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    // Filter by search if provided
-    let filteredInvoices = invoices
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredInvoices = invoices.filter(invoice => {
-        const userName = invoice.contract.user.fullName.toLowerCase()
-        const roomName = invoice.contract.room.name.toLowerCase()
-        return userName.includes(searchLower) || roomName.includes(searchLower)
-      })
-    }
-
-    // Ensure we always return an array
-    return NextResponse.json(Array.isArray(filteredInvoices) ? filteredInvoices : [])
+    return NextResponse.json(invoices)
   } catch (error) {
     console.error('Error fetching invoices:', error)
     // Return empty array instead of error object to prevent frontend errors
@@ -130,6 +117,14 @@ export async function POST(request: NextRequest) {
     // Calculate total overdue amount
     const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
 
+    // Prepare overdue invoice details for storage
+    const overdueInvoicesInfo = overdueInvoices.map(inv => ({
+      id: inv.id,
+      month: inv.month,
+      year: inv.year,
+      amount: Number(inv.totalAmount)
+    }))
+
     const totalAmount =
       parseFloat(amountRoom || 0) +
       parseFloat(amountElec || 0) +
@@ -148,7 +143,9 @@ export async function POST(request: NextRequest) {
         amountElec: parseFloat(amountElec || 0),
         amountWater: parseFloat(amountWater || 0),
         amountCommonService: parseFloat(amountCommonService || 0),
-        amountService: parseFloat(amountService || 0) + overdueAmount, // Add overdue to amountService
+        amountService: parseFloat(amountService || 0), // Keep original amountService
+        overdueAmount,
+        overdueInvoices: JSON.stringify(overdueInvoicesInfo),
         totalAmount,
         paymentDueDate: finalPaymentDueDate,
         status: 'UNPAID'
@@ -162,21 +159,6 @@ export async function POST(request: NextRequest) {
         }
       }
     })
-
-    // Mark overdue invoices as paid (they are now included in the new invoice)
-    if (overdueInvoices.length > 0) {
-      await prisma.invoice.updateMany({
-        where: {
-          id: {
-            in: overdueInvoices.map(inv => inv.id)
-          }
-        },
-        data: {
-          status: 'PAID',
-          paidAt: new Date()
-        }
-      })
-    }
 
     // Send email notification to tenant
     if (invoice.contract.user.email) {

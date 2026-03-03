@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Save, X } from 'lucide-react'
+import { ArrowLeft, Save, X, Loader2, FileText, DollarSign } from 'lucide-react'
 
 interface Invoice {
   id: number
@@ -59,10 +59,10 @@ export default function EditInvoicePage() {
       if (response.ok) {
         const data = await response.json()
         setInvoice(data)
-        const paymentDueDate = data.paymentDueDate 
+        const paymentDueDate = data.paymentDueDate
           ? new Date(data.paymentDueDate).toISOString().split('T')[0]
           : new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        
+
         setFormData({
           month: data.month,
           year: data.year,
@@ -88,7 +88,7 @@ export default function EditInvoicePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!invoice) return
 
     setLoading(true)
@@ -127,13 +127,13 @@ export default function EditInvoicePage() {
   }
 
 
-    const totalAmount =
-      parseFloat(formData.amountRoom || '0') +
-      parseFloat(formData.amountElec || '0') +
-      parseFloat(formData.amountWater || '0') +
-      parseFloat(formData.amountCommonService || '0') +
-      parseFloat(formData.amountService || '0');
-      parseFloat(formData.amountService || '0')
+  const totalAmount =
+    parseFloat(formData.amountRoom || '0') +
+    parseFloat(formData.amountElec || '0') +
+    parseFloat(formData.amountWater || '0') +
+    parseFloat(formData.amountCommonService || '0') +
+    parseFloat(formData.amountService || '0');
+  parseFloat(formData.amountService || '0')
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -156,18 +156,27 @@ export default function EditInvoicePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Chỉnh sửa hóa đơn</h1>
-          <p className="text-secondary mt-1">
-            Hóa đơn #{invoice.id} - {invoice.contract.user.fullName} - {invoice.contract.room.name}
-          </p>
-        </div>
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/invoices"
-            className="px-4 py-2 border border-primary rounded-lg hover:bg-tertiary flex items-center gap-2"
+            className="btn btn-ghost btn-icon"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary">Chỉnh sửa hóa đơn</h1>
+            <p className="text-secondary mt-1 text-sm sm:text-base">
+              Hóa đơn #{invoice.id} - {invoice.contract.user.fullName} - {invoice.contract.room.name}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <Link
+            href="/admin/invoices"
+            className="btn btn-secondary btn-sm sm:btn-md"
           >
             <X size={18} />
             <span>Hủy</span>
@@ -175,10 +184,19 @@ export default function EditInvoicePage() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 btn-primary text-white rounded-lg hover:bg-[#2a4a6f] flex items-center gap-2 disabled:opacity-50"
+            className="btn btn-primary btn-sm sm:btn-md"
           >
-            <Save size={18} />
-            <span>{loading ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Đang lưu...</span>
+              </>
+            ) : (
+              <>
+                <Save size={18} strokeWidth={2.5} />
+                <span>Lưu thay đổi</span>
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -233,7 +251,7 @@ export default function EditInvoicePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tiền phòng (VND)
                 </label>
                 <input
@@ -242,12 +260,13 @@ export default function EditInvoicePage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, amountRoom: e.target.value }))}
                   required
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Nhập tiền phòng"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tiền điện (VND)
                 </label>
                 <input
@@ -255,12 +274,13 @@ export default function EditInvoicePage() {
                   value={formData.amountElec}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountElec: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Nhập tiền điện"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Tiền nước (VND)
                 </label>
                 <input
@@ -268,12 +288,13 @@ export default function EditInvoicePage() {
                   value={formData.amountWater}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountWater: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
+                  placeholder="Nhập tiền nước"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Phí dịch vụ chung (VND)
                 </label>
                 <input
@@ -281,14 +302,14 @@ export default function EditInvoicePage() {
                   value={formData.amountCommonService}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountCommonService: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                   placeholder="Phí quản lý, vệ sinh, bảo vệ..."
                 />
                 <p className="text-xs text-tertiary mt-1">Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ, thang máy...)</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Phí xử lý sự cố & Dịch vụ khác (VND)
                 </label>
                 <input
@@ -296,14 +317,14 @@ export default function EditInvoicePage() {
                   value={formData.amountService}
                   onChange={(e) => setFormData(prev => ({ ...prev, amountService: e.target.value }))}
                   min="0"
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                   placeholder="Phí sửa chữa, dịch vụ khác..."
                 />
                 <p className="text-xs text-tertiary mt-1">Phí xử lý sự cố và các dịch vụ khác</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-1">
+                <label className="block text-sm font-medium text-primary mb-2">
                   Hạn thanh toán
                 </label>
                 <input
@@ -311,7 +332,7 @@ export default function EditInvoicePage() {
                   value={formData.paymentDueDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, paymentDueDate: e.target.value }))}
                   required
-                  className="w-full px-4 py-2 border border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input"
                 />
                 <p className="text-xs text-tertiary mt-1">Ngày hết hạn thanh toán hóa đơn</p>
               </div>
@@ -320,8 +341,8 @@ export default function EditInvoicePage() {
         </div>
 
         {/* Summary */}
-        <div className="space-y-6">
-          <div className="card sticky top-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card stat-card-blue">
             <h2 className="text-lg font-semibold text-primary mb-4">Tổng kết</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -357,7 +378,7 @@ export default function EditInvoicePage() {
               <div className="pt-3 border-t border-primary">
                 <div className="flex items-center justify-between">
                   <span className="text-base font-semibold text-primary">Tổng cộng:</span>
-                  <span className="text-lg font-bold text-[#1e3a5f]">
+                  <span className="text-lg font-bold text-blue-600">
                     {formatCurrency(totalAmount)}
                   </span>
                 </div>
@@ -365,13 +386,12 @@ export default function EditInvoicePage() {
             </div>
             <div className="mt-4 pt-4 border-t border-primary">
               <p className="text-xs text-tertiary mb-1">Trạng thái hiện tại:</p>
-              <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${
-                invoice.status === 'PAID' 
-                  ? 'bg-success-soft border border-success-subtle text-fg-success-strong' 
-                  : invoice.status === 'OVERDUE'
+              <span className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${invoice.status === 'PAID'
+                ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
+                : invoice.status === 'OVERDUE'
                   ? 'bg-danger-soft border border-danger-subtle text-fg-danger-strong'
                   : 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-700 font-semibold'
-              }`}>
+                }`}>
                 {invoice.status === 'PAID' ? 'Đã thanh toán' : invoice.status === 'OVERDUE' ? 'Quá hạn' : 'Chưa thanh toán'}
               </span>
             </div>

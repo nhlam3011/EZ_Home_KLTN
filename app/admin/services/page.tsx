@@ -46,7 +46,6 @@ export default function ServicesPage() {
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orderSearch, setOrderSearch] = useState('')
   const [orderStatusFilter, setOrderStatusFilter] = useState('all')
-  const [buildingFilter, setBuildingFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
@@ -69,6 +68,9 @@ export default function ServicesPage() {
     amountService: '0'
   })
   const [contract, setContract] = useState<any>(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'accept' | 'complete'; id: number } | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     if (activeTab === 'config') {
@@ -76,7 +78,7 @@ export default function ServicesPage() {
     } else if (activeTab === 'registrations') {
       fetchOrders()
     }
-  }, [activeTab, orderSearch, orderStatusFilter, buildingFilter])
+  }, [activeTab, orderSearch, orderStatusFilter])
 
   const fetchServices = async () => {
     setLoading(true)
@@ -112,11 +114,17 @@ export default function ServicesPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa dịch vụ này?')) return
+  const handleDelete = (id: number) => {
+    setConfirmAction({ type: 'delete', id })
+    setShowConfirmModal(true)
+  }
 
+  const confirmDelete = async () => {
+    if (!confirmAction || confirmAction.type !== 'delete') return
+
+    setActionLoading(true)
     try {
-      const response = await fetch(`/api/services/${id}`, {
+      const response = await fetch(`/api/services/${confirmAction.id}`, {
         method: 'DELETE'
       })
 
@@ -129,7 +137,80 @@ export default function ServicesPage() {
     } catch (error) {
       console.error('Error deleting service:', error)
       alert('Có lỗi xảy ra khi xóa dịch vụ')
+    } finally {
+      setActionLoading(false)
+      setShowConfirmModal(false)
+      setConfirmAction(null)
     }
+  }
+
+  const handleAcceptOrder = (orderId: number) => {
+    setConfirmAction({ type: 'accept', id: orderId })
+    setShowConfirmModal(true)
+  }
+
+  const confirmAcceptOrder = async () => {
+    if (!confirmAction || confirmAction.type !== 'accept') return
+
+    setActionLoading(true)
+    try {
+      const response = await fetch(`/api/admin/service-orders/${confirmAction.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'PROCESSING' })
+      })
+      if (response.ok) {
+        alert('Đã nhận đơn hàng thành công!')
+        fetchOrders()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Có lỗi xảy ra')
+      }
+    } catch (error) {
+      console.error('Error accepting order:', error)
+      alert('Có lỗi xảy ra khi nhận đơn hàng')
+    } finally {
+      setActionLoading(false)
+      setShowConfirmModal(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const handleCompleteOrder = (orderId: number) => {
+    setConfirmAction({ type: 'complete', id: orderId })
+    setShowConfirmModal(true)
+  }
+
+  const confirmCompleteOrder = async () => {
+    if (!confirmAction || confirmAction.type !== 'complete') return
+
+    setActionLoading(true)
+    try {
+      const response = await fetch(`/api/admin/service-orders/${confirmAction.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'DONE' })
+      })
+      if (response.ok) {
+        alert('Đã đánh dấu đơn hàng hoàn thành!')
+        fetchOrders()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Có lỗi xảy ra')
+      }
+    } catch (error) {
+      console.error('Error completing order:', error)
+      alert('Có lỗi xảy ra khi hoàn thành đơn hàng')
+    } finally {
+      setActionLoading(false)
+      setShowConfirmModal(false)
+      setConfirmAction(null)
+    }
+  }
+
+  const cancelConfirm = () => {
+    setShowConfirmModal(false)
+    setConfirmAction(null)
   }
 
   const formatCurrency = (amount: number) => {
@@ -254,7 +335,7 @@ export default function ServicesPage() {
       alert('Không tìm thấy hợp đồng hoạt động cho khách hàng này')
       return
     }
-    
+
     try {
       const response = await fetch('/api/invoices/service', {
         method: 'POST',
@@ -270,7 +351,7 @@ export default function ServicesPage() {
           amountService: parseFloat(invoiceData.amountService || '0')
         })
       })
-      
+
       if (response.ok) {
         const newInvoice = await response.json()
         alert(`Tạo hóa đơn thành công!\nHóa đơn #${newInvoice.id} đã được tạo cho đơn dịch vụ #${selectedOrder.id}.`)
@@ -294,7 +375,6 @@ export default function ServicesPage() {
       const params = new URLSearchParams()
       if (orderSearch) params.append('search', orderSearch)
       if (orderStatusFilter !== 'all') params.append('status', orderStatusFilter)
-      if (buildingFilter !== 'all') params.append('building', buildingFilter)
 
       const response = await fetch(`/api/admin/service-orders?${params.toString()}`)
       const data = await response.json()
@@ -303,52 +383,6 @@ export default function ServicesPage() {
       console.error('Error fetching orders:', error)
     } finally {
       setOrdersLoading(false)
-    }
-  }
-
-  const handleAcceptOrder = async (orderId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn nhận đơn hàng này?')) {
-      return
-    }
-    try {
-      const response = await fetch(`/api/admin/service-orders/${orderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'PROCESSING' })
-      })
-      if (response.ok) {
-        alert('Đã nhận đơn hàng thành công!')
-        fetchOrders()
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Có lỗi xảy ra')
-      }
-    } catch (error) {
-      console.error('Error accepting order:', error)
-      alert('Có lỗi xảy ra khi nhận đơn hàng')
-    }
-  }
-
-  const handleCompleteOrder = async (orderId: number) => {
-    if (!confirm('Bạn có chắc chắn muốn đánh dấu đơn hàng này đã hoàn thành?')) {
-      return
-    }
-    try {
-      const response = await fetch(`/api/admin/service-orders/${orderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'DONE' })
-      })
-      if (response.ok) {
-        alert('Đã đánh dấu đơn hàng hoàn thành!')
-        fetchOrders()
-      } else {
-        const error = await response.json()
-        alert(error.error || 'Có lỗi xảy ra')
-      }
-    } catch (error) {
-      console.error('Error completing order:', error)
-      alert('Có lỗi xảy ra khi cập nhật đơn hàng')
     }
   }
 
@@ -368,7 +402,7 @@ export default function ServicesPage() {
       const response = await fetch(`/api/admin/service-orders/${selectedOrderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: 'CANCELLED',
           cancelReason: cancelReason.trim()
         })
@@ -405,7 +439,7 @@ export default function ServicesPage() {
     const now = new Date()
     const isToday = d.toDateString() === now.toDateString()
     const isYesterday = d.toDateString() === new Date(now.getTime() - 86400000).toDateString()
-    
+
     const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     if (isToday) return `${time} - Hôm nay`
     if (isYesterday) return `${time} - Hôm qua`
@@ -414,12 +448,12 @@ export default function ServicesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Mới', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      PROCESSING: { label: 'Đang làm', className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      DONE: { label: 'Hoàn thành', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+      PENDING: { label: 'Mới', className: 'badge badge-error' },
+      PROCESSING: { label: 'Đang làm', className: 'badge badge-info' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      CANCELLED: { label: 'Đã hủy', className: 'badge badge-warning' }
     }
-    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
+    return statusMap[status] || { label: status, className: 'badge badge-info' }
   }
 
   const getInitials = (name: string) => {
@@ -432,18 +466,18 @@ export default function ServicesPage() {
   const paginatedOrders = orders.slice(orderStartIndex, orderEndIndex)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-primary">Cấu hình Dịch vụ</h1>
-          <p className="text-secondary mt-1">
-            Quản lý các loại dịch vụ và đơn giá áp dụng cho toàn hệ thống
+          <h1 className="text-xl sm:text-2xl font-bold text-primary">Quản lý Dịch vụ</h1>
+          <p className="text-sm sm:text-base text-secondary mt-1">
+            Quản lý các loại dịch vụ và đơn đăng ký
           </p>
         </div>
         <Link
           href="/admin/services/new"
-          className="px-4 py-2 btn-primary flex items-center gap-2"
+          className="btn btn-primary btn-sm sm:btn-md"
         >
           <Plus size={18} />
           <span>Thêm dịch vụ</span>
@@ -451,103 +485,85 @@ export default function ServicesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-primary">
-        <div className="flex items-center gap-6">
-          <button 
+      <div className="card p-1">
+        <div className="flex items-center gap-1">
+          <button
             onClick={() => {
               setActiveTab('registrations')
               setCurrentPage(1)
             }}
-            className={`px-4 py-2 text-sm transition-colors ${
-              activeTab === 'registrations'
-                ? 'font-semibold text-accent-blue border-b-2 border-accent-blue'
-                : 'text-secondary hover:text-primary'
-            }`}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'registrations'
+              ? 'bg-blue-500 text-white'
+              : 'text-secondary hover:bg-tertiary'
+              }`}
           >
             Danh sách đăng ký
           </button>
-          <button 
+          <button
             onClick={() => {
               setActiveTab('config')
               setCurrentPage(1)
             }}
-            className={`px-4 py-2 text-sm transition-colors ${
-              activeTab === 'config'
-                ? 'font-semibold text-accent-blue border-b-2 border-accent-blue'
-                : 'text-secondary hover:text-primary'
-            }`}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'config'
+              ? 'bg-blue-500 text-white'
+              : 'text-secondary hover:bg-tertiary'
+              }`}
           >
             Cấu hình Dịch vụ
           </button>
-          <button 
+          <button
             onClick={() => {
               setActiveTab('history')
               setCurrentPage(1)
             }}
-            className={`px-4 py-2 text-sm transition-colors ${
-              activeTab === 'history'
-                ? 'font-semibold text-accent-blue border-b-2 border-accent-blue'
-                : 'text-secondary hover:text-primary'
-            }`}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'history'
+              ? 'bg-blue-500 text-white'
+              : 'text-secondary hover:bg-tertiary'
+              }`}
           >
-            Lịch sử điều chỉnh giá
+            Lịch sử
           </button>
         </div>
       </div>
 
       {/* Search and Filters */}
       {activeTab === 'registrations' ? (
-        <div className="card p-4">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex-1 min-w-[300px] relative">
-              <input
-                type="text"
-                placeholder="Tìm theo số phòng, tên dịch vụ, người yêu cầu..."
-                value={orderSearch}
-                onChange={(e) => setOrderSearch(e.target.value)}
-                className="input w-full pl-10 pr-4 py-2"
-              />
+        <div className="card p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Tìm theo số phòng, tên dịch vụ, người yêu cầu..."
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  className="input input-with-icon w-full pr-4 py-2"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+              </div>
             </div>
             <div className="flex items-center gap-2">
-            <button 
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                viewMode === 'list'
-                  ? 'bg-[#1e3a5f] text-white'
-                  : 'btn-secondary'
-              }`}
-            >
-              <List size={16} />
-              Danh sách
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('kanban')}
-              className={`px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                viewMode === 'kanban'
-                  ? 'bg-[#1e3a5f] text-white'
-                  : 'btn-secondary'
-              }`}
-            >
-              <LayoutGrid size={16} />
-              Kanban
-            </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
+              >
+                <List size={16} />
+                <span>Danh sách</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary'}`}
+              >
+                <LayoutGrid size={16} />
+                <span>Kanban</span>
+              </button>
             </div>
-            <select 
-              value={buildingFilter}
-              onChange={(e) => setBuildingFilter(e.target.value)}
-              className="input px-4 py-2 text-sm"
-            >
-              <option value="all">Tất cả Tòa nhà</option>
-              <option value="A">Tòa A</option>
-              <option value="B">Tòa B</option>
-              <option value="C">Tòa C</option>
-            </select>
-            <select 
+            <select
               value={orderStatusFilter}
               onChange={(e) => setOrderStatusFilter(e.target.value)}
-              className="input px-4 py-2 text-sm"
+              className="select"
             >
               <option value="all">Mọi trạng thái</option>
               <option value="PENDING">Mới</option>
@@ -558,23 +574,26 @@ export default function ServicesPage() {
           </div>
         </div>
       ) : (
-        <div className="card p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Tìm kiếm theo tên dịch vụ..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input w-full pl-10 pr-4 py-2"
-              />
+        <div className="card p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo tên dịch vụ..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input input-with-icon w-full pr-4 py-2"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+              </div>
             </div>
-            <select 
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="input px-4 py-2 text-sm"
+              className="select"
             >
-              <option value="all">Hiển thị: Tất cả trạng thái</option>
+              <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>
               <option value="inactive">Đã tắt</option>
             </select>
@@ -608,7 +627,7 @@ export default function ServicesPage() {
                     const room = order.user.contracts[0]?.room
                     const roomName = room?.name || 'N/A'
                     const initials = getInitials(order.user.fullName)
-                    
+
                     return (
                       <tr key={order.id} className="hover:bg-tertiary">
                         <td className="px-6 py-4">
@@ -642,7 +661,7 @@ export default function ServicesPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 alert(`Đơn hàng #${order.id}\nDịch vụ: ${order.service.name}\nSố lượng: ${order.quantity}\nTổng tiền: ${formatCurrency(order.total)}\nTrạng thái: ${statusBadge.label}\nNgười yêu cầu: ${order.user.fullName}\nPhòng: ${roomName}`)
@@ -724,7 +743,7 @@ export default function ServicesPage() {
                   Hiển thị {orderStartIndex + 1}-{Math.min(orderEndIndex, orders.length)} trong số {orders.length} đơn hàng
                 </p>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
@@ -749,15 +768,14 @@ export default function ServicesPage() {
                         key={pageNum}
                         type="button"
                         onClick={() => setCurrentPage(pageNum)}
-                        className={`btn btn-sm ${
-                          currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
-                        }`}
+                        className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
+                          }`}
                       >
                         {pageNum}
                       </button>
                     )
                   })}
-                  <button 
+                  <button
                     onClick={() => setCurrentPage(prev => Math.min(totalOrderPages, prev + 1))}
                     disabled={currentPage === totalOrderPages}
                     className="btn btn-secondary btn-sm"
@@ -785,8 +803,8 @@ export default function ServicesPage() {
                   const roomName = room?.name || 'N/A'
                   const initials = getInitials(order.user.fullName)
                   return (
-                    <div 
-                      key={order.id} 
+                    <div
+                      key={order.id}
                       className="card p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -851,8 +869,8 @@ export default function ServicesPage() {
                   const roomName = room?.name || 'N/A'
                   const initials = getInitials(order.user.fullName)
                   return (
-                    <div 
-                      key={order.id} 
+                    <div
+                      key={order.id}
                       className="card p-4 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-2">
@@ -992,85 +1010,85 @@ export default function ServicesPage() {
           </div>
         ) : (
           <div className="card overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-tertiary border-b border-primary">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                  THÔNG TIN DỊCH VỤ
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                  ĐƠN VỊ TÍNH
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                  ĐƠN GIÁ HIỆN TẠI
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                  TRẠNG THÁI
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                  HÀNH ĐỘNG
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-primary">
-              {paginatedServices.map((service) => (
-                <tr key={service.id} className="hover:bg-tertiary">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-tertiary flex items-center justify-center text-xl">
-                        {getServiceIcon(service.name)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-primary">{service.name}</p>
-                        <p className="text-xs text-tertiary mt-1">
-                          Dịch vụ {service.name.toLowerCase()}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-secondary">{service.unit}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-semibold text-primary">
-                      {formatCurrency(Number(service.unitPrice))} / {service.unit}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={service.isActive}
-                        onChange={() => handleToggleActive(service.id, service.isActive)}
-                      />
-                      <div className="w-11 h-6 bg-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-primary after:border-primary after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => handleEdit(service)}
-                        className="p-2 hover:bg-tertiary rounded-lg transition-colors"
-                        title="Chỉnh sửa"
-                      >
-                        <Edit size={16} className="text-secondary" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(service.id)}
-                        className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                        title="Xóa"
-                      >
-                        <Trash2 size={16} className="text-red-600 dark:text-red-400" />
-                      </button>
-                    </div>
-                  </td>
+            <table className="w-full min-w-[600px]">
+              <thead className="bg-tertiary border-b border-primary">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    THÔNG TIN DỊCH VỤ
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    ĐƠN VỊ TÍNH
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    ĐƠN GIÁ HIỆN TẠI
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    TRẠNG THÁI
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    HÀNH ĐỘNG
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-primary">
+                {paginatedServices.map((service) => (
+                  <tr key={service.id} className="hover:bg-tertiary">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-tertiary flex items-center justify-center text-xl">
+                          {getServiceIcon(service.name)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-primary">{service.name}</p>
+                          <p className="text-xs text-tertiary mt-1">
+                            Dịch vụ {service.name.toLowerCase()}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-secondary">{service.unit}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-semibold text-primary">
+                        {formatCurrency(Number(service.unitPrice))} / {service.unit}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={service.isActive}
+                          onChange={() => handleToggleActive(service.id, service.isActive)}
+                        />
+                        <div className="w-11 h-6 bg-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-primary after:border-primary after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(service)}
+                          className="p-2 hover:bg-tertiary rounded-lg transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit size={16} className="text-secondary" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(service.id)}
+                          className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          title="Xóa"
+                        >
+                          <Trash2 size={16} className="text-red-600 dark:text-red-400" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )
       )}
@@ -1082,7 +1100,7 @@ export default function ServicesPage() {
             Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredServices.length)} trong {filteredServices.length} dịch vụ
           </p>
           <div className="flex items-center gap-2">
-            <button 
+            <button
               type="button"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
@@ -1105,15 +1123,14 @@ export default function ServicesPage() {
                 <button
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
-                  className={`btn btn-sm ${
-                    currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
-                  }`}
+                  className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
+                    }`}
                 >
                   {pageNum}
                 </button>
               )
             })}
-            <button 
+            <button
               type="button"
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
@@ -1391,6 +1408,45 @@ export default function ServicesPage() {
                   className="btn btn-secondary btn-md"
                 >
                   Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && confirmAction && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={cancelConfirm}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">
+                  {confirmAction.type === 'delete' && 'Xóa dịch vụ'}
+                  {confirmAction.type === 'accept' && 'Nhận đơn hàng'}
+                  {confirmAction.type === 'complete' && 'Hoàn thành đơn hàng'}
+                </h2>
+                <button onClick={cancelConfirm} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                {confirmAction.type === 'delete' && 'Bạn có chắc chắn muốn xóa dịch vụ này?'}
+                {confirmAction.type === 'accept' && 'Bạn có chắc chắn muốn nhận đơn hàng này?'}
+                {confirmAction.type === 'complete' && 'Bạn có chắc chắn muốn đánh dấu đơn hàng này đã hoàn thành?'}
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={cancelConfirm} className="btn btn-secondary btn-md" disabled={actionLoading}>
+                  Hủy
+                </button>
+                <button
+                  onClick={confirmAction.type === 'delete' ? confirmDelete : confirmAction.type === 'accept' ? confirmAcceptOrder : confirmCompleteOrder}
+                  disabled={actionLoading}
+                  className={`btn btn-md ${confirmAction.type === 'delete' ? 'btn-danger' : 'btn-primary'}`}
+                >
+                  {actionLoading ? 'Đang xử lý...' :
+                    confirmAction.type === 'delete' ? 'Xóa' :
+                      confirmAction.type === 'accept' ? 'Nhận' : 'Hoàn thành'}
                 </button>
               </div>
             </div>

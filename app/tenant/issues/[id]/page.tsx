@@ -65,21 +65,21 @@ export default function IssueDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Chờ xử lý', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
-      PROCESSING: { label: 'Đang sửa chữa', className: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      DONE: { label: 'Hoàn thành', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      CANCELLED: { label: 'Đã hủy', className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+      PENDING: { label: 'Chờ xử lý', className: 'badge badge-warning' },
+      PROCESSING: { label: 'Đang sửa chữa', className: 'badge badge-info' },
+      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
+      CANCELLED: { label: 'Đã hủy', className: 'badge badge-error' }
     }
-    return statusMap[status] || { label: status, className: 'bg-tertiary text-primary' }
+    return statusMap[status] || { label: status, className: 'badge badge-info' }
   }
 
   const getSeverityBadge = (severity: string) => {
     const severityMap: Record<string, { label: string; className: string }> = {
-      HIGH: { label: 'Cao', className: 'bg-red-200 dark:bg-red-900/10 text-red-900 dark:text-red-300 border border-red-400 dark:border-red-700 font-semibold' },
-      MEDIUM: { label: 'Trung bình', className: 'bg-yellow-200 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-300 border border-yellow-400 dark:border-yellow-700 font-semibold' },
-      LOW: { label: 'Thấp', className: 'bg-blue-200 dark:bg-blue-900/40 text-blue-900 dark:text-blue-300 border border-blue-400 dark:border-blue-700 font-semibold' }
+      HIGH: { label: 'Cao', className: 'badge badge-error' },
+      MEDIUM: { label: 'Trung bình', className: 'badge badge-warning' },
+      LOW: { label: 'Thấp', className: 'badge badge-info' }
     }
-    return severityMap[severity] || { label: severity, className: 'bg-tertiary text-primary' }
+    return severityMap[severity] || { label: severity, className: 'badge badge-info' }
   }
 
   const handleRate = async () => {

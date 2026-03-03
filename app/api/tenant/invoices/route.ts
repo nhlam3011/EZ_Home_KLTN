@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     // Get user ID from query param or header (in production, get from session)
     let userId: number | null = null
-    
+
     if (userIdParam) {
       userId = parseInt(userIdParam)
     } else {
@@ -100,125 +100,70 @@ export async function GET(request: NextRequest) {
     const waterPrice = waterService ? Number(waterService.unitPrice) : 0
     const commonServicePrice = commonService ? Number(commonService.unitPrice) : 0
 
-    // Enrich invoices with meter readings and calculated quantities
-    const enrichedInvoices = await Promise.all(
-      invoices.map(async (invoice) => {
-        // Get meter reading for this invoice period
-        const meterReading = await prisma.meterReading.findFirst({
-          where: {
-            roomId: invoice.contract.roomId,
-            month: invoice.month,
-            year: invoice.year
-          }
-        })
-
-        // Calculate quantities
-        const elecConsumption = meterReading 
-          ? meterReading.elecNew - meterReading.elecOld 
-          : 0
-        const waterConsumption = meterReading 
-          ? meterReading.waterNew - meterReading.waterOld 
-          : 0
-        const numberOfPeople = 1 + (invoice.contract.occupants?.length || 0)
-
-        // Get amounts from invoice
-        const amountCommonService = Number(invoice.amountCommonService || 0)
-        const amountService = Number(invoice.amountService || 0)
-        
-        // Check if this invoice is for issue repair cost only
-        // If amountRoom = 0, amountElec = 0, amountWater = 0, amountCommonService = 0 and amountService > 0, it's an issue invoice
-        const isIssueInvoice = Number(invoice.amountRoom) === 0 && 
-                               Number(invoice.amountElec) === 0 && 
-                               Number(invoice.amountWater) === 0 && 
-                               amountCommonService === 0 &&
-                               amountService > 0
-
-        // Try to find related issue by matching repairCost
-        let issueInfo = null
-        let issueRepairCost = 0
-        // Phí dịch vụ chung - luôn lấy từ amountCommonService của invoice
-        let managementFee = amountCommonService
-
-        if (isIssueInvoice) {
-          // This is a separate invoice for issue repair cost
-          issueRepairCost = amountService
-          managementFee = 0
-          
-          // Try to find the related issue
-          const relatedIssue = await prisma.issue.findFirst({
-            where: {
-              userId: invoice.contract.userId,
-              roomId: invoice.contract.roomId,
-              repairCost: {
-                equals: amountService
-              },
-              status: 'DONE'
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 1
-          })
-          
-          if (relatedIssue) {
-            issueInfo = {
-              id: relatedIssue.id,
-              title: relatedIssue.title
-            }
-          }
-        } else if (amountService > 0) {
-          // Regular invoice - amountService might contain issue repair cost
-          // Try to find issue with repairCost
-          const relatedIssue = await prisma.issue.findFirst({
-            where: {
-              userId: invoice.contract.userId,
-              roomId: invoice.contract.roomId,
-              status: 'DONE',
-              repairCost: {
-                not: null
-              }
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 1
-          })
-          
-          if (relatedIssue && relatedIssue.repairCost) {
-            const repairCost = Number(relatedIssue.repairCost)
-            // If repairCost matches amountService
-            if (Math.abs(repairCost - amountService) < 1000) {
-              issueInfo = {
-                id: relatedIssue.id,
-                title: relatedIssue.title
-              }
-              issueRepairCost = repairCost
-            }
-          }
+    // Bulk fetch meter readings and issues to resolve N+1
+    const [allMeterReadings, allIssues] = await Promise.all([
+      prisma.meterReading.findMany({
+        where: {
+          roomId: user.contracts[0].roomId,
+          OR: invoices.map(inv => ({ month: inv.month, year: inv.year }))
         }
-
-        return {
-          ...invoice,
-          amountCommonService: amountCommonService, // Đảm bảo trả về amountCommonService
-          meterReading: meterReading ? {
-            elecOld: meterReading.elecOld,
-            elecNew: meterReading.elecNew,
-            waterOld: meterReading.waterOld,
-            waterNew: meterReading.waterNew
-          } : null,
-          quantities: {
-            elecConsumption,
-            waterConsumption,
-            numberOfPeople
-          },
-          prices: {
-            elecPrice,
-            waterPrice,
-            commonServicePrice
-          },
-          issueInfo,
-          isIssueInvoice,
-          issueRepairCost,
-          managementFee: amountCommonService // Đảm bảo managementFee = amountCommonService
-        }
+      }),
+      prisma.issue.findMany({
+        where: {
+          userId: user.id,
+          roomId: user.contracts[0].roomId,
+          status: 'DONE',
+          repairCost: { not: null }
+        },
+        orderBy: { createdAt: 'desc' }
       })
-    )
+    ])
+
+    const enrichedInvoices = invoices.map(invoice => {
+      const meterReading = allMeterReadings.find(m => m.month === invoice.month && m.year === invoice.year)
+      const elecConsumption = meterReading ? meterReading.elecNew - meterReading.elecOld : 0
+      const waterConsumption = meterReading ? meterReading.waterNew - meterReading.waterOld : 0
+      const numberOfPeople = 1 + (invoice.contract.occupants?.length || 0)
+
+      const amountCommonService = Number(invoice.amountCommonService || 0)
+      const amountService = Number(invoice.amountService || 0)
+      const isIssueInvoice = Number(invoice.amountRoom) === 0 && Number(invoice.amountElec) === 0 && Number(invoice.amountWater) === 0 && amountCommonService === 0 && amountService > 0
+
+      let issueInfo = null
+      let issueRepairCost = 0
+      let managementFee = amountCommonService // Phí dịch vụ chung - luôn lấy từ amountCommonService của invoice
+
+      // Find the most recent relevant issue for this invoice's amountService
+      const relatedIssue = allIssues.find(iss => {
+        const repairCost = Number(iss.repairCost);
+        // Check if the issue's repair cost matches the invoice's amountService
+        // and if the issue's creation date is around the invoice period (within a reasonable window)
+        // This is a heuristic, adjust as needed. For simplicity, we'll just match repairCost.
+        return Math.abs(repairCost - amountService) < 1000; // Allow for minor discrepancies
+      });
+
+      if (relatedIssue) {
+        issueInfo = { id: relatedIssue.id, title: relatedIssue.title };
+        issueRepairCost = Number(relatedIssue.repairCost);
+      }
+
+      return {
+        ...invoice,
+        amountCommonService,
+        meterReading: meterReading ? {
+          elecOld: meterReading.elecOld,
+          elecNew: meterReading.elecNew,
+          waterOld: meterReading.waterOld,
+          waterNew: meterReading.waterNew
+        } : null,
+        quantities: { elecConsumption, waterConsumption, numberOfPeople },
+        prices: { elecPrice, waterPrice, commonServicePrice },
+        issueInfo,
+        isIssueInvoice,
+        issueRepairCost,
+        managementFee: amountCommonService
+      }
+    })
 
     // Sort: prioritize UNPAID invoices first, then by year/month descending
     enrichedInvoices.sort((a, b) => {
@@ -226,11 +171,11 @@ export async function GET(request: NextRequest) {
       const statusPriority = { UNPAID: 0, OVERDUE: 1, PAID: 2 }
       const aPriority = statusPriority[a.status as keyof typeof statusPriority] ?? 3
       const bPriority = statusPriority[b.status as keyof typeof statusPriority] ?? 3
-      
+
       if (aPriority !== bPriority) {
         return aPriority - bPriority
       }
-      
+
       // If same status, sort by year/month descending
       if (a.year !== b.year) {
         return b.year - a.year

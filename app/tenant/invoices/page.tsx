@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { Search, Download, AlertCircle, Printer } from 'lucide-react'
+import { Search, Download, AlertCircle, Printer, X } from 'lucide-react'
 
 interface Invoice {
   id: number
@@ -32,6 +32,8 @@ interface Invoice {
   amountWater: number
   amountService: number
   amountCommonService?: number
+  overdueAmount?: number
+  overdueInvoices?: string
   meterReading?: {
     elecOld: number
     elecNew: number
@@ -70,17 +72,19 @@ export default function InvoicesPage() {
   const paymentCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const paymentCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const hasShownSuccessAlertRef = useRef(false)
+  const [showPayConfirmModal, setShowPayConfirmModal] = useState(false)
+  const [payLoading, setPayLoading] = useState(false)
 
   useEffect(() => {
     fetchInvoices()
-    
+
     // Check for payment result in URL params
     const urlParams = new URLSearchParams(window.location.search)
     const success = urlParams.get('success')
     const error = urlParams.get('error')
     const message = urlParams.get('message')
     const invoiceId = urlParams.get('invoiceId')
-    
+
     if (success === 'true' && message) {
       alert(decodeURIComponent(message))
       // Refresh invoices
@@ -150,16 +154,16 @@ export default function InvoicesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      UNPAID: { label: 'Chưa thanh toán', className: 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded' },
-      PAID: { label: 'Đã thanh toán', className: 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded' },
-      OVERDUE: { label: 'Quá hạn', className: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded' }
+      UNPAID: { label: 'Chưa thanh toán', className: 'badge badge-warning' },
+      PAID: { label: 'Đã thanh toán', className: 'badge badge-success' },
+      OVERDUE: { label: 'Quá hạn', className: 'badge badge-error' }
     }
-    return statusMap[status] || { label: status, className: 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded' }
+    return statusMap[status] || { label: status, className: 'badge bg-neutral-secondary-medium border border-default-medium text-heading' }
   }
 
   const handleDownloadPDF = async () => {
     if (!selectedInvoice) return
-    
+
     try {
       const response = await fetch(`/api/tenant/invoices/${selectedInvoice.id}/pdf`)
       if (response.ok) {
@@ -183,7 +187,7 @@ export default function InvoicesPage() {
 
   const handlePrintInvoice = async () => {
     if (!selectedInvoice) return
-    
+
     try {
       const response = await fetch(`/api/tenant/invoices/${selectedInvoice.id}/pdf`)
       if (response.ok) {
@@ -228,7 +232,7 @@ export default function InvoicesPage() {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             message,
             userId: userId || selectedInvoice.contract.user.id
           })
@@ -247,14 +251,16 @@ export default function InvoicesPage() {
     }
   }
 
-  const handlePayOSPayment = async () => {
-    if (!selectedInvoice || selectedInvoice.status !== 'UNPAID') return
-    
-    try {
-      const confirmed = confirm(`Bạn có chắc chắn muốn thanh toán hóa đơn ${formatCurrency(Number(selectedInvoice.totalAmount))} qua PayOS?`)
-      if (!confirmed) return
+  const openPayConfirmModal = () => {
+    if (!selectedInvoice || (selectedInvoice.status !== 'UNPAID' && selectedInvoice.status !== 'OVERDUE')) return
+    setShowPayConfirmModal(true)
+  }
 
-      setLoading(true)
+  const handlePayOSPayment = async () => {
+    if (!selectedInvoice || (selectedInvoice.status !== 'UNPAID' && selectedInvoice.status !== 'OVERDUE')) return
+
+    setPayLoading(true)
+    try {
       // Create payment and get checkout URL
       const response = await fetch('/api/payments/payos/create', {
         method: 'POST',
@@ -270,7 +276,7 @@ export default function InvoicesPage() {
       if (response.ok && data.checkoutUrl) {
         // PayOS returns a checkout URL - redirect to payment page
         window.open(data.checkoutUrl, '_blank')
-        
+
         // Also show QR code if available
         if (data.qrCode) {
           setQrCode(data.qrCode)
@@ -291,7 +297,8 @@ export default function InvoicesPage() {
       console.error('Error processing PayOS payment:', error)
       alert('Có lỗi xảy ra khi xử lý thanh toán')
     } finally {
-      setLoading(false)
+      setPayLoading(false)
+      setShowPayConfirmModal(false)
     }
   }
 
@@ -303,12 +310,12 @@ export default function InvoicesPage() {
     if (paymentCheckTimeoutRef.current) {
       clearTimeout(paymentCheckTimeoutRef.current)
     }
-    
+
     // Reset success alert flag
     hasShownSuccessAlertRef.current = false
-    
+
     setCheckingPayment(true)
-    
+
     const interval = setInterval(async () => {
       try {
         // Check payment status directly
@@ -326,12 +333,12 @@ export default function InvoicesPage() {
                 clearTimeout(paymentCheckTimeoutRef.current)
                 paymentCheckTimeoutRef.current = null
               }
-              
+
               // Refresh invoices
               await fetchInvoices()
               setCheckingPayment(false)
               setShowQRModal(false)
-              
+
               // Only show alert once
               if (!hasShownSuccessAlertRef.current) {
                 hasShownSuccessAlertRef.current = true
@@ -340,7 +347,7 @@ export default function InvoicesPage() {
             }
           }
         }
-        
+
         // Also check invoice status as fallback
         const response = await fetch(`/api/tenant/invoices`)
         if (response.ok) {
@@ -356,12 +363,12 @@ export default function InvoicesPage() {
               clearTimeout(paymentCheckTimeoutRef.current)
               paymentCheckTimeoutRef.current = null
             }
-            
+
             setCheckingPayment(false)
             setShowQRModal(false)
             setSelectedInvoice(updatedInvoice)
             setInvoices(invoices)
-            
+
             // Only show alert once
             if (!hasShownSuccessAlertRef.current) {
               hasShownSuccessAlertRef.current = true
@@ -373,7 +380,7 @@ export default function InvoicesPage() {
         console.error('Error checking payment status:', error)
       }
     }, 3000) // Check every 3 seconds
-    
+
     paymentCheckIntervalRef.current = interval
 
     // Stop checking after 15 minutes (QR expires)
@@ -384,7 +391,7 @@ export default function InvoicesPage() {
       }
       setCheckingPayment(false)
     }, 15 * 60 * 1000)
-    
+
     paymentCheckTimeoutRef.current = timeout
   }
 
@@ -414,12 +421,13 @@ export default function InvoicesPage() {
           <div className="card">
             <h2 className="text-lg font-semibold text-primary mb-4">Lịch sử hóa đơn</h2>
             <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
               <input
                 type="text"
-                placeholder=" Tìm theo tháng, năm..."
+                placeholder="Tìm kiếm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input pl-10"
+                className="input input-with-icon w-full pr-4 py-2 text-sm"
               />
             </div>
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -436,11 +444,10 @@ export default function InvoicesPage() {
                     <button
                       key={invoice.id}
                       onClick={() => setSelectedInvoice(invoice)}
-                      className={`w-full p-4 text-left border rounded-lg transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-tertiary'
-                          : 'border-primary hover:bg-tertiary'
-                      }`}
+                      className={`w-full p-4 text-left border rounded-lg transition-colors ${isSelected
+                        ? 'border-primary bg-tertiary'
+                        : 'border-primary hover:bg-tertiary'
+                        }`}
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">📅</span>
@@ -451,7 +458,7 @@ export default function InvoicesPage() {
                       <p className="text-xs text-tertiary mb-1">
                         Hạn TT: {formatDate(invoice.paymentDueDate || invoice.createdAt)}
                       </p>
-                      <span className={`inline-block ${statusBadge.className} whitespace-nowrap`}>
+                      <span className={statusBadge.className}>
                         {statusBadge.label}
                       </span>
                       <p className="text-sm font-semibold text-primary mt-2">
@@ -481,9 +488,8 @@ export default function InvoicesPage() {
                     <h3 className="text-xl sm:text-2xl font-bold text-primary mb-2">HÓA ĐƠN</h3>
                     <p className="text-xs sm:text-sm text-secondary">Mã HĐ: INV-{selectedInvoice.id.toString().padStart(6, '0')}</p>
                     <p className="text-xs sm:text-sm text-secondary">Ngày lập: {formatDate(selectedInvoice.createdAt)}</p>
-                    <p className={`text-xs sm:text-sm font-medium mt-1 ${
-                      selectedInvoice.status === 'UNPAID' ? 'text-red-600 dark:text-red-400' : 'text-secondary'
-                    }`}>
+                    <p className={`text-xs sm:text-sm font-medium mt-1 ${selectedInvoice.status === 'UNPAID' || selectedInvoice.status === 'OVERDUE' ? 'text-red-600 dark:text-red-400' : 'text-secondary'
+                      }`}>
                       Hạn thanh toán: {formatDate(selectedInvoice.paymentDueDate || selectedInvoice.createdAt)}
                     </p>
                   </div>
@@ -507,18 +513,16 @@ export default function InvoicesPage() {
                 <div className="bg-tertiary border border-primary rounded-lg p-4">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                     <span className="font-semibold text-primary">Tháng {selectedInvoice.month} / {selectedInvoice.year}</span>
-                    <span className="hidden sm:inline text-tertiary">|</span>
+                    <span className="text-tertiary">|</span>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-secondary">
                       <span>Từ ngày: 01/{selectedInvoice.month}/{selectedInvoice.year}</span>
                       <span>Đến ngày: {new Date(selectedInvoice.year, selectedInvoice.month, 0).getDate()}/{selectedInvoice.month}/{selectedInvoice.year}</span>
                     </div>
-                    <span className={`inline-flex items-center gap-1.5 mt-2 sm:mt-0 sm:ml-auto font-semibold ${
-                      selectedInvoice.status === 'UNPAID' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                    }`}>
-                      <span className={`w-2.5 h-2.5 rounded-full ${
-                        selectedInvoice.status === 'UNPAID' ? 'bg-red-500' : 'bg-green-500'
-                      }`}></span>
-                      <span>{selectedInvoice.status === 'UNPAID' ? 'CHƯA THANH TOÁN' : 'ĐÃ THANH TOÁN'}</span>
+                    <span className={`inline-flex items-center gap-1.5 mt-2 sm:mt-0 sm:ml-auto font-semibold ${selectedInvoice.status === 'UNPAID' || selectedInvoice.status === 'OVERDUE' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                      }`}>
+                      <span className={`w-2.5 h-2.5 rounded-full ${selectedInvoice.status === 'UNPAID' || selectedInvoice.status === 'OVERDUE' ? 'bg-red-500' : 'bg-green-500'
+                        }`}></span>
+                      <span>{selectedInvoice.status === 'PAID' ? 'ĐÃ THANH TOÁN' : selectedInvoice.status === 'OVERDUE' ? 'QUÁ HẠN' : 'CHƯA THANH TOÁN'}</span>
                     </span>
                   </div>
                 </div>
@@ -539,108 +543,139 @@ export default function InvoicesPage() {
                         </tr>
                       </thead>
                       <tbody>
-                    {/* Tiền Thuê Phòng - chỉ hiển thị nếu có giá trị */}
-                    {(selectedInvoice.amountRoom || 0) > 0 && (
-                      <tr>
-                        <td className="px-3 sm:px-4 py-3">
-                          <div>
-                            <p className="text-xs sm:text-sm font-medium text-primary">Tiền Thuê Phòng</p>
-                            <p className="text-xs text-tertiary mt-0.5">Cố định hàng tháng</p>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">1</td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
-                      </tr>
-                    )}
-                    {/* Tiền Điện - chỉ hiển thị nếu có giá trị */}
-                    {(selectedInvoice.amountElec || 0) > 0 && (
-                      <tr>
-                        <td className="px-3 sm:px-4 py-3">
-                          <div>
-                            <p className="text-xs sm:text-sm font-medium text-primary">Tiền Điện</p>
-                            <p className="text-xs text-tertiary mt-0.5">
-                              {selectedInvoice.meterReading 
-                                ? `Chỉ số: ${selectedInvoice.meterReading.elecOld} - ${selectedInvoice.meterReading.elecNew} (kWh)`
-                                : 'Chỉ số điện nước'}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {selectedInvoice.prices ? formatCurrency(selectedInvoice.prices.elecPrice) : '3.500 ₫'}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {selectedInvoice.quantities?.elecConsumption.toFixed(0) || '0'}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountElec))}</td>
-                      </tr>
-                    )}
-                    {/* Tiền Nước - chỉ hiển thị nếu có giá trị */}
-                    {(selectedInvoice.amountWater || 0) > 0 && (
-                      <tr>
-                        <td className="px-3 sm:px-4 py-3">
-                          <div>
-                            <p className="text-xs sm:text-sm font-medium text-primary">Tiền Nước</p>
-                            <p className="text-xs text-tertiary mt-0.5">
-                              {selectedInvoice.meterReading 
-                                ? `Chỉ số: ${selectedInvoice.meterReading.waterOld} - ${selectedInvoice.meterReading.waterNew} (m³)`
-                                : 'Định mức theo người'}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {selectedInvoice.prices ? formatCurrency(selectedInvoice.prices.waterPrice) : '25.000 ₫'}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {selectedInvoice.quantities?.waterConsumption.toFixed(2) || '0'}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountWater))}</td>
-                      </tr>
-                    )}
-                    {/* Phí xử lý sự cố - hiển thị nếu có */}
-                    {(selectedInvoice.issueRepairCost || 0) > 0 && (
-                      <tr>
-                        <td className="px-3 sm:px-4 py-3">
-                          <div>
-                            <p className="text-xs sm:text-sm font-medium text-primary">Phí xử lý sự cố</p>
-                            <p className="text-xs text-tertiary mt-0.5">
-                              {selectedInvoice.issueInfo 
-                                ? `Sự cố #${selectedInvoice.issueInfo.id}: ${selectedInvoice.issueInfo.title}`
-                                : 'Chi phí sửa chữa và xử lý sự cố'}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {formatCurrency(selectedInvoice.issueRepairCost || 0)}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">1</td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">
-                          {formatCurrency(selectedInvoice.issueRepairCost || 0)}
-                        </td>
-                      </tr>
-                    )}
-                    {/* Phí Dịch vụ chung - hiển thị nếu có amountCommonService */}
-                    {((selectedInvoice.amountCommonService || selectedInvoice.managementFee || 0) > 0) && (
-                      <tr>
-                        <td className="px-3 sm:px-4 py-3">
-                          <div>
-                            <p className="text-xs sm:text-sm font-medium text-primary">Phí Dịch vụ chung</p>
-                            <p className="text-xs text-tertiary mt-0.5">Vệ sinh, thang máy, bảo vệ, quản lý (theo đầu người)</p>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {selectedInvoice.prices && selectedInvoice.prices.commonServicePrice > 0
-                            ? formatCurrency(selectedInvoice.prices.commonServicePrice)
-                            : formatCurrency(selectedInvoice.amountCommonService || selectedInvoice.managementFee || 0)}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
-                          {selectedInvoice.quantities?.numberOfPeople || 1}
-                        </td>
-                        <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">
-                          {formatCurrency(selectedInvoice.amountCommonService || selectedInvoice.managementFee || 0)}
-                        </td>
-                      </tr>
-                    )}
+                        {/* Tiền Thuê Phòng - chỉ hiển thị nếu có giá trị */}
+                        {(selectedInvoice.amountRoom || 0) > 0 && (
+                          <tr>
+                            <td className="px-3 sm:px-4 py-3">
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-primary">Tiền Thuê Phòng</p>
+                                <p className="text-xs text-tertiary mt-0.5">Cố định hàng tháng</p>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">1</td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountRoom))}</td>
+                          </tr>
+                        )}
+                        {/* Tiền Điện - chỉ hiển thị nếu có giá trị */}
+                        {(selectedInvoice.amountElec || 0) > 0 && (
+                          <tr>
+                            <td className="px-3 sm:px-4 py-3">
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-primary">Tiền Điện</p>
+                                <p className="text-xs text-tertiary mt-0.5">
+                                  {selectedInvoice.meterReading
+                                    ? `Chỉ số: ${selectedInvoice.meterReading.elecOld} - ${selectedInvoice.meterReading.elecNew} (kWh)`
+                                    : 'Chỉ số điện nước'}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {selectedInvoice.prices ? formatCurrency(selectedInvoice.prices.elecPrice) : '3.500 ₫'}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {selectedInvoice.quantities?.elecConsumption.toFixed(0) || '0'}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountElec))}</td>
+                          </tr>
+                        )}
+                        {/* Tiền Nước - chỉ hiển thị nếu có giá trị */}
+                        {(selectedInvoice.amountWater || 0) > 0 && (
+                          <tr>
+                            <td className="px-3 sm:px-4 py-3">
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-primary">Tiền Nước</p>
+                                <p className="text-xs text-tertiary mt-0.5">
+                                  {selectedInvoice.meterReading
+                                    ? `Chỉ số: ${selectedInvoice.meterReading.waterOld} - ${selectedInvoice.meterReading.waterNew} (m³)`
+                                    : 'Định mức theo người'}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {selectedInvoice.prices ? formatCurrency(selectedInvoice.prices.waterPrice) : '25.000 ₫'}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {selectedInvoice.quantities?.waterConsumption.toFixed(2) || '0'}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">{formatCurrency(Number(selectedInvoice.amountWater))}</td>
+                          </tr>
+                        )}
+                        {/* Phí xử lý sự cố - hiển thị nếu có */}
+                        {(selectedInvoice.issueRepairCost || 0) > 0 && (
+                          <tr>
+                            <td className="px-3 sm:px-4 py-3">
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-primary">Phí xử lý sự cố</p>
+                                <p className="text-xs text-tertiary mt-0.5">
+                                  {selectedInvoice.issueInfo
+                                    ? `Sự cố #${selectedInvoice.issueInfo.id}: ${selectedInvoice.issueInfo.title}`
+                                    : 'Chi phí sửa chữa và xử lý sự cố'}
+                                </p>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {formatCurrency(selectedInvoice.issueRepairCost || 0)}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">1</td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">
+                              {formatCurrency(selectedInvoice.issueRepairCost || 0)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Phí Dịch vụ chung - hiển thị nếu có amountCommonService */}
+                        {((selectedInvoice.amountCommonService || selectedInvoice.managementFee || 0) > 0) && (
+                          <tr>
+                            <td className="px-3 sm:px-4 py-3">
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-primary">Phí Dịch vụ chung</p>
+                                <p className="text-xs text-tertiary mt-0.5">Vệ sinh, thang máy, bảo vệ, quản lý (theo đầu người)</p>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {selectedInvoice.prices && selectedInvoice.prices.commonServicePrice > 0
+                                ? formatCurrency(selectedInvoice.prices.commonServicePrice)
+                                : formatCurrency(selectedInvoice.amountCommonService || selectedInvoice.managementFee || 0)}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              {selectedInvoice.quantities?.numberOfPeople || 1}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-primary text-right whitespace-nowrap">
+                              {formatCurrency(selectedInvoice.amountCommonService || selectedInvoice.managementFee || 0)}
+                            </td>
+                          </tr>
+                        )}
+                        {/* Hoá đơn quá hạn - hiển thị nếu có */}
+                        {((selectedInvoice.overdueAmount || 0) > 0) && (
+                          <tr className="bg-orange-50 dark:bg-orange-900/20">
+                            <td className="px-3 sm:px-4 py-3">
+                              <div>
+                                <p className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400">Hoá đơn quá hạn</p>
+                                {selectedInvoice.overdueInvoices && (
+                                  <p className="text-xs text-tertiary mt-0.5">
+                                    {(() => {
+                                      try {
+                                        const overdueList = JSON.parse(selectedInvoice.overdueInvoices)
+                                        return overdueList.map((inv: any) => `Tháng ${inv.month}/${inv.year}`).join(', ')
+                                      } catch {
+                                        return ''
+                                      }
+                                    })()}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              -
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm text-secondary whitespace-nowrap">
+                              -
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold text-orange-600 dark:text-orange-400 text-right whitespace-nowrap">
+                              +{formatCurrency(Number(selectedInvoice.overdueAmount))}
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -651,26 +686,26 @@ export default function InvoicesPage() {
               <div className="border-t border-primary pt-4 sm:pt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-                    <button 
+                    <button
                       onClick={handleDownloadPDF}
-                      className="btn btn-secondary btn-sm flex-1 sm:flex-none"
+                      className="btn btn-secondary btn-md flex-1 sm:flex-none"
                     >
                       <Download size={20} className="flex-shrink-0" />
                       <span>Tải PDF</span>
                     </button>
-                    {selectedInvoice.status === 'UNPAID' && (
-                      <button 
+                    {(selectedInvoice.status === 'UNPAID' || selectedInvoice.status === 'OVERDUE') && (
+                      <button
                         onClick={handlePayOSPayment}
                         disabled={loading}
-                        className="btn btn-primary btn-sm flex-1 sm:flex-none"
+                        className="btn btn-primary btn-md flex-1 sm:flex-none"
                       >
                         <span>💳</span>
                         <span>Thanh toán PayOS</span>
                       </button>
                     )}
-                    <button 
+                    <button
                       onClick={handleComplain}
-                      className="btn btn-outline-danger btn-sm flex-1 sm:flex-none"
+                      className="btn btn-outline-danger btn-md flex-1 sm:flex-none"
                     >
                       <AlertCircle size={20} className="flex-shrink-0" />
                       <span>Khiếu nại hóa đơn</span>
@@ -713,7 +748,7 @@ export default function InvoicesPage() {
                 ✕
               </button>
             </div>
-            
+
             <div className="text-center mb-4">
               <p className="text-sm text-secondary mb-2">
                 {qrCode ? (
@@ -773,7 +808,7 @@ export default function InvoicesPage() {
                       clearTimeout(paymentCheckTimeoutRef.current)
                       paymentCheckTimeoutRef.current = null
                     }
-                    
+
                     // Manually confirm payment
                     try {
                       const response = await fetch(`/api/payments/payos/callback`, {
@@ -781,12 +816,12 @@ export default function InvoicesPage() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ paymentId })
                       })
-                      
+
                       if (response.ok) {
                         await fetchInvoices()
                         setShowQRModal(false)
                         setCheckingPayment(false)
-                        
+
                         if (!hasShownSuccessAlertRef.current) {
                           hasShownSuccessAlertRef.current = true
                           alert('Đã xác nhận thanh toán thành công!')
@@ -810,6 +845,32 @@ export default function InvoicesPage() {
         </div>
       )}
 
+      {/* PayOS Payment Confirmation Modal */}
+      {showPayConfirmModal && selectedInvoice && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowPayConfirmModal(false)}>
+          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary">Xác nhận thanh toán</h2>
+                <button onClick={() => setShowPayConfirmModal(false)} className="p-2 hover:bg-tertiary rounded-lg">
+                  <X size={20} className="text-secondary" />
+                </button>
+              </div>
+              <p className="text-secondary mb-6">
+                Bạn có chắc chắn muốn thanh toán hóa đơn <span className="font-semibold text-primary">{formatCurrency(Number(selectedInvoice.totalAmount))}</span> qua PayOS?
+              </p>
+              <div className="flex items-center gap-3 justify-end">
+                <button onClick={() => setShowPayConfirmModal(false)} className="btn btn-secondary btn-md" disabled={payLoading}>
+                  Hủy
+                </button>
+                <button onClick={handlePayOSPayment} className="btn btn-primary btn-md" disabled={payLoading}>
+                  {payLoading ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

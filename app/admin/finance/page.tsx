@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  FileText, 
-  Zap, 
-  Droplet, 
-  Save, 
-  Download, 
-  Upload, 
+import {
+  FileText,
+  Zap,
+  Droplet,
+  Save,
+  Download,
+  Upload,
   Search,
   CheckCircle,
   XCircle,
@@ -61,7 +61,7 @@ export default function FinancePage() {
       if (response.ok) {
         const data = await response.json()
         setRooms(data)
-        
+
         // Initialize readings state - lấy từ database (số mới đã lưu)
         const initialReadings: Record<number, { elecNew: string; waterNew: string; error?: string }> = {}
         data.forEach((room: RoomReading) => {
@@ -146,7 +146,7 @@ export default function FinancePage() {
         }
 
         const error = validateReading(room, reading.elecNew || '', reading.waterNew || '')
-        
+
         if (error) {
           setReadings(prev => ({
             ...prev,
@@ -271,22 +271,20 @@ export default function FinancePage() {
         <div className="flex items-center gap-2 sm:gap-6 overflow-x-auto">
           <Link
             href="/admin/invoices"
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-              pathname === '/admin/invoices'
-                ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${pathname === '/admin/invoices'
+              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-secondary hover:text-primary'
+              }`}
           >
             <FileText size={18} className="inline mr-1 sm:mr-2" />
-            Danh sách hóa đơn
+            Hóa đơn
           </Link>
           <Link
             href="/admin/finance"
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-              pathname === '/admin/finance'
-                ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${pathname === '/admin/finance'
+              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-secondary hover:text-primary'
+              }`}
           >
             <Zap size={18} className="inline mr-1 sm:mr-2" />
             Chốt điện nước
@@ -297,11 +295,46 @@ export default function FinancePage() {
       {/* Meter Reading Content */}
       {pathname === '/admin/finance' && (
         <div className="space-y-6">
-          {/* Action Bar */}
-          <div className="card">
+          {/* Sub Header & Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-semibold text-primary">Quản lý chỉ số</h2>
+              <p className="text-xs sm:text-sm text-secondary mt-1">Ghi nhận chỉ số điện nước hàng tháng</p>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <button className="btn btn-secondary btn-sm sm:btn-md">
+                <Upload size={18} strokeWidth={2} />
+                <span>Import</span>
+              </button>
+              <button className="btn btn-secondary btn-sm sm:btn-md">
+                <Download size={18} strokeWidth={2} />
+                <span>Export</span>
+              </button>
+              <button
+                onClick={handleSaveReadings}
+                disabled={saving}
+                className="btn btn-primary btn-sm sm:btn-md"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Đang lưu...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} strokeWidth={2} />
+                    <span>Lưu thay đổi</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="card p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-2 flex-shrink-0">
-                <label className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">Kỳ chốt số:</label>
+                <label className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">KỲ CHỐT SỐ</label>
                 <select
                   value={`${selectedMonth}/${selectedYear}`}
                   onChange={(e) => {
@@ -309,7 +342,7 @@ export default function FinancePage() {
                     setSelectedMonth(parseInt(month))
                     setSelectedYear(parseInt(year))
                   }}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 border border-primary rounded-lg text-xs sm:text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 sm:flex-none"
+                  className="select flex-1"
                 >
                   {generateMonthYearOptions().map(opt => (
                     <option key={opt.value} value={opt.value}>
@@ -318,44 +351,17 @@ export default function FinancePage() {
                   ))}
                 </select>
               </div>
-              <div className="flex-1 relative min-w-0">
-                <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-tertiary w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm phòng..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 border border-primary rounded-lg text-xs sm:text-sm bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={handleSaveReadings}
-                  disabled={saving}
-                  className="btn btn-primary btn-sm sm:btn-md flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      <span className="text-xs sm:text-sm">Đang lưu...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save size={18} />
-                      <span className="text-xs sm:text-sm">Lưu thay đổi</span>
-                    </>
-                  )}
-                </button>
-                <button className="btn btn-secondary btn-sm sm:btn-md flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]">
-                  <Download size={18} />
-                  <span className="hidden sm:inline">Xuất Excel</span>
-                  <span className="sm:hidden">Xuất</span>
-                </button>
-                <button className="btn btn-secondary btn-sm sm:btn-md flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px]">
-                  <Upload size={18} />
-                  <span className="hidden sm:inline">Upload Excel</span>
-                  <span className="sm:hidden">Upload</span>
-                </button>
+              <div className="flex-1 min-w-0">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm phòng..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="input input-with-icon w-full pr-4 py-2 text-sm"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                </div>
               </div>
             </div>
           </div>
@@ -376,180 +382,171 @@ export default function FinancePage() {
                         <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase sticky left-0 bg-tertiary z-10">PHÒNG</th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                           <div className="flex items-center gap-1 sm:gap-2">
-                            <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400" />
-                            <span className="hidden sm:inline">ĐIỆN CŨ</span>
-                            <span className="sm:hidden">Đ.CŨ</span>
+                            <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                            <span>ĐIỆN CŨ</span>
                           </div>
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                           <div className="flex items-center gap-1 sm:gap-2">
-                            <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400" />
-                            <span className="hidden sm:inline">ĐIỆN MỚI</span>
-                            <span className="sm:hidden">Đ.MỚI</span>
+                            <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
+                            <span>ĐIỆN MỚI</span>
                           </div>
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase hidden md:table-cell">TIÊU THỤ</th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                           <div className="flex items-center gap-1 sm:gap-2">
-                            <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400" />
-                            <span className="hidden sm:inline">NƯỚC CŨ</span>
-                            <span className="sm:hidden">N.CŨ</span>
+                            <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                            <span>NƯỚC CŨ</span>
                           </div>
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                           <div className="flex items-center gap-1 sm:gap-2">
-                            <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400" />
-                            <span className="hidden sm:inline">NƯỚC MỚI</span>
-                            <span className="sm:hidden">N.MỚI</span>
+                            <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
+                            <span>NƯỚC MỚI</span>
                           </div>
                         </th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase hidden md:table-cell">TIÊU THỤ</th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
                       </tr>
                     </thead>
-                  <tbody className="divide-y divide-primary">
-                    {filteredRooms.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-xs sm:text-sm text-tertiary">
-                          Không có phòng nào
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRooms.map((room) => {
-                        const reading = readings[room.id] || { elecNew: '', waterNew: '' }
-                        const elecNewNum = reading.elecNew ? parseFloat(reading.elecNew) : null
-                        const waterNewNum = reading.waterNew ? parseFloat(reading.waterNew) : null
-                        const elecConsumption = elecNewNum !== null ? elecNewNum - room.elecOld : null
-                        const waterConsumption = waterNewNum !== null ? waterNewNum - room.waterOld : null
-                        const hasError = reading.error || 
-                          (elecNewNum !== null && elecNewNum < room.elecOld) ||
-                          (waterNewNum !== null && waterNewNum < room.waterOld)
-                        const isComplete = elecNewNum !== null && waterNewNum !== null && !hasError
+                    <tbody className="divide-y divide-primary">
+                      {filteredRooms.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-8 text-center text-xs sm:text-sm text-tertiary">
+                            Không có phòng nào
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredRooms.map((room) => {
+                          const reading = readings[room.id] || { elecNew: '', waterNew: '' }
+                          const elecNewNum = reading.elecNew ? parseFloat(reading.elecNew) : null
+                          const waterNewNum = reading.waterNew ? parseFloat(reading.waterNew) : null
+                          const elecConsumption = elecNewNum !== null ? elecNewNum - room.elecOld : null
+                          const waterConsumption = waterNewNum !== null ? waterNewNum - room.waterOld : null
+                          const hasError = reading.error ||
+                            (elecNewNum !== null && elecNewNum < room.elecOld) ||
+                            (waterNewNum !== null && waterNewNum < room.waterOld)
+                          const isComplete = elecNewNum !== null && waterNewNum !== null && !hasError
 
-                        return (
-                          <tr 
-                            key={room.id} 
-                            className={`hover:bg-tertiary transition-colors ${
-                              hasError ? 'bg-red-50 dark:bg-red-900/20' : ''
-                            }`}
-                          >
-                            <td className="px-3 sm:px-4 py-2 sm:py-3 sticky left-0 bg-primary dark:bg-secondary z-10">
-                              <div>
-                                <p className="text-xs sm:text-sm font-medium text-primary">{room.name}</p>
-                                {room.contract && (
-                                  <p className="text-xs text-tertiary">{room.contract.user.fullName}</p>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3">
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
-                                <span className="text-xs sm:text-sm text-secondary font-medium">{room.elecOld.toLocaleString('vi-VN')}</span>
-                              </div>
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3">
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
-                                <input
-                                  type="number"
-                                  min={room.elecOld}
-                                  step="1"
-                                  value={reading.elecNew}
-                                  onChange={(e) => handleReadingChange(room.id, 'elecNew', e.target.value)}
-                                  onBlur={(e) => {
-                                    const val = parseFloat(e.target.value)
-                                    if (val < room.elecOld) {
-                                      handleReadingChange(room.id, 'elecNew', e.target.value)
-                                    }
-                                  }}
-                                  placeholder="Nhập số mới"
-                                  className={`w-16 sm:w-24 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary ${
-                                    hasError && elecNewNum !== null && elecNewNum < room.elecOld
+                          return (
+                            <tr
+                              key={room.id}
+                              className={`hover:bg-tertiary transition-colors ${hasError ? 'bg-red-50 dark:bg-red-900/20' : ''
+                                }`}
+                            >
+                              <td className="px-3 sm:px-4 py-2 sm:py-3 sticky left-0 bg-primary dark:bg-secondary z-10">
+                                <div>
+                                  <p className="text-xs sm:text-sm font-medium text-primary">{room.name}</p>
+                                  {room.contract && (
+                                    <p className="text-xs text-tertiary">{room.contract.user.fullName}</p>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
+                                  <span className="text-xs sm:text-sm text-secondary font-medium">{room.elecOld.toLocaleString('vi-VN')}</span>
+                                </div>
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
+                                  <input
+                                    type="number"
+                                    min={room.elecOld}
+                                    step="1"
+                                    value={reading.elecNew}
+                                    onChange={(e) => handleReadingChange(room.id, 'elecNew', e.target.value)}
+                                    onBlur={(e) => {
+                                      const val = parseFloat(e.target.value)
+                                      if (val < room.elecOld) {
+                                        handleReadingChange(room.id, 'elecNew', e.target.value)
+                                      }
+                                    }}
+                                    placeholder="Số mới"
+                                    className={`w-13 sm:w-20 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary placeholder:text-tertiary placeholder:opacity-50 ${hasError && elecNewNum !== null && elecNewNum < room.elecOld
                                       ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
                                       : 'border-primary focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400'
-                                  }`}
-                                />
-                              </div>
-                              {hasError && elecNewNum !== null && elecNewNum < room.elecOld && (
-                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.elecOld}</p>
-                              )}
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
-                              {elecConsumption !== null ? (
-                                <span className={`text-xs sm:text-sm font-medium ${
-                                  elecConsumption < 0 
-                                    ? 'text-red-600 dark:text-red-400' 
+                                      }`}
+                                  />
+                                </div>
+                                {hasError && elecNewNum !== null && elecNewNum < room.elecOld && (
+                                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.elecOld}</p>
+                                )}
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
+                                {elecConsumption !== null ? (
+                                  <span className={`text-xs sm:text-sm font-medium ${elecConsumption < 0
+                                    ? 'text-red-600 dark:text-red-400'
                                     : 'text-yellow-600 dark:text-yellow-400'
-                                }`}>
-                                  {elecConsumption.toLocaleString('vi-VN')}
-                                </span>
-                              ) : (
-                                <span className="text-xs sm:text-sm text-tertiary">-</span>
-                              )}
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3">
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
-                                <span className="text-xs sm:text-sm text-secondary font-medium">{room.waterOld.toLocaleString('vi-VN')}</span>
-                              </div>
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3">
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
-                                <input
-                                  type="number"
-                                  min={room.waterOld}
-                                  step="1"
-                                  value={reading.waterNew}
-                                  onChange={(e) => handleReadingChange(room.id, 'waterNew', e.target.value)}
-                                  onBlur={(e) => {
-                                    const val = parseFloat(e.target.value)
-                                    if (val < room.waterOld) {
-                                      handleReadingChange(room.id, 'waterNew', e.target.value)
-                                    }
-                                  }}
-                                  placeholder="Nhập số mới"
-                                  className={`w-16 sm:w-24 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary ${
-                                    hasError && waterNewNum !== null && waterNewNum < room.waterOld
+                                    }`}>
+                                    {elecConsumption.toLocaleString('vi-VN')}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs sm:text-sm text-tertiary">-</span>
+                                )}
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                                  <span className="text-xs sm:text-sm text-secondary font-medium">{room.waterOld.toLocaleString('vi-VN')}</span>
+                                </div>
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3">
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                  <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                                  <input
+                                    type="number"
+                                    min={room.waterOld}
+                                    step="1"
+                                    value={reading.waterNew}
+                                    onChange={(e) => handleReadingChange(room.id, 'waterNew', e.target.value)}
+                                    onBlur={(e) => {
+                                      const val = parseFloat(e.target.value)
+                                      if (val < room.waterOld) {
+                                        handleReadingChange(room.id, 'waterNew', e.target.value)
+                                      }
+                                    }}
+                                    placeholder="Số mới"
+                                    className={`w-13 sm:w-20 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary placeholder:text-tertiary placeholder:opacity-50 ${hasError && waterNewNum !== null && waterNewNum < room.waterOld
                                       ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
                                       : 'border-primary focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400'
-                                  }`}
-                                />
-                              </div>
-                              {hasError && waterNewNum !== null && waterNewNum < room.waterOld && (
-                                <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.waterOld}</p>
-                              )}
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
-                              {waterConsumption !== null ? (
-                                <span className={`text-xs sm:text-sm font-medium ${
-                                  waterConsumption < 0 
-                                    ? 'text-red-600 dark:text-red-400' 
-                                    : 'text-blue-600 dark:text-blue-400'
-                                }`}>
-                                  {waterConsumption.toLocaleString('vi-VN')}
-                                </span>
-                              ) : (
-                                <span className="text-xs sm:text-sm text-tertiary">-</span>
-                              )}
-                            </td>
-                            <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
-                              {hasError ? (
-                                <div className="flex flex-col items-center gap-1">
-                                  <XCircle size={16} className="sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
-                                  <span className="text-xs text-red-600 dark:text-red-400 hidden sm:inline">{reading.error || 'Lỗi'}</span>
+                                      }`}
+                                  />
                                 </div>
-                              ) : isComplete ? (
-                                <CheckCircle size={16} className="sm:w-5 sm:h-5 text-green-600 dark:text-green-400 mx-auto" />
-                              ) : (
-                                <AlertCircle size={16} className="sm:w-5 sm:h-5 text-tertiary mx-auto" />
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
+                                {hasError && waterNewNum !== null && waterNewNum < room.waterOld && (
+                                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.waterOld}</p>
+                                )}
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
+                                {waterConsumption !== null ? (
+                                  <span className={`text-xs sm:text-sm font-medium ${waterConsumption < 0
+                                    ? 'text-red-600 dark:text-red-400'
+                                    : 'text-blue-600 dark:text-blue-400'
+                                    }`}>
+                                    {waterConsumption.toLocaleString('vi-VN')}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs sm:text-sm text-tertiary">-</span>
+                                )}
+                              </td>
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
+                                {hasError ? (
+                                  <div className="flex flex-col items-center gap-1">
+                                    <XCircle size={16} className="text-red-600 dark:text-red-400" />
+                                    <span className="text-xs text-red-600 dark:text-red-400">{reading.error || 'Lỗi'}</span>
+                                  </div>
+                                ) : isComplete ? (
+                                  <CheckCircle size={16} className="sm:w-5 sm:h-5 text-green-600 dark:text-green-400 mx-auto" />
+                                ) : (
+                                  <AlertCircle size={16} className="sm:w-5 sm:h-5 text-tertiary mx-auto" />
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
                   </table>
                 </div>
               </div>

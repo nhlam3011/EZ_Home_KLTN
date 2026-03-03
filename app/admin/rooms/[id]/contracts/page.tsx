@@ -63,17 +63,18 @@ export default function RoomContractsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      // Fetch room info
-      const roomRes = await fetch(`/api/rooms/${roomId}`)
-      const roomData = await roomRes.json()
+      // Fetch room info and contracts simultaneously
+      const [roomRes, contractsRes] = await Promise.all([
+        fetch(`/api/rooms/${roomId}`),
+        fetch(`/api/contracts?roomId=${roomId}`)
+      ])
+
       if (roomRes.ok) {
-        setRoom(roomData)
+        setRoom(await roomRes.json())
       }
 
-      // Fetch contracts for this room
-      const contractsRes = await fetch(`/api/contracts?roomId=${roomId}`)
-      const contractsData = await contractsRes.json()
       if (contractsRes.ok) {
+        const contractsData = await contractsRes.json()
         // Fetch invoices for each contract
         const contractsWithInvoices = await Promise.all(
           contractsData.map(async (contract: Contract) => {
@@ -384,7 +385,7 @@ export default function RoomContractsPage() {
                                 {getInvoiceStatusBadge(invoice.status)}
                               </td>
                               <td className="px-4 py-3 text-sm text-tertiary">
-                                {invoice.paidAt 
+                                {invoice.paidAt
                                   ? formatDateTime(invoice.paidAt)
                                   : formatDateTime(invoice.createdAt)
                                 }

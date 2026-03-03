@@ -90,6 +90,7 @@ model User {
   documents     Document[]
   sentMessages  Message[] @relation("MessageSender")
   receivedMessages Message[] @relation("MessageReceiver")
+  contractRenewalRequests ContractRenewalRequest[]
 }
 
 model Room {
@@ -139,6 +140,29 @@ model Contract {
   invoices   Invoice[]
   documents  Document[]
   occupants  ContractOccupant[] // Người ở trong hợp đồng (ngoài người chủ hợp đồng)
+  renewalRequests ContractRenewalRequest[]
+}
+
+enum RenewalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ContractRenewalRequest {
+  id          Int           @id @default(autoincrement())
+  contractId  Int
+  contract    Contract      @relation(fields: [contractId], references: [id])
+  userId      Int
+  user        User          @relation(fields: [userId], references: [id])
+  requestDate DateTime      @default(now())
+  newEndDate  DateTime      // Ngày kết thúc mới mong muốn
+  status      RenewalStatus @default(PENDING)
+  adminNote   String?       // Ghi chú của admin khi duyệt/từ chối
+  processedBy Int?          // Admin ID duyệt
+  processedAt DateTime?      // Ngày duyệt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 }
 
 model MeterReading {
@@ -171,6 +195,10 @@ model Invoice {
   paidAt             DateTime?
   payments           Payment[]     // Danh sách các giao dịch thanh toán
   createdAt          DateTime      @default(now())
+  
+  // Thông tin hoá đơn quá hạn từ tháng trước
+  overdueAmount      Decimal       @default(0) @db.Decimal(10, 2) // Tổng số tiền quá hạn
+  overdueInvoices    String?       @db.Text // JSON array of overdue invoice info: [{"id": 1, "month": 1, "year": 2025, "amount": 1500000}, ...]
 }
 
 model Service {

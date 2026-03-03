@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Lock, 
-  Bell, 
-  Eye, 
-  EyeOff, 
+import {
+  Lock,
+  Bell,
+  Eye,
+  EyeOff,
   Loader2,
   CheckCircle,
   AlertCircle,
@@ -34,7 +34,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
-  
+
   // Password form
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -46,7 +46,7 @@ export default function SettingsPage() {
     new: false,
     confirm: false
   })
-  
+
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState({
     invoice: true,
@@ -54,7 +54,7 @@ export default function SettingsPage() {
     issue: true,
     email: true
   })
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState<string>('')
 
@@ -72,7 +72,7 @@ export default function SettingsPage() {
 
       const parsedUser = JSON.parse(userData)
       const response = await fetch(`/api/tenant/me?userId=${parsedUser.id}`)
-      
+
       if (response.ok) {
         const data = await response.json()
         setUser(data)
@@ -217,22 +217,20 @@ export default function SettingsPage() {
         <div className="flex gap-6">
           <button
             onClick={() => setActiveTab('password')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 ${
-              activeTab === 'password'
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 ${activeTab === 'password'
                 ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-secondary hover:text-primary'
-            }`}
+              }`}
           >
             <Shield size={18} />
             <span>Bảo mật</span>
           </button>
           <button
             onClick={() => setActiveTab('notifications')}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 ${
-              activeTab === 'notifications'
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all duration-200 flex items-center gap-2 ${activeTab === 'notifications'
                 ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-secondary hover:text-primary'
-            }`}
+              }`}
           >
             <Bell size={18} />
             <span>Thông báo</span>
@@ -402,11 +400,11 @@ export default function SettingsPage() {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={notificationSettings.invoice}
                   onChange={() => handleNotificationToggle('invoice')}
-                  className="sr-only peer" 
+                  className="sr-only peer"
                 />
                 <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
                   <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.invoice ? 'translate-x-5' : 'translate-x-0'}`}></div>
@@ -428,11 +426,11 @@ export default function SettingsPage() {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={notificationSettings.message}
                   onChange={() => handleNotificationToggle('message')}
-                  className="sr-only peer" 
+                  className="sr-only peer"
                 />
                 <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
                   <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.message ? 'translate-x-5' : 'translate-x-0'}`}></div>
@@ -454,11 +452,11 @@ export default function SettingsPage() {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={notificationSettings.issue}
                   onChange={() => handleNotificationToggle('issue')}
-                  className="sr-only peer" 
+                  className="sr-only peer"
                 />
                 <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
                   <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.issue ? 'translate-x-5' : 'translate-x-0'}`}></div>
@@ -480,11 +478,11 @@ export default function SettingsPage() {
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={notificationSettings.email}
                   onChange={() => handleNotificationToggle('email')}
-                  className="sr-only peer" 
+                  className="sr-only peer"
                 />
                 <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
                   <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.email ? 'translate-x-5' : 'translate-x-0'}`}></div>

@@ -101,14 +101,14 @@ export default function TenantRoomsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'RENTED':
-        return 'bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded'
       case 'AVAILABLE':
-        return 'bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-success'
+      case 'OCCUPIED':
+        return 'badge badge-error'
       case 'MAINTENANCE':
-        return 'bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-warning'
       default:
-        return 'bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded'
+        return 'badge badge-info'
     }
   }
 

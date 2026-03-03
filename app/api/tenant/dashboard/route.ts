@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,9 @@ export async function GET(request: NextRequest) {
       where: { id: user.id },
       include: {
         contracts: {
-          where: { status: 'ACTIVE' },
+          where: {
+            status: { in: ['ACTIVE', 'EXPIRED'] }
+          },
           include: {
             room: true
           },
@@ -48,243 +51,196 @@ export async function GET(request: NextRequest) {
     }
 
     const contract = userWithContracts.contracts[0]
-
-    // Get current month invoice - prioritize unpaid invoices
     const currentMonth = new Date().getMonth() + 1
     const currentYear = new Date().getFullYear()
-    
-    let currentInvoice = null
-    
-    if (contract?.id) {
-      // First, try to get unpaid/overdue invoice (most recent)
-      currentInvoice = await prisma.invoice.findFirst({
-        where: {
-          contractId: contract.id,
-          status: {
-            in: ['UNPAID', 'OVERDUE']
-          }
-        },
-        orderBy: [
-          { year: 'desc' },
-          { month: 'desc' },
-          { createdAt: 'desc' }
-        ]
-      })
-      
-      // If no unpaid invoice, get current month invoice
-      if (!currentInvoice) {
-        currentInvoice = await prisma.invoice.findFirst({
-          where: {
-            contractId: contract.id,
-            month: currentMonth,
-            year: currentYear
-          },
-          orderBy: { createdAt: 'desc' }
-        })
-      }
-    }
 
-    // Get utility costs for specified number of months
-    const utilityCosts = []
-    const monthsToFetch = Math.min(Math.max(months, 3), 12) // Limit between 3 and 12
+    // 1. Parallel fetch initial data
+    const monthsToFetch = Math.min(Math.max(months, 3), 12)
+    const historyMonths = []
     for (let i = monthsToFetch - 1; i >= 0; i--) {
       const date = new Date()
       date.setMonth(date.getMonth() - i)
-      const month = date.getMonth() + 1
-      const year = date.getFullYear()
+      historyMonths.push({ month: date.getMonth() + 1, year: date.getFullYear(), date })
+    }
 
-      const invoice = await prisma.invoice.findFirst({
+    const [
+      currentInvoice,
+      historyInvoices,
+      monthInvoices,
+      recentInvoices,
+      recentIssues,
+      adminUser,
+      unpaidInvoices,
+      issueCounts
+    ] = await Promise.all([
+      // Current/Last unpaid invoice
+      contract?.id ? prisma.invoice.findFirst({
         where: {
-          contractId: contract?.id,
-          month,
-          year
+          contractId: contract.id,
+          OR: [{ status: { in: ['UNPAID', 'OVERDUE'] } }, { month: currentMonth, year: currentYear }]
+        },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }, { createdAt: 'desc' }]
+      }) : Promise.resolve(null),
+
+      // Bulk fetch history for utility costs
+      contract?.id ? prisma.invoice.findMany({
+        where: {
+          contractId: contract.id,
+          OR: historyMonths.map(h => ({ month: h.month, year: h.year }))
         }
-      })
+      }) : Promise.resolve([]),
 
-      utilityCosts.push({
-        month,
-        year,
-        monthName: date.toLocaleDateString('vi-VN', { month: 'short' }),
-        elec: Number(invoice?.amountElec || 0),
-        water: Number(invoice?.amountWater || 0)
-      })
-    }
+      // All invoices for cost structure
+      contract?.id ? prisma.invoice.findMany({
+        where: { contractId: contract.id, month: currentMonth, year: currentYear }
+      }) : Promise.resolve([]),
 
-    // Calculate cost structure from all invoices in current month
-    const monthInvoices = await prisma.invoice.findMany({
-      where: {
-        contractId: contract?.id,
-        month: currentMonth,
-        year: currentYear
-      }
-    })
+      // Recent activities
+      contract?.id ? prisma.invoice.findMany({
+        where: { contractId: contract.id },
+        take: 5,
+        orderBy: { createdAt: 'desc' }
+      }) : Promise.resolve([]),
 
-    let costStructure = {
-      room: 0,
-      services: 0,
-      other: 0,
-      total: 0
-    }
-    
-    if (monthInvoices.length > 0) {
-      let totalRoom = 0
-      let totalServices = 0
-      let totalOther = 0
-      let totalAmount = 0
-
-      monthInvoices.forEach(invoice => {
-        const roomAmount = Number(invoice.amountRoom || 0)
-        const commonServiceAmount = Number(invoice.amountCommonService || 0)
-        const serviceAmount = Number(invoice.amountService || 0)
-        const utilityAmount = Number(invoice.amountElec || 0) + Number(invoice.amountWater || 0)
-        const total = Number(invoice.totalAmount || 0)
-        const otherAmount = total - roomAmount - commonServiceAmount - serviceAmount - utilityAmount
-
-        totalRoom += roomAmount
-        totalServices += commonServiceAmount + serviceAmount + utilityAmount
-        totalOther += otherAmount
-        totalAmount += total
-      })
-
-      if (totalAmount > 0) {
-        costStructure = {
-          room: Math.round((totalRoom / totalAmount) * 100),
-          services: Math.round((totalServices / totalAmount) * 100),
-          other: Math.round((totalOther / totalAmount) * 100),
-          total: totalAmount
-        }
-      }
-    }
-
-    // Get recent activities from database
-    const recentInvoices = await prisma.invoice.findMany({
-      where: {
-        contractId: contract?.id
-      },
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        contract: {
-          include: {
-            room: { select: { name: true } }
-          }
-        }
-      }
-    })
-
-    const recentIssues = await prisma.issue.findMany({
-      where: {
-        userId: userWithContracts.id
-      },
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        room: { select: { name: true } }
-      }
-    })
-
-    const recentActivities: any[] = []
-    
-    // Add invoice activities
-    recentInvoices.forEach(inv => {
-      recentActivities.push({
-        description: inv.status === 'PAID' 
-          ? `Thanh toán hóa đơn tháng ${inv.month}/${inv.year}`
-          : `Hóa đơn tháng ${inv.month}/${inv.year}`,
-        time: new Date(inv.createdAt).toLocaleString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        type: 'Tài chính',
-        status: inv.status === 'PAID' ? 'Thành công' : 
-                inv.status === 'OVERDUE' ? 'Quá hạn' : 'Chưa thanh toán'
-      })
-    })
-
-    // Add issue activities
-    recentIssues.forEach(issue => {
-      recentActivities.push({
-        description: `Báo hỏng: ${issue.title}`,
-        time: new Date(issue.createdAt).toLocaleString('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        type: 'Kỹ thuật',
-        status: issue.status === 'DONE' ? 'Hoàn thành' :
-                issue.status === 'PROCESSING' ? 'Đang xử lý' :
-                issue.status === 'CANCELLED' ? 'Đã hủy' : 'Chờ xử lý'
-      })
-    })
-
-    // Sort by time and take latest 10
-    recentActivities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-    recentActivities.splice(10)
-
-    // Get admin user
-    const adminUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' }
-    })
-
-    // Get unread messages count from admin to tenant
-    const unreadMessagesCount = adminUser ? await prisma.message.count({
-      where: {
-        senderId: adminUser.id,
-        receiverId: user.id,
-        isRead: false
-      }
-    }) : 0
-
-    // Get unpaid invoices count and list
-    const unpaidInvoices = await prisma.invoice.findMany({
-      where: {
-        contractId: contract?.id,
-        status: {
-          in: ['UNPAID', 'OVERDUE']
-        }
-      },
-      orderBy: [
-        { year: 'desc' },
-        { month: 'desc' },
-        { createdAt: 'desc' }
-      ],
-      take: 5
-    })
-
-    const unpaidInvoicesCount = unpaidInvoices.length
-    const unpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
-
-    // Get issues count by status
-    const [pendingIssues, processingIssues, doneIssues, cancelledIssues] = await Promise.all([
-      prisma.issue.count({
-        where: { userId: userWithContracts.id, status: 'PENDING' }
+      prisma.issue.findMany({
+        where: { userId: user.id },
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { room: { select: { name: true } } }
       }),
-      prisma.issue.count({
-        where: { userId: userWithContracts.id, status: 'PROCESSING' }
-      }),
-      prisma.issue.count({
-        where: { userId: userWithContracts.id, status: 'DONE' }
-      }),
-      prisma.issue.count({
-        where: { userId: userWithContracts.id, status: 'CANCELLED' }
-      })
+
+      prisma.user.findFirst({ where: { role: 'ADMIN' } }),
+
+      // Dashboard summary stats
+      contract?.id ? prisma.invoice.findMany({
+        where: { contractId: contract.id, status: { in: ['UNPAID', 'OVERDUE'] } },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        take: 5
+      }) : Promise.resolve([]),
+
+      Promise.all(['PENDING', 'PROCESSING', 'DONE', 'CANCELLED'].map(status =>
+        prisma.issue.count({ where: { userId: user.id, status: status as any } })
+      ))
     ])
 
+    // 2. Map history data (utility costs)
+    const utilityCosts = historyMonths.map(h => {
+      const inv = historyInvoices.find(i => i.month === h.month && i.year === h.year)
+      return {
+        month: h.month,
+        year: h.year,
+        monthName: h.date.toLocaleDateString('vi-VN', { month: 'short' }),
+        elec: Number(inv?.amountElec || 0),
+        water: Number(inv?.amountWater || 0)
+      }
+    })
+
+    // 3. Calculate cost structure
+    let costStructure = { room: 0, services: 0, other: 0, total: 0 }
+    if (monthInvoices.length > 0) {
+      let tr = 0, ts = 0, to = 0, ta = 0
+      monthInvoices.forEach(inv => {
+        const r = Number(inv.amountRoom || 0)
+        const s = Number(inv.amountCommonService || 0) + Number(inv.amountService || 0) + Number(inv.amountElec || 0) + Number(inv.amountWater || 0)
+        const t = Number(inv.totalAmount || 0)
+        tr += r; ts += s; to += (t - r - s); ta += t
+      })
+      if (ta > 0) costStructure = { room: Math.round((tr / ta) * 100), services: Math.round((ts / ta) * 100), other: Math.round((to / ta) * 100), total: ta }
+    }
+
+    // 4. Combine recent activities
+    const recentActivities = [
+      ...recentInvoices.map(inv => ({
+        description: inv.status === 'PAID' ? `Thanh toán hóa đơn tháng ${inv.month}/${inv.year}` : `Hóa đơn tháng ${inv.month}/${inv.year}`,
+        time: new Date(inv.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        type: 'Tài chính',
+        status: inv.status === 'PAID' ? 'Thành công' : inv.status === 'OVERDUE' ? 'Quá hạn' : 'Chưa thanh toán'
+      })),
+      ...recentIssues.map(issue => ({
+        description: `Báo hỏng: ${issue.title}`,
+        time: new Date(issue.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        type: 'Kỹ thuật',
+        status: issue.status === 'DONE' ? 'Hoàn thành' : issue.status === 'PROCESSING' ? 'Đang xử lý' : issue.status === 'CANCELLED' ? 'Đã hủy' : 'Chờ xử lý'
+      }))
+    ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10)
+
+    // 5. Final counts - merge overdue invoices with current month
+    // Calculate initial unpaid amount first
+    const totalUnpaidAmount: number = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
+
+    // Get overdue invoices and current month invoice
+    const overdueInvoices = unpaidInvoices.filter(inv => inv.status === 'OVERDUE')
+    const currentMonthInvoice = unpaidInvoices.find(inv => inv.month === currentMonth && inv.year === currentYear)
+
+    let mergedUnpaidInvoices = unpaidInvoices
+    let mergedUnpaidAmount: number = totalUnpaidAmount
+    let mergedCurrentInvoice = currentInvoice
+
+    // If there are overdue invoices and current month invoice exists, merge them
+    if (overdueInvoices.length > 0 && currentMonthInvoice) {
+      // Calculate total overdue amount
+      const overdueAmount: Prisma.Decimal = overdueInvoices.reduce(
+        (sum, inv) => sum.plus(new Prisma.Decimal(Number(inv.totalAmount || 0))),
+        new Prisma.Decimal(0)
+      )
+      const currentAmount: Prisma.Decimal = new Prisma.Decimal(Number(currentMonthInvoice.totalAmount || 0))
+      const totalAmount: Prisma.Decimal = overdueAmount.plus(currentAmount)
+
+      // Create merged invoice display
+      mergedCurrentInvoice = {
+        ...currentMonthInvoice,
+        totalAmount: totalAmount,
+        overdueAmount: Number(overdueAmount),
+        overdueInvoices: overdueInvoices.map(inv => ({ month: inv.month, year: inv.year, amount: Number(inv.totalAmount || 0) })),
+        _original: currentMonthInvoice
+      } as unknown as typeof currentInvoice
+
+      // Remove overdue invoices from list, keep only current month (now merged)
+      mergedUnpaidInvoices = [currentMonthInvoice]
+      mergedUnpaidAmount = Number(totalAmount)
+    } else if (overdueInvoices.length > 0 && !currentMonthInvoice) {
+      // No current month invoice but have overdue - show oldest overdue as current
+      mergedCurrentInvoice = overdueInvoices[0]
+      mergedUnpaidInvoices = overdueInvoices
+    }
+
+    const unreadMessagesCount = adminUser ? await prisma.message.count({
+      where: { senderId: adminUser.id, receiverId: user.id, isRead: false }
+    }) : 0
+
+    const unpaidInvoicesCount = mergedUnpaidInvoices.length
+    const unpaidAmount = mergedUnpaidAmount
+
+    const [pendingIssues, processingIssues, doneIssues, cancelledIssues] = issueCounts
+
+    // Calculate contract expiry info
+    let isExpired = false
+    let daysUntilExpiry = null
+    if (contract && contract.endDate) {
+      const now = new Date()
+      const endDate = new Date(contract.endDate)
+      if (contract.status === 'EXPIRED' || endDate < now) {
+        isExpired = true
+      } else {
+        const diffTime = endDate.getTime() - now.getTime()
+        daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      }
+    }
+
     return NextResponse.json({
-      currentInvoice,
+      currentInvoice: mergedCurrentInvoice,
       contract,
+      contractStatus: {
+        isExpired,
+        daysUntilExpiry
+      },
       utilityCosts,
       costStructure,
       recentActivities,
       currentMonth,
       currentYear,
       unreadMessagesCount,
-      unpaidInvoices,
+      unpaidInvoices: mergedUnpaidInvoices,
       unpaidInvoicesCount,
       unpaidAmount,
       issues: {

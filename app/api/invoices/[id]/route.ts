@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { markOverdueInvoicesAsPaid } from '@/lib/invoices'
 
 export async function GET(
   request: NextRequest,
@@ -43,12 +44,12 @@ export async function PUT(
   try {
     const resolvedParams = await Promise.resolve(params)
     const body = await request.json()
-    const { 
-      status, 
-      paidAt, 
-      amountRoom, 
-      amountElec, 
-      amountWater, 
+    const {
+      status,
+      paidAt,
+      amountRoom,
+      amountElec,
+      amountWater,
       amountCommonService,
       amountService,
       month,
@@ -57,13 +58,16 @@ export async function PUT(
     } = body
 
     const updateData: any = {}
-    
+
     if (status) {
       updateData.status = status.toUpperCase()
     }
-    
+
     if (status === 'PAID' && !paidAt) {
       updateData.paidAt = new Date()
+
+      // Mark overdue invoices as PAID when this invoice is marked as PAID
+      await markOverdueInvoicesAsPaid(parseInt(resolvedParams.id))
     } else if (paidAt) {
       updateData.paidAt = new Date(paidAt)
     }
@@ -95,19 +99,19 @@ export async function PUT(
     }
 
     // Recalculate totalAmount if any amount field is updated
-    if (amountRoom !== undefined || amountElec !== undefined || 
-        amountWater !== undefined || amountCommonService !== undefined || amountService !== undefined) {
+    if (amountRoom !== undefined || amountElec !== undefined ||
+      amountWater !== undefined || amountCommonService !== undefined || amountService !== undefined) {
       const currentInvoice = await prisma.invoice.findUnique({
         where: { id: parseInt(resolvedParams.id) }
       })
-      
+
       if (currentInvoice) {
         const newAmountRoom = amountRoom !== undefined ? parseFloat(amountRoom) : Number(currentInvoice.amountRoom)
         const newAmountElec = amountElec !== undefined ? parseFloat(amountElec) : Number(currentInvoice.amountElec)
         const newAmountWater = amountWater !== undefined ? parseFloat(amountWater) : Number(currentInvoice.amountWater)
         const newAmountCommonService = amountCommonService !== undefined ? parseFloat(amountCommonService) : Number(currentInvoice.amountCommonService || 0)
         const newAmountService = amountService !== undefined ? parseFloat(amountService) : Number(currentInvoice.amountService)
-        
+
         updateData.totalAmount = newAmountRoom + newAmountElec + newAmountWater + newAmountCommonService + newAmountService
       }
     }
@@ -173,7 +177,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Invoice deleted successfully' })
   } catch (error: any) {
     console.error('Error deleting invoice:', error)
-    
+
     // Provide more specific error messages
     if (error.code === 'P2025') {
       return NextResponse.json(
@@ -181,7 +185,7 @@ export async function DELETE(
         { status: 404 }
       )
     }
-    
+
     if (error.code === 'P2003') {
       return NextResponse.json(
         { error: 'Cannot delete invoice: related records exist. Please contact administrator.' },

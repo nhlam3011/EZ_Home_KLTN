@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PayOSService } from '@/lib/payos'
+import { markOverdueInvoicesAsPaid } from '@/lib/invoices'
 
 // Get PayOS config from environment variables
 const getPayOSConfig = () => {
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
         const config = getPayOSConfig()
         const payos = new PayOSService(config, '')
         const paymentInfo = await payos.getPaymentInfo(parseInt(orderCodeFromTransaction))
-        
+
         // Update payment status if changed
         // PayOS status can be: PENDING, PROCESSING, PAID, CANCELLED
         if (paymentInfo.status === 'PAID' || paymentInfo.status === 'paid') {
@@ -94,6 +95,9 @@ export async function GET(request: NextRequest) {
                 paidAt: paidAt
               }
             })
+
+            // Mark overdue invoices as PAID
+            await markOverdueInvoicesAsPaid(payment.invoiceId)
           }
 
           // Refresh payment data
@@ -113,7 +117,7 @@ export async function GET(request: NextRequest) {
               status: 'CANCELLED'
             }
           })
-          
+
           // Refresh payment data
           const refreshedPayment = await prisma.payment.findUnique({
             where: { id: payment.id },

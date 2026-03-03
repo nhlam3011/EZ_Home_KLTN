@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PayOSService } from '@/lib/payos'
+import { markOverdueInvoicesAsPaid } from '@/lib/invoices'
 
 // Get PayOS config from environment variables
 const getPayOSConfig = () => {
@@ -26,7 +27,7 @@ const getPayOSConfig = () => {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    
+
     // Verify webhook signature (PayOS sends signature in x-payos-signature header)
     const signature = request.headers.get('x-payos-signature')
     if (signature) {
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
         // Continue processing but log the error
       }
     }
-    
+
     // PayOS webhook data structure
     const { code, desc, data } = body
 
@@ -120,6 +121,9 @@ export async function POST(request: NextRequest) {
           paidAt: transactionDateTime ? new Date(transactionDateTime) : new Date()
         }
       })
+
+      // Mark overdue invoices as PAID
+      await markOverdueInvoicesAsPaid(payment.invoiceId)
     }
 
     return NextResponse.json({
@@ -134,10 +138,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error processing PayOS callback:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         code: '01',
-        desc: error.message || 'Failed to process callback' 
+        desc: error.message || 'Failed to process callback'
       },
       { status: 500 }
     )
@@ -200,6 +204,9 @@ export async function PUT(request: NextRequest) {
           paidAt: new Date()
         }
       })
+
+      // Mark overdue invoices as PAID
+      await markOverdueInvoicesAsPaid(payment.invoiceId)
     }
 
     return NextResponse.json({
