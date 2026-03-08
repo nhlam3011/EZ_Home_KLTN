@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Loader2, LogIn, Phone, Lock, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, LogIn, Phone, Lock, AlertCircle } from 'lucide-react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
+import { LoadingSpinner } from '@/components/Loading'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -78,9 +79,9 @@ export default function LoginPage() {
         {/* Logo & Title */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex items-center justify-center mb-4 sm:mb-6">
-            <img 
-              src="/logo_final.png" 
-              alt="EZ-Home Logo" 
+            <img
+              src="/logo_final.png"
+              alt="EZ-Home Logo"
               className="w-25 h-25 sm:w-30 sm:h-30 object-contain"
             />
           </div>
@@ -101,7 +102,7 @@ export default function LoginPage() {
               Nhập thông tin để truy cập hệ thống
             </p>
           </div>
-          
+
           {error && (
             <div className="mb-4 sm:mb-5 p-3 sm:p-3.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2.5">
               <AlertCircle size={18} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
@@ -161,7 +162,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={18} />
+                  <LoadingSpinner size={18} className="text-white" />
                   <span className="text-sm sm:text-base">Đang đăng nhập...</span>
                 </>
               ) : (

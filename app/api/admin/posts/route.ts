@@ -37,7 +37,11 @@ export async function GET(request: NextRequest) {
             fullName: true,
             avatarUrl: true,
             phone: true,
-            email: true
+            email: true,
+            contracts: {
+              where: { status: 'ACTIVE' },
+              include: { room: { select: { name: true } } }
+            }
           }
         }
       },
@@ -97,7 +101,11 @@ export async function POST(request: NextRequest) {
             fullName: true,
             avatarUrl: true,
             phone: true,
-            email: true
+            email: true,
+            contracts: {
+              where: { status: 'ACTIVE' },
+              include: { room: { select: { name: true } } }
+            }
           }
         }
       }

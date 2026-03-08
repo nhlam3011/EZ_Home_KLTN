@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { DollarSign, FileText, MessageSquare, TrendingUp, ArrowRight, Bell, Wrench, CheckCircle2, Clock, XCircle, AlertCircle, AlertTriangle, Receipt, X } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import Loading from '@/components/Loading'
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
@@ -171,7 +172,7 @@ export default function TenantDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-tertiary">Đang tải...</p>
+        <Loading size="lg" text="Đang tải dữ liệu..." />
       </div>
     )
   }

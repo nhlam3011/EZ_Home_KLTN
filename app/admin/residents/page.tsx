@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
 import { Plus, Download, Search, Eye, Edit, Users, Building2, Calendar, Wallet, Phone, Mail, MapPin, LogOut, X, CheckCircle } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Resident {
   id: number
@@ -333,8 +334,8 @@ export default function ResidentsPage() {
 
       {/* Residents Table */}
       {loading ? (
-        <div className="text-center py-12">
-          <p className="text-tertiary">Đang tải...</p>
+        <div className="card">
+          <Loading size="lg" text="Đang tải danh sách cư dân..." />
         </div>
       ) : residents.length === 0 ? (
         <div className="card p-12 text-center">
@@ -348,22 +349,22 @@ export default function ResidentsPage() {
               <table className="w-full min-w-[800px]">
                 <thead className="bg-tertiary border-b border-primary">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                       CƯ DÂN
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                       PHÒNG
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                       NGÀY VÀO Ở
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                       HẠN HỢP ĐỒNG
                     </th>
-                    <th className="px-3 py-3 whitespace-nowrap text-center text-xs font-semibold text-secondary uppercase">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 whitespace-nowrap text-center text-xs font-semibold text-secondary uppercase">
                       TRẠNG THÁI CỌC
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-secondary uppercase">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">
                       HÀNH ĐỘNG
                     </th>
                   </tr>
@@ -378,7 +379,7 @@ export default function ResidentsPage() {
 
                     return (
                       <tr key={resident.id} className="hover:bg-secondary transition-colors">
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-4 py-3 sm:py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
                               <span className="text-white font-semibold text-sm">{initials}</span>
@@ -398,7 +399,7 @@ export default function ResidentsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-4 py-3 sm:py-4">
                           {contract?.room ? (
                             <div>
                               <span className="text-sm font-medium text-primary">{contract.room.name}</span>
@@ -408,13 +409,13 @@ export default function ResidentsPage() {
                             <span className="text-sm text-tertiary">Chưa có phòng</span>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-4 py-3 sm:py-4">
                           <div className="flex items-center gap-2">
                             <Calendar size={14} className="text-tertiary" />
                             <span className="text-sm text-secondary">{formatDate(contract?.startDate)}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-4 py-3 sm:py-4">
                           {contract ? (
                             <div>
                               <div className="flex items-center gap-2">
@@ -434,7 +435,7 @@ export default function ResidentsPage() {
                             <span className="text-sm text-tertiary">N/A</span>
                           )}
                         </td>
-                        <td className="flex justify-center px-6 py-4 mt-[6px]">
+                        <td className="flex justify-center px-3 sm:px-4 py-3 sm:py-4 mt-[6px]">
                           {contract ? (
                             <div>
                               <Badge color={depositStatus.color} className="rounded font-semibold inline-flex items-center justify-center">
@@ -450,7 +451,7 @@ export default function ResidentsPage() {
                             <span className="text-sm text-tertiary">N/A</span>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-4 py-3 sm:py-4">
                           <div className="flex items-center justify-center gap-2">
                             <Link
                               href={`/admin/residents/${resident.id}`}

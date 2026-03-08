@@ -2,17 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { TextInput, Select, Badge, Button, Tooltip, Dropdown, DropdownItem } from 'flowbite-react'
+import { TextInput, Select, Button, Badge } from 'flowbite-react'
 import { Search, Eye, X, Save, XCircle, XCircle as XIcon, User, Calendar, MapPin, AlertCircle, Image as ImageIcon, DollarSign, FileText, Clock, CheckCircle2, XCircle as CancelIcon, Receipt, MoreVertical, Wrench, AlertTriangle, CheckCircle, Ban } from 'lucide-react'
-
-interface DropdownItemProps {
-  children: React.ReactNode
-  icon?: React.ElementType
-  className?: string
-  onClick?: (e?: React.MouseEvent) => void
-}
-
-
 
 interface Issue {
   id: number
@@ -287,27 +278,27 @@ export default function MaintenancePage() {
   return (
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">Yêu cầu báo hỏng</h1>
-        <p className="text-sm sm:text-base text-secondary mt-1">Quản lý tiến độ sửa chữa và bảo trì các căn hộ</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary">Bảo trì & Sự cố</h1>
+          <p className="text-sm sm:text-base text-secondary mt-1">Quản lý các yêu cầu báo hỏng và tiến độ sửa chữa căn hộ</p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex rounded-lg shadow-sm" role="group">
-          <Button
-            color={viewMode === 'table' ? 'info' : 'gray'}
+      <div className="border-b border-primary mb-4">
+        <div className="flex items-center gap-2 sm:gap-6">
+          <button
             onClick={() => setViewMode('table')}
-            className="rounded-e-none focus:z-10 focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800"
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${viewMode === 'table' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'}`}
           >
             Dạng bảng
-          </Button>
-          <Button
-            color={viewMode === 'kanban' ? 'info' : 'gray'}
+          </button>
+          <button
             onClick={() => setViewMode('kanban')}
-            className="rounded-s-none focus:z-10 focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-800 border-l border-gray-200 dark:border-gray-600"
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${viewMode === 'kanban' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'}`}
           >
-            Dạng thẻ
-          </Button>
+            Bảng Kanban
+          </button>
         </div>
       </div>
 
@@ -315,51 +306,31 @@ export default function MaintenancePage() {
       {viewMode === 'table' && (
         <>
           {/* Search and Filters */}
-          <div className="card p-3 sm:p-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 min-w-0 sm:min-w-[300px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input input-with-icon w-full pr-4 py-2 text-sm"
-                  />
-                </div>
+          <div className="card p-3 sm:p-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="select flex-1"
+                >
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="PENDING">Chờ xử lý</option>
+                  <option value="PROCESSING">Đang sửa</option>
+                  <option value="DONE">Hoàn thành</option>
+                  <option value="CANCELLED">Đã hủy</option>
+                </select>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`btn btn-sm ${statusFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Tất cả
-                </button>
-                <button
-                  onClick={() => setStatusFilter('PENDING')}
-                  className={`btn btn-sm ${statusFilter === 'PENDING' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Chờ xử lý
-                </button>
-                <button
-                  onClick={() => setStatusFilter('PROCESSING')}
-                  className={`btn btn-sm ${statusFilter === 'PROCESSING' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Đang sửa
-                </button>
-                <button
-                  onClick={() => setStatusFilter('DONE')}
-                  className={`btn btn-sm ${statusFilter === 'DONE' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Hoàn thành
-                </button>
-                <button
-                  onClick={() => setStatusFilter('CANCELLED')}
-                  className={`btn btn-sm ${statusFilter === 'CANCELLED' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Đã hủy
-                </button>
+              <div className="sm:col-span-1 lg:col-span-2 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo mã, tiêu đề, tên cư dân hoặc phòng..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input input-with-icon w-full pr-4 py-2 text-sm"
+                />
               </div>
             </div>
           </div>
@@ -377,14 +348,14 @@ export default function MaintenancePage() {
                   <table className="w-full">
                     <thead className="bg-tertiary border-b border-primary">
                       <tr>
-                        <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">MÃ</th>
-                        <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU ĐỀ</th>
-                        <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">PHÒNG</th>
-                        <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">NGƯỜI BÁO CÁO</th>
-                        <th className="px-4 xl:px-6 py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
-                        <th className="px-4 xl:px-6 py-3 text-right text-xs font-semibold text-secondary uppercase">CHI PHÍ</th>
-                        <th className="px-4 xl:px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">NGÀY TẠO</th>
-                        <th className="px-4 xl:px-6 py-3 text-center text-xs font-semibold text-secondary uppercase">HÀNH ĐỘNG</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">MÃ</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">TIÊU ĐỀ</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">PHÒNG</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">NGƯỜI BÁO CÁO</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">TRẠNG THÁI</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle">CHI PHÍ</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">NGÀY TẠO</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">HÀNH ĐỘNG</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-primary">
@@ -406,10 +377,10 @@ export default function MaintenancePage() {
 
                           return (
                             <tr key={issue.id} className="hover:bg-tertiary transition-colors">
-                              <td className="px-4 xl:px-6 py-4">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                                 <span className="text-sm font-medium text-primary">#{issue.id}</span>
                               </td>
-                              <td className="px-4 xl:px-6 py-4">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                                 <div className="flex items-start gap-2">
                                   <span className="text-sm text-primary font-medium">{issue.title}</span>
                                   {issue.images && issue.images.length > 0 && (
@@ -420,13 +391,13 @@ export default function MaintenancePage() {
                                   {issue.description.split('---')[0].trim()}
                                 </p>
                               </td>
-                              <td className="px-4 xl:px-6 py-4">
-                                <div className="flex items-center gap-2">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">
+                                <div className="flex items-center justify-center gap-2">
                                   <MapPin size={14} className="text-tertiary" />
                                   <span className="text-sm text-primary">{issue.room.name}</span>
                                 </div>
                               </td>
-                              <td className="px-4 xl:px-6 py-4">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                                 <div className="flex items-center gap-2">
                                   <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                                     <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
@@ -439,14 +410,14 @@ export default function MaintenancePage() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-4 xl:px-6 py-4 text-center">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">
                                 <div className="flex justify-center">
-                                  <Badge color={statusBadge.color} className="rounded whitespace-nowrap font-medium px-1.5 py-0.5 inline-flex items-center justify-center">
+                                  <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex justify-center">
                                     {statusBadge.label}
                                   </Badge>
                                 </div>
                               </td>
-                              <td className="px-4 xl:px-6 py-4 text-right">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-right">
                                 {issue.repairCost ? (
                                   <span className="text-sm font-semibold text-primary">
                                     {new Intl.NumberFormat('vi-VN', {
@@ -459,7 +430,7 @@ export default function MaintenancePage() {
                                   <span className="text-sm text-tertiary">-</span>
                                 )}
                               </td>
-                              <td className="px-4 xl:px-6 py-4">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                                 <div className="flex items-center gap-2">
                                   <Calendar size={14} className="text-tertiary" />
                                   <span className="text-sm text-secondary">
@@ -474,54 +445,28 @@ export default function MaintenancePage() {
                                 </div>
                                 <p className="text-xs text-tertiary mt-1">{formatRelativeTime(issue.createdAt)}</p>
                               </td>
-                              <td className="px-4 xl:px-6 py-4">
-                                <div className="flex items-center justify-end">
-                                  <Dropdown
-                                    arrowIcon={false}
-                                    inline
-                                    label={
-                                      <div className="p-2 hover:bg-tertiary rounded-lg transition-colors text-secondary border border-transparent hover:border-primary">
-                                        <MoreVertical size={20} />
-                                      </div>
-                                    }
-                                  >
-                                    <DropdownItem icon={Eye} onClick={() => handleViewDetails(issue)}>
-                                      Xem chi tiết
-                                    </DropdownItem>
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                <div className="flex items-center justify-center">
+                                  <div className="flex items-center gap-1 justify-center">
+                                    <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
+                                      <Eye size={18} />
+                                    </button>
                                     {issue.status === 'PENDING' && (
                                       <>
-                                        <DropdownItem
-                                          icon={CheckCircle2}
-                                          className="text-blue-600 dark:text-blue-400"
-                                          onClick={() => {
-                                            handleStatusChange(issue.id, 'PROCESSING')
-                                          }}
-                                        >
-                                          Nhận đơn
-                                        </DropdownItem>
-                                        <DropdownItem
-                                          icon={XIcon}
-                                          className="text-red-600 dark:text-red-400"
-                                          onClick={() => {
-                                            handleOpenCancelModal(issue.id)
-                                          }}
-                                        >
-                                          Hủy đơn
-                                        </DropdownItem>
+                                        <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
+                                          <CheckCircle2 size={18} />
+                                        </button>
+                                        <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
+                                          <XIcon size={18} />
+                                        </button>
                                       </>
                                     )}
                                     {issue.status === 'PROCESSING' && (
-                                      <DropdownItem
-                                        icon={CheckCircle2}
-                                        className="text-green-600 dark:text-green-400"
-                                        onClick={() => {
-                                          handleStatusChange(issue.id, 'DONE')
-                                        }}
-                                      >
-                                        Hoàn thành
-                                      </DropdownItem>
+                                      <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
+                                        <CheckCircle2 size={18} />
+                                      </button>
                                     )}
-                                  </Dropdown>
+                                  </div>
                                 </div>
                               </td>
                             </tr>
@@ -574,7 +519,7 @@ export default function MaintenancePage() {
                               {issue.images && issue.images.length > 0 && (
                                 <ImageIcon size={14} className="text-tertiary flex-shrink-0" />
                               )}
-                              <Badge color={statusBadge.color} className="rounded font-medium px-1.5 py-0.5 inline-flex items-center justify-center">
+                              <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex justify-center">
                                 {statusBadge.label}
                               </Badge>
                             </div>
@@ -620,61 +565,31 @@ export default function MaintenancePage() {
                         </div>
 
                         <div className="flex items-center justify-between pt-3 border-t border-primary mt-3">
-                          <Button
-                            color="light"
-                            size="sm"
-                            className="whitespace-nowrap font-medium text-xs border border-transparent hover:border-primary"
-                            onClick={() => handleViewDetails(issue)}
-                          >
-                            <span className="flex items-center justify-center">
-                              <Eye size={16} className="mr-2" />
-                              Xem chi tiết
-                            </span>
-                          </Button>
+                          <button onClick={() => handleViewDetails(issue)} className="btn btn-secondary btn-sm flex items-center gap-2">
+                            <Eye size={16} />
+                            Xem chi tiết
+                          </button>
                           {(issue.status === 'PENDING' || issue.status === 'PROCESSING') && (
-                            <Dropdown
-                              arrowIcon={false}
-                              inline
-                              label={
-                                <div className="p-2 ml-2 hover:bg-tertiary rounded-lg transition-colors text-secondary border border-transparent hover:border-primary">
-                                  <MoreVertical size={20} />
-                                </div>
-                              }
-                            >
+                            <div className="flex items-center gap-1 justify-end">
+                              <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
+                                <Eye size={18} />
+                              </button>
                               {issue.status === 'PENDING' && (
                                 <>
-                                  <DropdownItem
-                                    icon={CheckCircle2}
-                                    className="text-blue-600 dark:text-blue-400"
-                                    onClick={() => {
-                                      handleStatusChange(issue.id, 'PROCESSING')
-                                    }}
-                                  >
-                                    Nhận đơn
-                                  </DropdownItem>
-                                  <DropdownItem
-                                    icon={XIcon}
-                                    className="text-red-600 dark:text-red-400"
-                                    onClick={() => {
-                                      handleOpenCancelModal(issue.id)
-                                    }}
-                                  >
-                                    Hủy đơn
-                                  </DropdownItem>
+                                  <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
+                                    <CheckCircle2 size={18} />
+                                  </button>
+                                  <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
+                                    <XIcon size={18} />
+                                  </button>
                                 </>
                               )}
                               {issue.status === 'PROCESSING' && (
-                                <DropdownItem
-                                  icon={CheckCircle2}
-                                  className="text-green-600 dark:text-green-400"
-                                  onClick={() => {
-                                    handleStatusChange(issue.id, 'DONE')
-                                  }}
-                                >
-                                  Hoàn thành
-                                </DropdownItem>
+                                <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
+                                  <CheckCircle2 size={18} />
+                                </button>
                               )}
-                            </Dropdown>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -748,34 +663,26 @@ export default function MaintenancePage() {
                           <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
                         </div>
                         <div className="flex justify-end mt-3 pt-3 border-t border-primary">
-                          <Dropdown
-                            arrowIcon={false}
-                            inline
-                            label={
-                              <div className="p-2 hover:bg-tertiary rounded-lg transition-colors text-secondary border border-transparent hover:border-primary">
-                                <MoreVertical size={18} />
-                              </div>
-                            }
-                          >
-                            <DropdownItem
-                              icon={CheckCircle2}
-                              className="text-blue-600 dark:text-blue-400"
-                              onClick={() => {
-                                handleStatusChange(issue.id, 'PROCESSING')
-                              }}
-                            >
-                              Nhận đơn
-                            </DropdownItem>
-                            <DropdownItem
-                              icon={XIcon}
-                              className="text-red-600 dark:text-red-400"
-                              onClick={() => {
-                                handleOpenCancelModal(issue.id)
-                              }}
-                            >
-                              Hủy đơn
-                            </DropdownItem>
-                          </Dropdown>
+                          <div className="flex items-center gap-1 justify-end">
+                            <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
+                              <Eye size={18} />
+                            </button>
+                            {issue.status === 'PENDING' && (
+                              <>
+                                <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
+                                  <CheckCircle2 size={18} />
+                                </button>
+                                <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
+                                  <XIcon size={18} />
+                                </button>
+                              </>
+                            )}
+                            {issue.status === 'PROCESSING' && (
+                              <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
+                                <CheckCircle2 size={18} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )
@@ -820,25 +727,26 @@ export default function MaintenancePage() {
                           <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
                         </div>
                         <div className="flex justify-end mt-3 pt-3 border-t border-primary">
-                          <Dropdown
-                            arrowIcon={false}
-                            inline
-                            label={
-                              <div className="p-2 hover:bg-tertiary rounded-lg transition-colors text-secondary border border-transparent hover:border-primary">
-                                <MoreVertical size={18} />
-                              </div>
-                            }
-                          >
-                            <DropdownItem
-                              icon={CheckCircle2}
-                              className="text-green-600 dark:text-green-400"
-                              onClick={() => {
-                                handleStatusChange(issue.id, 'DONE')
-                              }}
-                            >
-                              Hoàn thành
-                            </DropdownItem>
-                          </Dropdown>
+                          <div className="flex items-center gap-1 justify-end">
+                            <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
+                              <Eye size={18} />
+                            </button>
+                            {issue.status === 'PENDING' && (
+                              <>
+                                <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
+                                  <CheckCircle2 size={18} />
+                                </button>
+                                <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
+                                  <XIcon size={18} />
+                                </button>
+                              </>
+                            )}
+                            {issue.status === 'PROCESSING' && (
+                              <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
+                                <CheckCircle2 size={18} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )

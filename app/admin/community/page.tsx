@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, CheckCircle, XCircle, Eye, Trash2, Calendar, Image as ImageIcon, ThumbsUp, MessageCircle, Share2, X, Loader2, Filter, AlertCircle, FileCheck, Users, Clock, MoreHorizontal } from 'lucide-react'
+import { Badge } from 'flowbite-react'
+import { Search, CheckCircle, XCircle, Eye, Trash2, Calendar, Image as ImageIcon, ThumbsUp, MessageCircle, Share2, X, Filter, AlertCircle, FileCheck, Users, Clock, MoreHorizontal } from 'lucide-react'
+import Loading, { LoadingSpinner } from '@/components/Loading'
 
 interface Post {
   id: number
@@ -15,6 +17,7 @@ interface Post {
     avatarUrl?: string
     phone?: string
     email?: string
+    contracts?: { room: { name: string } }[]
   }
   likes?: number
   comments?: number
@@ -349,12 +352,12 @@ export default function CommunityPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Chờ duyệt', className: 'badge badge-warning' },
-      PUBLIC: { label: 'Đã duyệt', className: 'badge badge-success' },
-      REJECTED: { label: 'Đã từ chối', className: 'badge badge-error' }
+    const statusMap: Record<string, { label: string; color: string }> = {
+      PENDING: { label: 'Chờ duyệt', color: 'warning' },
+      PUBLIC: { label: 'Đã duyệt', color: 'success' },
+      REJECTED: { label: 'Đã từ chối', color: 'failure' }
     }
-    return statusMap[status] || { label: status, className: 'badge badge-info' }
+    return statusMap[status] || { label: status, color: 'info' }
   }
 
   const getInitials = (name: string) => {
@@ -376,26 +379,26 @@ export default function CommunityPage() {
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">Quản lý Cộng đồng</h1>
-        <p className="text-sm sm:text-base text-secondary mt-1">Duyệt và quản lý bài viết của cư dân</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary">Cộng đồng cư dân</h1>
+          <p className="text-sm sm:text-base text-secondary mt-1">Quản lý bài viết và tương tác của cư dân</p>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-primary">
-        <div className="flex items-center gap-2 sm:gap-6 overflow-x-auto">
+      <div className="border-b border-primary mb-6">
+        <div className="flex items-center gap-2 sm:gap-6">
           <button
             onClick={() => {
               setActiveTab('moderate')
               setStatusFilter('all')
               setSearchQuery('')
             }}
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-2 ${activeTab === 'moderate'
-              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-secondary hover:text-primary'
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === 'moderate' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'
               }`}
           >
-            <FileCheck size={18} className="inline" />
+            <FileCheck size={18} className="inline mr-1" />
             Duyệt bài
             {pendingCount > 0 && (
               <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
@@ -408,18 +411,15 @@ export default function CommunityPage() {
               setActiveTab('community')
               setSearchQuery('')
             }}
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-1 sm:gap-2 ${activeTab === 'community'
-              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-secondary hover:text-primary'
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === 'community' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'
               }`}
           >
-            <Users size={18} className="inline" />
+            <Users size={18} className="inline mr-1" />
             Cộng đồng
           </button>
         </div>
       </div>
 
-      {/* Filters - Only show in moderate tab */}
       {activeTab === 'moderate' && (
         <div className="card">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 p-4">
@@ -511,7 +511,7 @@ export default function CommunityPage() {
 
                   {uploadingImages && (
                     <div className="flex items-center gap-2 text-sm text-secondary">
-                      <Loader2 className="animate-spin" size={16} />
+                      <LoadingSpinner size={16} className="text-blue-500" />
                       <span>Đang upload ảnh...</span>
                     </div>
                   )}
@@ -534,7 +534,7 @@ export default function CommunityPage() {
                   >
                     {posting ? (
                       <>
-                        <Loader2 className="animate-spin" size={16} />
+                        <LoadingSpinner size={16} className="text-white" />
                         <span>Đang đăng...</span>
                       </>
                     ) : (
@@ -567,13 +567,10 @@ export default function CommunityPage() {
       {activeTab === 'moderate' && (
         loading ? (
           <div className="card">
-            <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-              <p className="text-tertiary">Đang tải...</p>
-            </div>
+            <Loading size="lg" text="Đang tải..." />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="flex flex-col gap-4 w-full">
             {posts.length === 0 ? (
               <div className="card col-span-full">
                 <div className="text-center py-12">
@@ -594,13 +591,20 @@ export default function CommunityPage() {
                           <span className="text-white font-semibold text-sm">{initials}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-primary truncate">{post.user.fullName}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-primary truncate">{post.user.fullName}</p>
+                            {post.user.contracts?.[0]?.room?.name && (
+                              <span className="badge badge-ghost text-xs bg-tertiary">
+                                {post.user.contracts[0].room.name}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-tertiary">{formatRelativeTime(post.createdAt)}</p>
                         </div>
                       </div>
-                      <span className={statusBadge.className}>
+                      <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex">
                         {statusBadge.label}
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="mb-4">
@@ -664,13 +668,10 @@ export default function CommunityPage() {
       {activeTab === 'community' && (
         loading ? (
           <div className="card">
-            <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-              <p className="text-tertiary">Đang tải...</p>
-            </div>
+            <Loading size="lg" text="Đang tải..." />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-w-7xl mx-auto">
+          <div className="flex flex-col gap-4 w-full">
             {publicPosts
               .filter(post => {
                 if (!searchQuery) return true
@@ -700,6 +701,11 @@ export default function CommunityPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-primary text-sm">{post.user.fullName}</span>
+                              {post.user.contracts?.[0]?.room?.name && (
+                                <span className="badge badge-ghost text-xs bg-tertiary">
+                                  {post.user.contracts[0].room.name}
+                                </span>
+                              )}
                               {isPinnedPost && (
                                 <span className="badge badge-warning text-xs">
                                   📌
@@ -735,20 +741,18 @@ export default function CommunityPage() {
                       {post.images && post.images.length > 0 && (
                         <div className="mb-3 rounded-lg overflow-hidden" style={{
                           display: 'grid',
-                          gridTemplateColumns: post.images.length === 1 ? '1fr' :
-                            post.images.length === 2 ? 'repeat(2, 1fr)' :
-                              'repeat(2, 1fr)',
+                          gridTemplateColumns: post.images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
                           gap: '2px'
                         }}>
                           {post.images.slice(0, 4).map((img, idx) => (
                             <div
                               key={idx}
-                              className={`relative bg-tertiary ${post.images!.length === 1 ? 'aspect-video' : 'aspect-square'}`}
+                              className={`relative bg-tertiary flex items-center justify-center ${post.images!.length === 1 ? 'w-full max-h-[600px] bg-gray-50 dark:bg-gray-800/50' : 'aspect-square'}`}
                             >
                               <img
                                 alt={`Post image ${idx + 1}`}
                                 src={img}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                                className={`w-full ${post.images!.length === 1 ? 'max-h-[600px] object-contain' : 'h-full object-cover'} hover:scale-105 transition-transform duration-300 cursor-pointer`}
                               />
                               {idx === 3 && post.images!.length > 4 && (
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -761,31 +765,33 @@ export default function CommunityPage() {
                       )}
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1 pt-3 border-t border-primary">
-                        <button
-                          onClick={() => handleLike(post.id)}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors flex-1 justify-center text-sm ${likedPosts.has(post.id)
+                      <div className="flex items-center justify-between pt-3 border-t border-primary">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleLike(post.id)}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors justify-center text-sm ${likedPosts.has(post.id)
                               ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
                               : 'hover:bg-tertiary text-secondary'
-                            }`}
-                        >
-                          <ThumbsUp size={14} className={likedPosts.has(post.id) ? 'fill-current' : ''} />
-                          <span>{postLikes[post.id] || post.likes || 0}</span>
-                        </button>
-                        <button
-                          onClick={() => handleComment(post.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm flex-1 justify-center transition-colors"
-                        >
-                          <MessageCircle size={14} />
-                          <span>{post.comments || 0}</span>
-                        </button>
-                        <button
-                          onClick={() => handleShare(post.id)}
-                          className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-tertiary text-secondary font-medium transition-colors"
-                        >
-                          <Share2 size={18} />
-                          <span>Chia sẻ</span>
-                        </button>
+                              }`}
+                          >
+                            <ThumbsUp size={14} className={likedPosts.has(post.id) ? 'fill-current' : ''} />
+                            <span>{postLikes[post.id] || post.likes || 0}</span>
+                          </button>
+                          <button
+                            onClick={() => handleComment(post.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm justify-center transition-colors"
+                          >
+                            <MessageCircle size={14} />
+                            <span>{post.comments || 0}</span>
+                          </button>
+                          <button
+                            onClick={() => handleShare(post.id)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm font-medium transition-colors"
+                          >
+                            <Share2 size={16} />
+                            <span>Chia sẻ</span>
+                          </button>
+                        </div>
                         <button
                           onClick={() => handleDelete(post.id)}
                           className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-red-500"
@@ -843,7 +849,14 @@ export default function CommunityPage() {
                     </span>
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-primary">{selectedPost.user.fullName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-primary">{selectedPost.user.fullName}</p>
+                      {selectedPost.user.contracts?.[0]?.room?.name && (
+                        <span className="badge badge-ghost text-xs bg-primary">
+                          {selectedPost.user.contracts[0].room.name}
+                        </span>
+                      )}
+                    </div>
                     {selectedPost.user.phone && (
                       <p className="text-sm text-secondary">SĐT: {selectedPost.user.phone}</p>
                     )}
@@ -851,9 +864,9 @@ export default function CommunityPage() {
                       <p className="text-sm text-secondary">Email: {selectedPost.user.email}</p>
                     )}
                   </div>
-                  <span className={getStatusBadge(selectedPost.status).className}>
+                  <Badge color={getStatusBadge(selectedPost.status).color} className="whitespace-nowrap rounded font-medium inline-flex">
                     {getStatusBadge(selectedPost.status).label}
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
@@ -869,13 +882,13 @@ export default function CommunityPage() {
               {selectedPost.images && selectedPost.images.length > 0 && (
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold text-primary mb-2">Ảnh đính kèm ({selectedPost.images.length})</h3>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className={`grid gap-2 ${selectedPost.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                     {selectedPost.images.map((img, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-tertiary">
+                      <div key={idx} className={`relative rounded-lg overflow-hidden bg-tertiary flex items-center justify-center ${selectedPost.images!.length === 1 ? 'w-full max-h-[600px] bg-gray-50 dark:bg-gray-800/50' : 'aspect-square'}`}>
                         <img
                           src={img}
                           alt={`Image ${idx + 1}`}
-                          className="w-full h-full object-cover"
+                          className={`w-full ${selectedPost.images!.length === 1 ? 'max-h-[600px] object-contain' : 'h-full object-cover'}`}
                         />
                       </div>
                     ))}

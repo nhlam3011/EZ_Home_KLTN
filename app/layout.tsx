@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { DarkModeProvider } from "./contexts/DarkModeContext";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -22,10 +23,11 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body
-        className={`${inter.variable} font-sans antialiased`}
+        className={`${inter.variable} font-sans text-[14px] antialiased`}
       >
         <DarkModeProvider>
           {children}
+          <SpeedInsights />
         </DarkModeProvider>
       </body>
     </html>

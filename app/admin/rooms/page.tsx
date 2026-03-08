@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
 import { Plus, Download, Search, Edit, Trash2, Building2, Users, DollarSign, X, Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Room {
   id: number
@@ -372,8 +373,8 @@ export default function RoomsPage() {
 
       {/* Room Grid */}
       {loading ? (
-        <div className="text-center py-12">
-          <p className="text-tertiary">Đang tải...</p>
+        <div className="card">
+          <Loading size="lg" text="Đang tải danh sách phòng..." />
         </div>
       ) : (
         <>
@@ -506,8 +507,7 @@ export default function RoomsPage() {
           <div className="bg-primary rounded-xl sm:rounded-2xl shadow-2xl max-w-4xl w-full max-h-[98vh] sm:max-h-[95vh] overflow-hidden flex flex-col animate-scale-in">
             {loadingDetail ? (
               <div className="p-8 sm:p-12 text-center">
-                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                <p className="text-tertiary text-sm sm:text-base">Đang tải thông tin phòng...</p>
+                <Loading size="lg" text="Đang tải thông tin phòng..." />
               </div>
             ) : selectedRoom ? (
               <>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { MessageSquare, Send, Search, User, ArrowLeft, Image as ImageIcon, X, Trash2, Building2, MoreVertical, Menu } from 'lucide-react'
 import Link from 'next/link'
+import Loading from '@/components/Loading'
 
 interface Message {
   id: number
@@ -644,10 +645,7 @@ export default function AdminMessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-tertiary">Đang tải tin nhắn...</p>
-        </div>
+        <Loading size="lg" text="Đang tải tin nhắn..." />
       </div>
     )
   }

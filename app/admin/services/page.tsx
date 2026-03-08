@@ -1,8 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Badge } from 'flowbite-react'
 import Link from 'next/link'
-import { Plus, Search, Edit, Trash2, Eye, CheckCircle, LayoutGrid, List, X, XCircle, Receipt } from 'lucide-react'
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  CheckCircle,
+  LayoutGrid,
+  List,
+  X,
+  XCircle,
+  Receipt,
+  Sparkles,
+  Settings2,
+  ClipboardList,
+  Wallet,
+  PackageCheck
+} from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Service {
   id: number
@@ -42,14 +61,17 @@ export default function ServicesPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
+
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orderSearch, setOrderSearch] = useState('')
   const [orderStatusFilter, setOrderStatusFilter] = useState('all')
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
+
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null)
   const [cancelReason, setCancelReason] = useState('')
+
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [editFormData, setEditFormData] = useState({
@@ -57,6 +79,7 @@ export default function ServicesPage() {
     unitPrice: '',
     unit: ''
   })
+
   const [showInvoiceModal, setShowInvoiceModal] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null)
   const [invoiceData, setInvoiceData] = useState({
@@ -68,31 +91,56 @@ export default function ServicesPage() {
     amountService: '0'
   })
   const [contract, setContract] = useState<any>(null)
+
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'accept' | 'complete'; id: number } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
-    if (activeTab === 'config') {
-      fetchServices()
-    } else if (activeTab === 'registrations') {
+    fetchServices()
+    fetchOrders()
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === 'registrations') {
       fetchOrders()
     }
+    if (activeTab === 'config') {
+      fetchServices()
+    }
   }, [activeTab, orderSearch, orderStatusFilter])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeTab, search, statusFilter, orderSearch, orderStatusFilter])
 
   const fetchServices = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (search) params.append('search', search)
-
-      const response = await fetch(`/api/services?${params.toString()}`)
+      const response = await fetch('/api/services')
       const data = await response.json()
       setServices(data)
     } catch (error) {
       console.error('Error fetching services:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (orderSearch) params.append('search', orderSearch)
+      if (orderStatusFilter !== 'all') params.append('status', orderStatusFilter)
+
+      const response = await fetch(`/api/admin/service-orders?${params.toString()}`)
+      const data = await response.json()
+      setOrders(data)
+    } catch (error) {
+      console.error('Error fetching orders:', error)
+    } finally {
+      setOrdersLoading(false)
     }
   }
 
@@ -159,6 +207,7 @@ export default function ServicesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'PROCESSING' })
       })
+
       if (response.ok) {
         alert('Đã nhận đơn hàng thành công!')
         fetchOrders()
@@ -191,6 +240,7 @@ export default function ServicesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'DONE' })
       })
+
       if (response.ok) {
         alert('Đã đánh dấu đơn hàng hoàn thành!')
         fetchOrders()
@@ -212,38 +262,6 @@ export default function ServicesPage() {
     setShowConfirmModal(false)
     setConfirmAction(null)
   }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0
-    }).format(Number(amount))
-  }
-
-  const getServiceIcon = (name: string) => {
-    const nameLower = name.toLowerCase()
-    if (nameLower.includes('điện')) return '⚡'
-    if (nameLower.includes('nước')) return '💧'
-    if (nameLower.includes('internet') || nameLower.includes('wifi')) return '📶'
-    if (nameLower.includes('vệ sinh')) return '🧹'
-    if (nameLower.includes('xe')) return '🅿️'
-    return '📋'
-  }
-
-  const filteredServices = services.filter(service => {
-    if (search && !service.name.toLowerCase().includes(search.toLowerCase())) {
-      return false
-    }
-    if (statusFilter === 'active' && !service.isActive) return false
-    if (statusFilter === 'inactive' && service.isActive) return false
-    return true
-  })
-
-  const totalPages = Math.ceil(filteredServices.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedServices = filteredServices.slice(startIndex, endIndex)
 
   const handleEdit = (service: Service) => {
     setEditingService(service)
@@ -299,6 +317,7 @@ export default function ServicesPage() {
 
   const handleOpenInvoiceModal = async (order: ServiceOrder) => {
     setSelectedOrder(order)
+    setContract(null)
     setInvoiceData({
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear(),
@@ -308,7 +327,6 @@ export default function ServicesPage() {
       amountService: order.total.toString()
     })
 
-    // Fetch contract for this user
     try {
       const response = await fetch(`/api/contracts?userId=${order.user.id}&status=ACTIVE`)
       if (response.ok) {
@@ -369,23 +387,6 @@ export default function ServicesPage() {
     }
   }
 
-  const fetchOrders = async () => {
-    setOrdersLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (orderSearch) params.append('search', orderSearch)
-      if (orderStatusFilter !== 'all') params.append('status', orderStatusFilter)
-
-      const response = await fetch(`/api/admin/service-orders?${params.toString()}`)
-      const data = await response.json()
-      setOrders(data)
-    } catch (error) {
-      console.error('Error fetching orders:', error)
-    } finally {
-      setOrdersLoading(false)
-    }
-  }
-
   const handleOpenCancelModal = (orderId: number) => {
     setSelectedOrderId(orderId)
     setCancelReason('')
@@ -407,6 +408,7 @@ export default function ServicesPage() {
           cancelReason: cancelReason.trim()
         })
       })
+
       if (response.ok) {
         setShowCancelModal(false)
         setSelectedOrderId(null)
@@ -422,10 +424,18 @@ export default function ServicesPage() {
     }
   }
 
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date)
-    const now = new Date()
-    const diff = now.getTime() - d.getTime()
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0
+    }).format(Number(amount))
+  }
+
+  const formatRelativeTime = (date: Date | string) => {
+    const current = new Date()
+    const target = new Date(date)
+    const diff = current.getTime() - target.getTime()
     const hours = Math.floor(diff / (1000 * 60 * 60))
     const days = Math.floor(hours / 24)
 
@@ -435,726 +445,773 @@ export default function ServicesPage() {
   }
 
   const formatDateTime = (date: Date | string) => {
-    const d = new Date(date)
+    const target = new Date(date)
     const now = new Date()
-    const isToday = d.toDateString() === now.toDateString()
-    const isYesterday = d.toDateString() === new Date(now.getTime() - 86400000).toDateString()
+    const isToday = target.toDateString() === now.toDateString()
+    const isYesterday = target.toDateString() === new Date(now.getTime() - 86400000).toDateString()
+    const time = target.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 
-    const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     if (isToday) return `${time} - Hôm nay`
     if (isYesterday) return `${time} - Hôm qua`
-    return `${time} - ${d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`
+    return `${time} - ${target.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}`
+  }
+
+  const getServiceIcon = (name: string) => {
+    const nameLower = name.toLowerCase()
+    if (nameLower.includes('điện')) return '⚡'
+    if (nameLower.includes('nước')) return '💧'
+    if (nameLower.includes('internet') || nameLower.includes('wifi')) return '📶'
+    if (nameLower.includes('vệ sinh')) return '🧹'
+    if (nameLower.includes('xe')) return '🅿️'
+    return '📋'
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Mới', className: 'badge badge-error' },
-      PROCESSING: { label: 'Đang làm', className: 'badge badge-info' },
-      DONE: { label: 'Hoàn thành', className: 'badge badge-success' },
-      CANCELLED: { label: 'Đã hủy', className: 'badge badge-warning' }
+    const statusMap: Record<string, { label: string; color: string }> = {
+      PENDING: { label: 'Mới', color: 'warning' },
+      PROCESSING: { label: 'Đang làm', color: 'info' },
+      DONE: { label: 'Hoàn thành', color: 'success' },
+      CANCELLED: { label: 'Đã hủy', color: 'failure' }
     }
-    return statusMap[status] || { label: status, className: 'badge badge-info' }
+    return statusMap[status] || { label: status, color: 'gray' }
   }
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
   }
+
+  const filteredServices = services.filter(service => {
+    if (search && !service.name.toLowerCase().includes(search.toLowerCase())) {
+      return false
+    }
+    if (statusFilter === 'active' && !service.isActive) return false
+    if (statusFilter === 'inactive' && service.isActive) return false
+    return true
+  })
+
+  const totalPages = Math.ceil(filteredServices.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedServices = filteredServices.slice(startIndex, endIndex)
 
   const totalOrderPages = Math.ceil(orders.length / itemsPerPage)
   const orderStartIndex = (currentPage - 1) * itemsPerPage
   const orderEndIndex = orderStartIndex + itemsPerPage
   const paginatedOrders = orders.slice(orderStartIndex, orderEndIndex)
 
-  return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Quản lý Dịch vụ</h1>
-          <p className="text-sm sm:text-base text-secondary mt-1">
-            Quản lý các loại dịch vụ và đơn đăng ký
-          </p>
-        </div>
-        <Link
-          href="/admin/services/new"
-          className="btn btn-primary btn-sm sm:btn-md"
+  const activeServicesCount = services.filter(service => service.isActive).length
+  const inactiveServicesCount = services.length - activeServicesCount
+  const pendingOrdersCount = orders.filter(order => order.status === 'PENDING').length
+  const processingOrdersCount = orders.filter(order => order.status === 'PROCESSING').length
+  const completedOrdersCount = orders.filter(order => order.status === 'DONE').length
+  const cancelledOrdersCount = orders.filter(order => order.status === 'CANCELLED').length
+  const completedRevenue = orders
+    .filter(order => order.status === 'DONE')
+    .reduce((sum, order) => sum + Number(order.total), 0)
+
+  const tabs = [
+    { key: 'registrations' as const, label: 'Đơn đăng ký', description: 'Theo dõi nhu cầu dịch vụ' },
+    { key: 'config' as const, label: 'Cấu hình', description: 'Quản lý biểu phí dịch vụ' },
+    { key: 'history' as const, label: 'Lịch sử', description: 'Ghi nhận thay đổi' }
+  ]
+
+  const kanbanColumns = [
+    { status: 'PENDING', title: 'Mới', dotClass: 'bg-red-500', countClass: 'bg-danger-soft border border-danger-subtle text-fg-danger-strong' },
+    { status: 'PROCESSING', title: 'Đang làm', dotClass: 'bg-blue-500', countClass: 'bg-brand-softer border border-brand-subtle text-fg-brand-strong' },
+    { status: 'DONE', title: 'Hoàn thành', dotClass: 'bg-green-500', countClass: 'bg-success-soft border border-success-subtle text-fg-success-strong' },
+    { status: 'CANCELLED', title: 'Đã hủy', dotClass: 'bg-gray-400 dark:bg-gray-500', countClass: 'bg-neutral-secondary-medium border border-default-medium text-heading' }
+  ]
+
+  const renderOrderActions = (order: ServiceOrder) => {
+    const statusBadge = getStatusBadge(order.status)
+    const roomName = order.user.contracts[0]?.room?.name || 'N/A'
+
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        <button
+          type="button"
+          onClick={() => {
+            alert(
+              `Đơn hàng #${order.id}\nDịch vụ: ${order.service.name}\nSố lượng: ${order.quantity}\nTổng tiền: ${formatCurrency(order.total)}\nTrạng thái: ${statusBadge.label}\nNgười yêu cầu: ${order.user.fullName}\nPhòng: ${roomName}`
+            )
+          }}
+          className="btn btn-ghost btn-icon text-primary"
+          title="Chi tiết"
         >
-          <Plus size={18} />
-          <span>Thêm dịch vụ</span>
-        </Link>
-      </div>
+          <Eye size={16} className="w-[18px] h-[18px]" />
+        </button>
 
-      {/* Tabs */}
-      <div className="card p-1">
-        <div className="flex items-center gap-1">
+        {order.status === 'PENDING' && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleAcceptOrder(order.id)}
+              className="btn btn-ghost btn-icon text-info"
+              title="Nhận đơn"
+            >
+              <CheckCircle size={16} className="w-[18px] h-[18px]" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleOpenCancelModal(order.id)}
+              className="btn btn-ghost btn-icon text-danger"
+              title="Hủy đơn"
+            >
+              <XCircle size={16} className="w-[18px] h-[18px]" />
+            </button>
+          </>
+        )}
+
+        {order.status === 'PROCESSING' && (
           <button
-            onClick={() => {
-              setActiveTab('registrations')
-              setCurrentPage(1)
-            }}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'registrations'
-              ? 'bg-blue-500 text-white'
-              : 'text-secondary hover:bg-tertiary'
-              }`}
+            type="button"
+            onClick={() => handleCompleteOrder(order.id)}
+            className="btn btn-ghost btn-icon text-success"
+            title="Hoàn thành"
           >
-            Danh sách đăng ký
+            <CheckCircle size={16} className="w-[18px] h-[18px]" />
           </button>
+        )}
+
+        {order.status === 'DONE' && (
           <button
-            onClick={() => {
-              setActiveTab('config')
-              setCurrentPage(1)
-            }}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'config'
-              ? 'bg-blue-500 text-white'
-              : 'text-secondary hover:bg-tertiary'
-              }`}
+            type="button"
+            onClick={() => handleOpenInvoiceModal(order)}
+            className="btn btn-ghost btn-icon text-success"
+            title="Tạo hóa đơn"
           >
-            Cấu hình Dịch vụ
+            <Receipt size={16} className="w-[18px] h-[18px]" />
           </button>
-          <button
-            onClick={() => {
-              setActiveTab('history')
-              setCurrentPage(1)
-            }}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${activeTab === 'history'
-              ? 'bg-blue-500 text-white'
-              : 'text-secondary hover:bg-tertiary'
-              }`}
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6 px-2 sm:px-0">
+      <div className="card overflow-hidden border-transparent bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 p-6 text-white shadow-xl sm:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+              <Sparkles size={14} />
+              Trung tâm dịch vụ admin
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold sm:text-3xl">Quản lý dịch vụ</h1>
+              <p className="mt-2 max-w-2xl text-sm text-white/80 sm:text-base">
+                Đồng bộ cấu hình dịch vụ, điều phối đơn đăng ký và kiểm soát tạo hóa đơn trên một giao diện thống nhất với toàn bộ website.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-medium text-white/90">
+              <span className="rounded-full bg-white/15 px-3 py-1">{activeServicesCount} dịch vụ đang bật</span>
+              <span className="rounded-full bg-white/15 px-3 py-1">{pendingOrdersCount} đơn chờ tiếp nhận</span>
+              <span className="rounded-full bg-white/15 px-3 py-1">{completedOrdersCount} đơn đã hoàn thành</span>
+            </div>
+          </div>
+
+          <Link
+            href="/admin/services/new"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg transition-transform duration-200 hover:-translate-y-0.5 hover:bg-slate-100"
           >
-            Lịch sử
-          </button>
+            <Plus size={18} />
+            <span>Thêm dịch vụ</span>
+          </Link>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      {activeTab === 'registrations' ? (
-        <div className="card p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Tìm theo số phòng, tên dịch vụ, người yêu cầu..."
-                  value={orderSearch}
-                  onChange={(e) => setOrderSearch(e.target.value)}
-                  className="input input-with-icon w-full pr-4 py-2"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: 'Danh mục dịch vụ',
+            value: services.length.toString(),
+            helper: `${activeServicesCount} hoạt động · ${inactiveServicesCount} tạm ngưng`,
+            Icon: Settings2,
+            iconClass: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300',
+            cardClass: 'from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20'
+          },
+          {
+            label: 'Đơn chờ xử lý',
+            value: pendingOrdersCount.toString(),
+            helper: `${processingOrdersCount} đơn đang triển khai`,
+            Icon: ClipboardList,
+            iconClass: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300',
+            cardClass: 'from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20'
+          },
+          {
+            label: 'Đơn hoàn thành',
+            value: completedOrdersCount.toString(),
+            helper: `${cancelledOrdersCount} đơn đã hủy`,
+            Icon: PackageCheck,
+            iconClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300',
+            cardClass: 'from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20'
+          },
+          {
+            label: 'Doanh thu ghi nhận',
+            value: formatCurrency(completedRevenue),
+            helper: 'Tổng đơn dịch vụ đã hoàn thành',
+            Icon: Wallet,
+            iconClass: 'bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300',
+            cardClass: 'from-violet-50 to-fuchsia-50 dark:from-violet-900/20 dark:to-fuchsia-900/20'
+          }
+        ].map(({ label, value, helper, Icon, iconClass, cardClass }) => (
+          <div key={label} className={`card bg-gradient-to-br ${cardClass}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">{label}</p>
+                <p className="mt-3 break-words text-2xl font-bold text-primary">{value}</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-secondary">{helper}</p>
+              </div>
+              <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${iconClass}`}>
+                <Icon size={22} />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
-              >
-                <List size={16} />
-                <span>Danh sách</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('kanban')}
-                className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary'}`}
-              >
-                <LayoutGrid size={16} />
-                <span>Kanban</span>
-              </button>
-            </div>
-            <select
-              value={orderStatusFilter}
-              onChange={(e) => setOrderStatusFilter(e.target.value)}
-              className="select"
-            >
-              <option value="all">Mọi trạng thái</option>
-              <option value="PENDING">Mới</option>
-              <option value="PROCESSING">Đang làm</option>
-              <option value="DONE">Hoàn thành</option>
-              <option value="CANCELLED">Đã hủy</option>
-            </select>
           </div>
+        ))}
+      </div>
+
+      <div className="border-b border-primary mb-6">
+        <div className="flex items-center gap-2 sm:gap-6">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab.key)
+                setCurrentPage(1)
+              }}
+              className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="card p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="relative">
+      </div>
+
+      {activeTab === 'registrations' && (
+        <>
+          <div className="card p-3 sm:p-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
+                <select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value)} className="select flex-1">
+                  <option value="all">Mọi trạng thái</option>
+                  <option value="PENDING">Mới</option>
+                  <option value="PROCESSING">Đang làm</option>
+                  <option value="DONE">Hoàn thành</option>
+                  <option value="CANCELLED">Đã hủy</option>
+                </select>
+              </div>
+              <div className="sm:col-span-1 lg:col-span-2 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                <input
+                  type="text"
+                  placeholder="Tìm theo phòng, tên dịch vụ hoặc người yêu cầu..."
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  className="input input-with-icon w-full pl-10 pr-4 py-2 text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mb-4 flex gap-2 justify-end">
+            <button type="button" onClick={() => setViewMode('list')} className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}>
+              <List size={16} /> Danh sách
+            </button>
+            <button type="button" onClick={() => setViewMode('kanban')} className={`btn btn-sm ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary'}`}>
+              <LayoutGrid size={16} /> Kanban
+            </button>
+          </div>
+
+
+
+          {ordersLoading ? (
+            <div className="card">
+              <Loading size="lg" text="Đang tải đơn đăng ký..." />
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="card p-12 text-center">
+              <ClipboardList size={52} className="mx-auto text-tertiary" />
+              <h3 className="mt-4 text-lg font-semibold text-primary">Chưa có đơn dịch vụ</h3>
+              <p className="mt-2 text-sm text-secondary">Thử thay đổi bộ lọc để xem thêm dữ liệu.</p>
+            </div>
+          ) : viewMode === 'list' ? (
+            <>
+              <div className="hidden lg:block card overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[980px]">
+                    <thead className="border-b border-primary bg-tertiary/80">
+                      <tr>
+                        {['Dịch vụ', 'Phòng', 'Người yêu cầu', 'Thời gian', 'Trạng thái', 'Hành động'].map(header => (
+                          <th
+                            key={header}
+                            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-secondary uppercase align-middle ${header === 'Hành động' ? 'text-center' : 'text-left'}`}
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-primary">
+                      {paginatedOrders.map(order => {
+                        const statusBadge = getStatusBadge(order.status)
+                        const roomName = order.user.contracts[0]?.room?.name || 'N/A'
+                        const initials = getInitials(order.user.fullName)
+
+                        return (
+                          <tr key={order.id} className="hover:bg-tertiary/60">
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-tertiary text-lg">
+                                  {getServiceIcon(order.service.name)}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold text-primary">{order.service.name}</p>
+                                  <p className="mt-0.5 text-xs text-tertiary">{order.quantity} yêu cầu · {formatCurrency(order.total)}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-sm font-medium text-primary">{roomName}</td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+                                  {initials}
+                                </div>
+                                <span className="text-sm text-primary">{order.user.fullName}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                              <p className="text-sm text-secondary">{formatDateTime(order.orderDate)}</p>
+                              <p className="mt-0.5 text-xs text-tertiary">{formatRelativeTime(order.orderDate)}</p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle align-top">
+                              <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex">
+                                {statusBadge.label}
+                              </Badge>
+                              {order.status === 'CANCELLED' && order.note?.startsWith('Lý do hủy:') && (
+                                <p className="mt-1 text-xs italic text-tertiary">{order.note.replace('Lý do hủy: ', '')}</p>
+                              )}
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">{renderOrderActions(order)}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:hidden">
+                {paginatedOrders.map(order => {
+                  const statusBadge = getStatusBadge(order.status)
+                  const roomName = order.user.contracts[0]?.room?.name || 'N/A'
+                  const initials = getInitials(order.user.fullName)
+
+                  return (
+                    <div key={order.id} className="card p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{getServiceIcon(order.service.name)}</span>
+                            <h3 className="truncate text-base font-semibold text-primary">{order.service.name}</h3>
+                          </div>
+                          <p className="mt-1 text-sm text-secondary">Phòng {roomName}</p>
+                        </div>
+                        <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium shrink-0">
+                          {statusBadge.label}
+                        </Badge>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-tertiary/60 p-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+                            {initials}
+                          </div>
+                          <div>
+                            <p className="text-xs text-secondary">Người yêu cầu</p>
+                            <p className="text-sm font-medium text-primary">{order.user.fullName}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-secondary">Tổng tiền</p>
+                          <p className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-secondary">Số lượng</p>
+                          <p className="text-sm text-primary">{order.quantity}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-secondary">Thời gian</p>
+                          <p className="text-sm text-primary">{formatDateTime(order.orderDate)}</p>
+                        </div>
+                      </div>
+
+                      {order.status === 'CANCELLED' && order.note?.startsWith('Lý do hủy:') && (
+                        <div className="mt-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+                          {order.note.replace('Lý do hủy: ', '')}
+                        </div>
+                      )}
+
+                      <div className="mt-4 border-t border-primary pt-4">{renderOrderActions(order)}</div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {orders.length > itemsPerPage && (
+                <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-secondary">
+                    Hiển thị {orderStartIndex + 1}–{Math.min(orderEndIndex, orders.length)} trong {orders.length} đơn hàng
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.min(totalOrderPages, 5) }, (_, index) => {
+                      let pageNumber = index + 1
+
+                      if (totalOrderPages > 5) {
+                        if (currentPage <= 3) {
+                          pageNumber = index + 1
+                        } else if (currentPage >= totalOrderPages - 2) {
+                          pageNumber = totalOrderPages - 4 + index
+                        } else {
+                          pageNumber = currentPage - 2 + index
+                        }
+                      }
+
+                      if (pageNumber > totalOrderPages) return null
+
+                      return (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`btn btn-sm ${currentPage === pageNumber ? 'btn-primary' : 'btn-secondary'}`}
+                        >
+                          {pageNumber}
+                        </button>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.min(totalOrderPages, prev + 1))}
+                      disabled={currentPage === totalOrderPages}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Tiếp
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {kanbanColumns.map(column => {
+                const items = orders.filter(order => order.status === column.status)
+
+                return (
+                  <div key={column.status} className="card p-4">
+                    <div className="mb-4 flex items-center gap-2 border-b border-primary pb-4">
+                      <div className={`h-2.5 w-2.5 rounded-full ${column.dotClass}`} />
+                      <h3 className="flex-1 text-sm font-semibold text-primary">{column.title}</h3>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${column.countClass}`}>{items.length}</span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {items.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-primary bg-primary/60 px-4 py-8 text-center text-sm text-secondary">
+                          Trống
+                        </div>
+                      ) : (
+                        items.map(order => {
+                          const roomName = order.user.contracts[0]?.room?.name || 'N/A'
+                          const initials = getInitials(order.user.fullName)
+
+                          return (
+                            <div key={order.id} className="card p-4 shadow-sm">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-primary">{order.service.name}</p>
+                                  <p className="mt-0.5 text-xs text-tertiary">Phòng {roomName}</p>
+                                </div>
+                                <span className="shrink-0 text-xs font-semibold text-secondary">#{order.id}</span>
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2">
+                                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+                                  {initials}
+                                </div>
+                                <span className="text-xs text-secondary">{order.user.fullName}</span>
+                              </div>
+
+                              <div className="mt-3 flex items-center justify-between text-xs">
+                                <span className="text-tertiary">Số lượng: {order.quantity}</span>
+                                <span className="font-semibold text-primary">{formatCurrency(order.total)}</span>
+                              </div>
+
+                              {order.status === 'CANCELLED' && order.note?.startsWith('Lý do hủy:') && (
+                                <div className="mt-3 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+                                  {order.note.replace('Lý do hủy: ', '')}
+                                </div>
+                              )}
+
+                              <div className="mt-3 border-t border-primary pt-3">{renderOrderActions(order)}</div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'config' && (
+        <>
+          <div className="card p-3 sm:p-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="select flex-1">
+                  <option value="all">Tất cả trạng thái</option>
+                  <option value="active">Đang hoạt động</option>
+                  <option value="inactive">Đã tắt</option>
+                </select>
+              </div>
+              <div className="sm:col-span-1 lg:col-span-2 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
                 <input
                   type="text"
                   placeholder="Tìm kiếm theo tên dịch vụ..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="input input-with-icon w-full pr-4 py-2"
+                  className="input input-with-icon w-full pl-10 pr-4 py-2 text-sm"
                 />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
               </div>
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="select"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Đã tắt</option>
-            </select>
           </div>
-        </div>
-      )}
 
-      {/* Orders List */}
-      {activeTab === 'registrations' && (
-        ordersLoading ? (
-          <div className="text-center py-12">
-            <p className="text-tertiary">Đang tải...</p>
-          </div>
-        ) : viewMode === 'list' ? (
-          <>
-            <div className="card overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-tertiary border-b border-primary">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">PHÒNG</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TÊN DỊCH VỤ</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">NGƯỜI YÊU CẦU</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">THỜI GIAN TẠO</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">HÀNH ĐỘNG</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-primary">
-                  {paginatedOrders.map((order) => {
-                    const statusBadge = getStatusBadge(order.status)
-                    const room = order.user.contracts[0]?.room
-                    const roomName = room?.name || 'N/A'
-                    const initials = getInitials(order.user.fullName)
-
-                    return (
-                      <tr key={order.id} className="hover:bg-tertiary">
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-primary">{roomName}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-primary">{order.service.name}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                            </div>
-                            <span className="text-sm text-primary">{order.user.fullName}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-secondary">{formatDateTime(order.orderDate)}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col gap-1">
-                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${statusBadge.className}`}>
-                              {statusBadge.label}
-                            </span>
-                            {order.status === 'CANCELLED' && order.note && order.note.startsWith('Lý do hủy:') && (
-                              <span className="text-xs text-tertiary italic mt-1" title={order.note}>
-                                {order.note.replace('Lý do hủy: ', '')}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                alert(`Đơn hàng #${order.id}\nDịch vụ: ${order.service.name}\nSố lượng: ${order.quantity}\nTổng tiền: ${formatCurrency(order.total)}\nTrạng thái: ${statusBadge.label}\nNgười yêu cầu: ${order.user.fullName}\nPhòng: ${roomName}`)
-                              }}
-                              className="p-2 hover:bg-tertiary rounded-lg transition-colors"
-                              title="Xem chi tiết"
-                            >
-                              <Eye size={16} className="text-secondary" />
-                            </button>
-                            {order.status === 'PENDING' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleAcceptOrder(order.id)
-                                  }}
-                                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                                >
-                                  Nhận đơn
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleOpenCancelModal(order.id)
-                                  }}
-                                  className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1 font-medium"
-                                >
-                                  <X size={14} />
-                                  Hủy đơn
-                                </button>
-                              </>
-                            )}
-                            {order.status === 'PROCESSING' && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleCompleteOrder(order.id)
-                                }}
-                                className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1 font-medium"
-                              >
-                                <CheckCircle size={14} />
-                                Xong
-                              </button>
-                            )}
-                            {order.status === 'DONE' && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleOpenInvoiceModal(order)
-                                }}
-                                className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1 font-medium"
-                              >
-                                <Receipt size={14} />
-                                Tạo hóa đơn
-                              </button>
-                            )}
-                            {order.status === 'CANCELLED' && (
-                              <span className="text-sm text-tertiary">Đã hủy</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+          {loading ? (
+            <div className="card">
+              <Loading size="lg" text="Đang tải dịch vụ..." />
             </div>
-            {orders.length > 0 && (
-              <div className="flex items-center justify-between card p-4">
-                <p className="text-sm text-secondary">
-                  Hiển thị {orderStartIndex + 1}-{Math.min(orderEndIndex, orders.length)} trong số {orders.length} đơn hàng
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Trước
-                  </button>
-                  {Array.from({ length: Math.min(totalOrderPages, 5) }, (_, i) => {
-                    let pageNum
-                    if (totalOrderPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalOrderPages - 2) {
-                      pageNum = totalOrderPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-                    if (pageNum > totalOrderPages) return null
-                    return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
-                          }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(totalOrderPages, prev + 1))}
-                    disabled={currentPage === totalOrderPages}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Tiếp
-                  </button>
+          ) : filteredServices.length === 0 ? (
+            <div className="card p-12 text-center">
+              <Settings2 size={52} className="mx-auto text-tertiary" />
+              <h3 className="mt-4 text-lg font-semibold text-primary">Không tìm thấy dịch vụ phù hợp</h3>
+              <p className="mt-2 text-sm text-secondary">Thử đổi bộ lọc hoặc từ khóa khác.</p>
+            </div>
+          ) : (
+            <>
+              <div className="hidden lg:block card overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px]">
+                    <thead className="border-b border-primary bg-tertiary/80">
+                      <tr>
+                        {['Thông tin dịch vụ', 'Đơn vị tính', 'Đơn giá hiện tại', 'Trạng thái', 'Hành động'].map(header => (
+                          <th
+                            key={header}
+                            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-secondary uppercase align-middle ${header === 'Hành động' ? 'text-center' : 'text-left'}`}
+                          >
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-primary">
+                      {paginatedServices.map(service => (
+                        <tr key={service.id} className="hover:bg-tertiary/60">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-tertiary text-xl">
+                                {getServiceIcon(service.name)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-primary">{service.name}</p>
+                                <p className="mt-0.5 text-xs text-tertiary">Dịch vụ {service.name.toLowerCase()}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-sm text-secondary">{service.unit}</td>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-sm font-semibold text-primary">
+                            {formatCurrency(Number(service.unitPrice))} / {service.unit}
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                            <div className="flex items-center gap-3">
+                              <label className="relative inline-flex cursor-pointer items-center">
+                                <input
+                                  type="checkbox"
+                                  className="peer sr-only"
+                                  checked={service.isActive}
+                                  onChange={() => handleToggleActive(service.id, service.isActive)}
+                                />
+                                <div className="h-6 w-11 rounded-full bg-tertiary after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-primary after:bg-primary after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
+                              </label>
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${service.isActive
+                                    ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
+                                    : 'bg-neutral-secondary-medium border border-default-medium text-heading'
+                                  }`}
+                              >
+                                {service.isActive ? 'Hoạt động' : 'Tạm ngưng'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">s*<div className="flex items-center justify-center gap-1">
+                            <button type="button" onClick={() => handleEdit(service)} className="btn btn-ghost btn-icon text-primary" title="Sửa">
+                              <Edit size={16} className="w-[18px] h-[18px]" />
+                            </button>
+                            <button type="button" onClick={() => handleDelete(service.id)} className="btn btn-ghost btn-icon text-danger" title="Xóa">
+                              <Trash2 size={16} className="w-[18px] h-[18px]" />
+                            </button>
+                          </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* PENDING Column */}
-            <div className="bg-tertiary rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                <h3 className="font-semibold text-primary">Mới</h3>
-                <span className="bg-danger-soft border border-danger-subtle text-fg-danger-strong text-xs font-medium px-1.5 py-0.5 rounded">
-                  {orders.filter(o => o.status === 'PENDING').length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {orders.filter(o => o.status === 'PENDING').map((order) => {
-                  const room = order.user.contracts[0]?.room
-                  const roomName = room?.name || 'N/A'
-                  const initials = getInitials(order.user.fullName)
-                  return (
-                    <div
-                      key={order.id}
-                      className="card p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
-                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                        </div>
-                        <span className="text-xs text-secondary">{order.user.fullName}</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-tertiary">Số lượng: {order.quantity}</span>
-                        <span className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleAcceptOrder(order.id)
-                          }}
-                          className="flex-1 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                        >
-                          Nhận đơn
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleOpenCancelModal(order.id)
-                          }}
-                          className="px-3 py-1.5 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center"
-                          title="Hủy đơn"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
 
-            {/* PROCESSING Column */}
-            <div className="bg-tertiary rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <h3 className="font-semibold text-primary">Đang làm</h3>
-                <span className="bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded">
-                  {orders.filter(o => o.status === 'PROCESSING').length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {orders.filter(o => o.status === 'PROCESSING').map((order) => {
-                  const room = order.user.contracts[0]?.room
-                  const roomName = room?.name || 'N/A'
-                  const initials = getInitials(order.user.fullName)
-                  return (
-                    <div
-                      key={order.id}
-                      className="card p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
-                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
+              <div className="grid grid-cols-1 gap-4 lg:hidden">
+                {paginatedServices.map(service => (
+                  <div key={service.id} className="card p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{getServiceIcon(service.name)}</span>
+                          <h3 className="truncate text-base font-semibold text-primary">{service.name}</h3>
                         </div>
+                        <p className="mt-1.5 text-sm text-secondary">{formatCurrency(Number(service.unitPrice))} / {service.unit}</p>
                       </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                        </div>
-                        <span className="text-xs text-secondary">{order.user.fullName}</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-tertiary">Số lượng: {order.quantity}</span>
-                        <span className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleCompleteOrder(order.id)
-                        }}
-                        className="w-full px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1 font-medium"
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${service.isActive
+                            ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
+                            : 'bg-neutral-secondary-medium border border-default-medium text-heading'
+                          }`}
                       >
-                        <CheckCircle size={14} />
-                        Hoàn thành
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* DONE Column */}
-            <div className="bg-tertiary rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <h3 className="font-semibold text-primary">Hoàn thành</h3>
-                <span className="bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded">
-                  {orders.filter(o => o.status === 'DONE').length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {orders.filter(o => o.status === 'DONE').map((order) => {
-                  const room = order.user.contracts[0]?.room
-                  const roomName = room?.name || 'N/A'
-                  const initials = getInitials(order.user.fullName)
-                  return (
-                    <div key={order.id} className="card p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
-                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                        </div>
-                        <span className="text-xs text-secondary">{order.user.fullName}</span>
-                      </div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-tertiary">Số lượng: {order.quantity}</span>
-                        <span className="text-sm font-semibold text-primary">{formatCurrency(order.total)}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleOpenInvoiceModal(order)
-                        }}
-                        className="w-full px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1 font-medium"
-                      >
-                        <Receipt size={14} />
-                        Tạo hóa đơn
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* CANCELLED Column */}
-            <div className="bg-tertiary rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 rounded-full bg-secondary"></div>
-                <h3 className="font-semibold text-primary">Đã hủy</h3>
-                <span className="bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded">
-                  {orders.filter(o => o.status === 'CANCELLED').length}
-                </span>
-              </div>
-              <div className="space-y-3">
-                {orders.filter(o => o.status === 'CANCELLED').map((order) => {
-                  const room = order.user.contracts[0]?.room
-                  const roomName = room?.name || 'N/A'
-                  const initials = getInitials(order.user.fullName)
-                  return (
-                    <div key={order.id} className="card p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-primary">{order.service.name}</p>
-                          <p className="text-xs text-tertiary mt-1">Phòng {roomName}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                        </div>
-                        <span className="text-xs text-secondary">{order.user.fullName}</span>
-                      </div>
-                      {order.note && order.note.startsWith('Lý do hủy:') && (
-                        <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 rounded text-xs text-red-900 dark:text-red-400">
-                          {order.note.replace('Lý do hủy: ', '')}
-                        </div>
-                      )}
-                      <div className="bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded text-center">
-                        Đã hủy
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        )
-      )}
-
-      {/* Services Table */}
-      {activeTab === 'config' && (
-        loading ? (
-          <div className="text-center py-12">
-            <p className="text-tertiary">Đang tải...</p>
-          </div>
-        ) : (
-          <div className="card overflow-hidden">
-            <table className="w-full min-w-[600px]">
-              <thead className="bg-tertiary border-b border-primary">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                    THÔNG TIN DỊCH VỤ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                    ĐƠN VỊ TÍNH
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                    ĐƠN GIÁ HIỆN TẠI
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                    TRẠNG THÁI
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                    HÀNH ĐỘNG
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-primary">
-                {paginatedServices.map((service) => (
-                  <tr key={service.id} className="hover:bg-tertiary">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-tertiary flex items-center justify-center text-xl">
-                          {getServiceIcon(service.name)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-primary">{service.name}</p>
-                          <p className="text-xs text-tertiary mt-1">
-                            Dịch vụ {service.name.toLowerCase()}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-secondary">{service.unit}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-primary">
-                        {formatCurrency(Number(service.unitPrice))} / {service.unit}
+                        {service.isActive ? 'Hoạt động' : 'Tắt'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <label className="relative inline-flex items-center cursor-pointer">
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between rounded-2xl bg-tertiary/60 px-4 py-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">Bật / tắt dịch vụ</p>
+                        <p className="mt-0.5 text-sm text-primary">Cập nhật nhanh trạng thái</p>
+                      </div>
+                      <label className="relative inline-flex cursor-pointer items-center">
                         <input
                           type="checkbox"
-                          className="sr-only peer"
+                          className="peer sr-only"
                           checked={service.isActive}
                           onChange={() => handleToggleActive(service.id, service.isActive)}
                         />
-                        <div className="w-11 h-6 bg-tertiary peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-primary after:border-primary after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div className="h-6 w-11 rounded-full bg-tertiary after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-primary after:bg-primary after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
                       </label>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(service)}
-                          className="p-2 hover:bg-tertiary rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit size={16} className="text-secondary" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(service.id)}
-                          className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <Trash2 size={16} className="text-red-600 dark:text-red-400" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-primary pt-4">
+                      <button type="button" onClick={() => handleEdit(service)} className="btn btn-secondary btn-sm">
+                        <Edit size={14} />
+                        <span>Chỉnh sửa</span>
+                      </button>
+                      <button type="button" onClick={() => handleDelete(service.id)} className="btn btn-ghost btn-icon text-danger" title="Xóa">
+                        <Trash2 size={16} className="w-[18px] h-[18px]" />
+                      </button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )
+              </div>
+
+              {filteredServices.length > itemsPerPage && (
+                <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-secondary">
+                    Hiển thị {startIndex + 1}–{Math.min(endIndex, filteredServices.length)} trong {filteredServices.length} dịch vụ
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Trước
+                    </button>
+                    {Array.from({ length: Math.min(totalPages, 3) }, (_, index) => {
+                      let pageNumber = index + 1
+
+                      if (totalPages > 3) {
+                        if (currentPage === 1) {
+                          pageNumber = index + 1
+                        } else if (currentPage === totalPages) {
+                          pageNumber = totalPages - 2 + index
+                        } else {
+                          pageNumber = currentPage - 1 + index
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNumber)}
+                          className={`btn btn-sm ${currentPage === pageNumber ? 'btn-primary' : 'btn-secondary'}`}
+                        >
+                          {pageNumber}
+                        </button>
+                      )
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Tiếp
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
-      {/* Pagination for Services */}
-      {activeTab === 'config' && filteredServices.length > 0 && (
-        <div className="flex items-center justify-between card p-4">
-          <p className="text-sm text-secondary">
-            Hiển thị {startIndex + 1}-{Math.min(endIndex, filteredServices.length)} trong {filteredServices.length} dịch vụ
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="btn btn-secondary btn-sm"
-            >
-              Trước
-            </button>
-            {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => {
-              let pageNum
-              if (totalPages <= 3) {
-                pageNum = i + 1
-              } else if (currentPage === 1) {
-                pageNum = i + 1
-              } else if (currentPage === totalPages) {
-                pageNum = totalPages - 2 + i
-              } else {
-                pageNum = currentPage - 1 + i
-              }
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'
-                    }`}
-                >
-                  {pageNum}
-                </button>
-              )
-            })}
-            <button
-              type="button"
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="btn btn-secondary btn-sm"
-            >
-              Tiếp
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* History Tab */}
       {activeTab === 'history' && (
-        <div className="card p-6">
-          <p className="text-tertiary text-center py-12">Lịch sử điều chỉnh giá đang được phát triển...</p>
+        <div className="card border-dashed p-8 lg:p-14">
+          <div className="flex flex-col items-center gap-4 text-center lg:flex-row lg:text-left">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-tertiary text-tertiary">
+              <PackageCheck size={30} />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-primary">Lịch sử điều chỉnh dịch vụ đang được hoàn thiện</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-secondary">
+                Khu vực này sẽ hiển thị toàn bộ thay đổi biểu phí, trạng thái kích hoạt và dấu vết quản trị, hỗ trợ đối soát dịch vụ minh bạch trên desktop, tablet và mobile.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Cancel Order Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="card rounded-lg shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="card w-full max-w-md shadow-2xl">
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-primary">Hủy đơn dịch vụ</h2>
                 <button
                   onClick={() => {
@@ -1162,27 +1219,21 @@ export default function ServicesPage() {
                     setSelectedOrderId(null)
                     setCancelReason('')
                   }}
-                  className="p-2 hover:bg-tertiary rounded-lg transition-colors"
+                  className="rounded-lg p-2 transition-colors hover:bg-tertiary"
                 >
                   <XCircle size={20} className="text-tertiary" />
                 </button>
               </div>
-              <p className="text-secondary mb-4">
-                Vui lòng nêu rõ lý do không nhận đơn sự cố này:
-              </p>
+              <p className="mb-4 text-secondary">Vui lòng nêu rõ lý do hủy hoặc từ chối tiếp nhận đơn dịch vụ này:</p>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 placeholder="Nhập lý do hủy đơn..."
-                className="input w-full px-4 py-3 resize-none"
+                className="input w-full resize-none px-4 py-3"
                 rows={4}
               />
-              <div className="flex items-center gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={handleCancelOrder}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-                >
+              <div className="mt-6 flex items-center gap-3">
+                <button type="button" onClick={handleCancelOrder} className="btn btn-danger btn-md flex-1">
                   Xác nhận hủy
                 </button>
                 <button
@@ -1192,7 +1243,7 @@ export default function ServicesPage() {
                     setSelectedOrderId(null)
                     setCancelReason('')
                   }}
-                  className="flex-1 px-4 py-2 border border-primary text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="btn btn-secondary btn-md flex-1"
                 >
                   Hủy
                 </button>
@@ -1202,16 +1253,15 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Edit Service Modal */}
       {showEditModal && editingService && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-primary rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-primary">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl bg-primary shadow-2xl">
+            <div className="border-b border-primary px-6 py-4">
               <h2 className="text-xl font-semibold text-primary">Chỉnh sửa dịch vụ</h2>
             </div>
-            <div className="px-6 py-4 space-y-4">
+            <div className="space-y-4 px-6 py-5">
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="mb-2 block text-sm font-medium text-primary">
                   Tên dịch vụ <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1223,7 +1273,7 @@ export default function ServicesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="mb-2 block text-sm font-medium text-primary">
                   Đơn giá <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -1235,12 +1285,10 @@ export default function ServicesPage() {
                   min="0"
                   step="1000"
                 />
-                <p className="text-xs text-tertiary mt-1">
-                  Đơn giá hiện tại: {formatCurrency(editingService.unitPrice)}
-                </p>
+                <p className="mt-1 text-xs text-tertiary">Đơn giá hiện tại: {formatCurrency(editingService.unitPrice)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="mb-2 block text-sm font-medium text-primary">
                   Đơn vị tính <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -1249,22 +1297,16 @@ export default function ServicesPage() {
                   className="input w-full"
                 >
                   <option value="">Chọn đơn vị</option>
-                  <option value="lần">lần</option>
-                  <option value="tháng">tháng</option>
-                  <option value="ngày">ngày</option>
-                  <option value="giờ">giờ</option>
-                  <option value="kg">kg</option>
-                  <option value="m²">m²</option>
-                  <option value="m³">m³</option>
+                  {['lần', 'tháng', 'ngày', 'giờ', 'kg', 'm²', 'm³'].map(unit => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-primary flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                className="btn btn-primary btn-md flex-1"
-              >
+            <div className="flex items-center gap-3 border-t border-primary px-6 py-4">
+              <button type="button" onClick={handleSaveEdit} className="btn btn-primary btn-md flex-1">
                 Lưu thay đổi
               </button>
               <button
@@ -1283,14 +1325,13 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Create Invoice Modal */}
       {showInvoiceModal && contract && selectedOrder && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-primary rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-primary shadow-2xl">
             <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow">
                     <Receipt size={20} className="text-white" />
                   </div>
                   <div>
@@ -1305,27 +1346,25 @@ export default function ServicesPage() {
                     setSelectedOrder(null)
                     setContract(null)
                   }}
-                  className="p-2 hover:bg-tertiary rounded-lg transition-colors"
+                  className="rounded-lg p-2 transition-colors hover:bg-tertiary"
                 >
                   <XCircle size={20} className="text-tertiary" />
                 </button>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">Khách hàng</p>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">{selectedOrder.user.fullName}</p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Phòng {selectedOrder.user.contracts[0]?.room?.name || 'N/A'}</p>
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-200">Khách hàng</p>
+                  <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">{selectedOrder.user.fullName}</p>
+                  <p className="mt-0.5 text-xs text-blue-600 dark:text-blue-400">Phòng {selectedOrder.user.contracts[0]?.room?.name || 'N/A'}</p>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                   <div className="flex items-start gap-3">
-                    <Receipt size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                        Hóa đơn riêng cho dịch vụ
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <Receipt size={18} className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Hóa đơn riêng cho dịch vụ</p>
+                      <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">
                         Hóa đơn này sẽ được tạo <strong>riêng biệt</strong>, không gộp vào hóa đơn tháng hiện có.
                       </p>
                     </div>
@@ -1334,23 +1373,21 @@ export default function ServicesPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Tháng
-                    </label>
+                    <label className="mb-2 block text-sm font-medium text-primary">Tháng</label>
                     <select
                       value={invoiceData.month}
                       onChange={(e) => setInvoiceData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
                       className="input w-full"
                     >
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                        <option key={m} value={m}>{m}</option>
+                      {Array.from({ length: 12 }, (_, index) => index + 1).map(month => (
+                        <option key={month} value={month}>
+                          {month}
+                        </option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Năm
-                    </label>
+                    <label className="mb-2 block text-sm font-medium text-primary">Năm</label>
                     <input
                       type="number"
                       value={invoiceData.year}
@@ -1361,9 +1398,9 @@ export default function ServicesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
+                  <label className="mb-2 block text-sm font-medium text-primary">
                     Phí dịch vụ (VND)
-                    <span className="text-xs text-tertiary ml-2">(Đơn hàng #{selectedOrder.id}: {selectedOrder.service.name})</span>
+                    <span className="ml-2 text-xs text-tertiary">(Đơn #{selectedOrder.id}: {selectedOrder.service.name})</span>
                   </label>
                   <input
                     type="number"
@@ -1372,29 +1409,21 @@ export default function ServicesPage() {
                     className="input w-full"
                     placeholder="Nhập phí dịch vụ"
                   />
-                  <p className="text-xs text-tertiary mt-1">
-                    Tổng tiền đơn hàng: {formatCurrency(selectedOrder.total)}
-                  </p>
+                  <p className="mt-1 text-xs text-tertiary">Tổng tiền đơn hàng: {formatCurrency(selectedOrder.total)}</p>
                 </div>
 
-                <div className="bg-tertiary rounded-lg p-4 border border-primary">
+                <div className="rounded-2xl border border-primary bg-tertiary p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-primary">Tổng cộng:</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(
-                        parseFloat(invoiceData.amountService || '0')
-                      )}
+                      {formatCurrency(parseFloat(invoiceData.amountService || '0'))}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-6 pt-6 border-t border-primary">
-                <button
-                  type="button"
-                  onClick={handleCreateInvoice}
-                  className="btn btn-success btn-md flex-1"
-                >
+              <div className="mt-6 flex items-center gap-3 border-t border-primary pt-6">
+                <button type="button" onClick={handleCreateInvoice} className="btn btn-success btn-md flex-1">
                   <Receipt size={18} />
                   <span>Tạo hóa đơn riêng</span>
                 </button>
@@ -1415,38 +1444,47 @@ export default function ServicesPage() {
         </div>
       )}
 
-      {/* Confirmation Modal */}
       {showConfirmModal && confirmAction && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={cancelConfirm}>
-          <div className="bg-primary rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={cancelConfirm}>
+          <div className="w-full max-w-md rounded-2xl bg-primary shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-primary">
                   {confirmAction.type === 'delete' && 'Xóa dịch vụ'}
                   {confirmAction.type === 'accept' && 'Nhận đơn hàng'}
                   {confirmAction.type === 'complete' && 'Hoàn thành đơn hàng'}
                 </h2>
-                <button onClick={cancelConfirm} className="p-2 hover:bg-tertiary rounded-lg">
+                <button onClick={cancelConfirm} className="rounded-lg p-2 hover:bg-tertiary">
                   <X size={20} className="text-secondary" />
                 </button>
               </div>
-              <p className="text-secondary mb-6">
+              <p className="mb-6 text-secondary">
                 {confirmAction.type === 'delete' && 'Bạn có chắc chắn muốn xóa dịch vụ này?'}
                 {confirmAction.type === 'accept' && 'Bạn có chắc chắn muốn nhận đơn hàng này?'}
                 {confirmAction.type === 'complete' && 'Bạn có chắc chắn muốn đánh dấu đơn hàng này đã hoàn thành?'}
               </p>
-              <div className="flex items-center gap-3 justify-end">
+              <div className="flex items-center justify-end gap-3">
                 <button onClick={cancelConfirm} className="btn btn-secondary btn-md" disabled={actionLoading}>
                   Hủy
                 </button>
                 <button
-                  onClick={confirmAction.type === 'delete' ? confirmDelete : confirmAction.type === 'accept' ? confirmAcceptOrder : confirmCompleteOrder}
+                  onClick={
+                    confirmAction.type === 'delete'
+                      ? confirmDelete
+                      : confirmAction.type === 'accept'
+                        ? confirmAcceptOrder
+                        : confirmCompleteOrder
+                  }
                   disabled={actionLoading}
                   className={`btn btn-md ${confirmAction.type === 'delete' ? 'btn-danger' : 'btn-primary'}`}
                 >
-                  {actionLoading ? 'Đang xử lý...' :
-                    confirmAction.type === 'delete' ? 'Xóa' :
-                      confirmAction.type === 'accept' ? 'Nhận' : 'Hoàn thành'}
+                  {actionLoading
+                    ? 'Đang xử lý...'
+                    : confirmAction.type === 'delete'
+                      ? 'Xóa'
+                      : confirmAction.type === 'accept'
+                        ? 'Nhận'
+                        : 'Hoàn thành'}
                 </button>
               </div>
             </div>

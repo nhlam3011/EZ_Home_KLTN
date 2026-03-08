@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, Eye, EyeOff, CheckCircle, Loader2, Shield, AlertCircle, KeyRound } from 'lucide-react'
+import { Lock, Eye, EyeOff, CheckCircle, Shield, AlertCircle, KeyRound } from 'lucide-react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
+import Loading, { LoadingSpinner } from '@/components/Loading'
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -125,10 +126,7 @@ export default function ChangePasswordPage() {
             backgroundSize: '40px 40px'
           }}></div>
         </div>
-        <div className="flex flex-col items-center gap-3 sm:gap-4 relative z-10">
-          <Loader2 className="animate-spin text-blue-600 dark:text-blue-400" size={32} />
-          <p className="text-xs sm:text-sm text-secondary">Đang tải...</p>
-        </div>
+        <Loading size="lg" text="Đang tải..." />
       </div>
     )
   }
@@ -159,7 +157,7 @@ export default function ChangePasswordPage() {
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-primary mb-2">Đổi mật khẩu thành công!</h2>
             <p className="text-xs sm:text-sm text-secondary mb-4">Bạn sẽ được chuyển đến trang chủ...</p>
-            <Loader2 className="animate-spin text-blue-600 dark:text-blue-400 mx-auto" size={24} />
+            <Loading size="md" text="" className="py-2" />
           </div>
         </div>
       </div>
@@ -167,8 +165,8 @@ export default function ChangePasswordPage() {
   }
 
   const isAdmin = user.role === 'ADMIN'
-  const currentPasswordLabel = isAdmin 
-    ? 'Mật khẩu hiện tại' 
+  const currentPasswordLabel = isAdmin
+    ? 'Mật khẩu hiện tại'
     : 'Mật khẩu hiện tại (Số CCCD)'
 
   return (
@@ -194,9 +192,9 @@ export default function ChangePasswordPage() {
         {/* Logo & Title */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="inline-flex items-center justify-center mb-4 sm:mb-6">
-            <img 
-              src="/logo_final.png" 
-              alt="EZ-Home Logo" 
+            <img
+              src="/logo_final.png"
+              alt="EZ-Home Logo"
               className="w-25 h-25 sm:w-30 sm:h-30 object-contain"
             />
           </div>
@@ -349,7 +347,7 @@ export default function ChangePasswordPage() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="animate-spin" size={18} />
+                  <LoadingSpinner size={18} className="text-white" />
                   <span className="text-sm sm:text-base">Đang xử lý...</span>
                 </>
               ) : (

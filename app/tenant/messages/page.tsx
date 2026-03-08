@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, MessageSquare, Send, User, Image as ImageIcon, X, Trash2 } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Message {
   id: number
@@ -455,10 +456,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p style={{ color: 'var(--text-secondary)' }}>Đang tải tin nhắn...</p>
-        </div>
+        <Loading size="lg" text="Đang tải tin nhắn..." />
       </div>
     )
   }
@@ -586,8 +584,8 @@ export default function MessagesPage() {
 
                       return (
                         <div className={isImageOnly ? '' : `rounded-2xl px-4 py-2 shadow-sm message-bubble ${isTenant
-                            ? 'bg-blue-500 text-white rounded-tr-sm'
-                            : 'rounded-tl-sm'
+                          ? 'bg-blue-500 text-white rounded-tr-sm'
+                          : 'rounded-tl-sm'
                           }`}
                           style={isImageOnly ? {} : (!isTenant ? {
                             backgroundColor: 'var(--bg-tertiary)',

@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Search, Eye, Star, Loader2 } from 'lucide-react'
+import { Plus, Search, Eye, Star } from 'lucide-react'
 import Link from 'next/link'
+import Loading from '@/components/Loading'
 
 interface Issue {
   id: number
@@ -159,10 +160,7 @@ export default function IssuesPage() {
       {
         loading ? (
           <div className="card">
-            <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-              <p className="text-tertiary">Đang tải...</p>
-            </div>
+            <Loading size="lg" text="Đang tải..." />
           </div>
         ) : (
           <>

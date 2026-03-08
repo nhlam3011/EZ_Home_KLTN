@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Bell, FileText } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Notification {
   id: number
@@ -21,7 +22,7 @@ export default function NotificationsPage() {
     try {
       const userData = localStorage.getItem('user')
       if (!userData) return
-      
+
       const user = JSON.parse(userData)
       const response = await fetch(`/api/admin/notifications?userId=${user.id}`)
       if (response.ok) {
@@ -53,8 +54,8 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12">
-          <p className="text-tertiary">Đang tải...</p>
+        <div className="card">
+          <Loading size="lg" text="Đang tải thông báo..." />
         </div>
       ) : notifications.length === 0 ? (
         <div className="card p-12 text-center">

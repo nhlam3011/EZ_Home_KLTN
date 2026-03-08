@@ -18,6 +18,7 @@ import {
   XCircle,
   ArrowRight
 } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 // Dynamic import for ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
@@ -158,10 +159,7 @@ export default function DashboardPage() {
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-blue dark:border-accent-blue mx-auto mb-4"></div>
-          <p className="text-tertiary">Đang tải dữ liệu...</p>
-        </div>
+        <Loading size="lg" text="Đang tải dữ liệu..." />
       </div>
     )
   }

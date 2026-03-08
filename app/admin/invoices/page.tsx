@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
 import { Plus, Download, Search, Eye, Printer, MessageSquare, CheckCircle, AlertTriangle, FileText, Zap, Edit, Trash2, Upload, MoreVertical, X } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Invoice {
   id: number
@@ -470,8 +471,8 @@ export default function InvoicesPage() {
 
       {/* Invoices Table */}
       {loading ? (
-        <div className="text-center py-12">
-          <p className="text-tertiary">Đang tải...</p>
+        <div className="card">
+          <Loading size="lg" text="Đang tải hóa đơn..." />
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
@@ -1066,7 +1067,7 @@ export default function InvoicesPage() {
               <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 {loadingDetail ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                    <Loading size="lg" text="Đang tải chi tiết hóa đơn..." />
                   </div>
                 ) : selectedInvoiceDetail ? (
                   <div className="space-y-6">

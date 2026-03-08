@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, Image as ImageIcon, ThumbsUp, MessageCircle, Share2, X, Loader2, Sparkles, AlertCircle, CheckCircle, FileText, Users, Clock } from 'lucide-react'
+import { Search, Image as ImageIcon, ThumbsUp, MessageCircle, Share2, X, Sparkles, AlertCircle, CheckCircle, FileText, Users, Clock } from 'lucide-react'
+import Loading, { LoadingSpinner } from '@/components/Loading'
 
 interface Post {
   id: number
@@ -13,6 +14,7 @@ interface Post {
   user: {
     fullName: string
     avatarUrl?: string
+    contracts?: { room: { name: string } }[]
   }
   likes?: number
   comments?: number
@@ -65,23 +67,23 @@ export default function CommunityPage() {
     try {
       const params = new URLSearchParams()
       if (searchQuery) params.append('search', searchQuery)
-      
+
       // Fetch all posts for community feed
       const response = await fetch(`/api/tenant/posts?${params.toString()}`)
       const data = await response.json()
-      
+
       // Filter to show only PUBLIC posts (from all users) in community tab
-      const communityPosts = data.filter((post: Post) => 
+      const communityPosts = data.filter((post: Post) =>
         post.status === 'PUBLIC' && !post.content.startsWith('[Hóa đơn #')
       )
-      
+
       // Separate pinned posts and regular posts
       const pinned = communityPosts.filter((post: Post) => post.content.startsWith('📌'))
       const regular = communityPosts.filter((post: Post) => !post.content.startsWith('📌'))
-      
+
       // Sort: pinned first, then by date (newest first)
       setPosts([...pinned, ...regular])
-      
+
       const likesMap: Record<number, number> = {}
       data.forEach((post: Post) => {
         likesMap[post.id] = post.likes || 0
@@ -109,12 +111,12 @@ export default function CommunityPage() {
       }
 
       const user = JSON.parse(userData)
-      
+
       if (user.role !== 'TENANT') {
         alert('Chỉ cư dân mới có thể đăng bài')
         return
       }
-      
+
       const response = await fetch('/api/tenant/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,7 +154,7 @@ export default function CommunityPage() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        
+
         if (!file.type.startsWith('image/')) {
           alert(`File ${file.name} không phải là ảnh`)
           continue
@@ -218,7 +220,7 @@ export default function CommunityPage() {
   const handleLike = async (postId: number) => {
     const isLiked = likedPosts.has(postId)
     const newLikedPosts = new Set(likedPosts)
-    
+
     if (isLiked) {
       newLikedPosts.delete(postId)
       setPostLikes(prev => ({ ...prev, [postId]: (prev[postId] || 0) - 1 }))
@@ -226,9 +228,9 @@ export default function CommunityPage() {
       newLikedPosts.add(postId)
       setPostLikes(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }))
     }
-    
+
     setLikedPosts(newLikedPosts)
-    
+
     // Note: Like endpoint may not be implemented yet
     try {
       const response = await fetch(`/api/tenant/posts/${postId}/like`, {
@@ -302,24 +304,22 @@ export default function CommunityPage() {
       {/* Tabs */}
       <div className="border-b border-primary">
         <div className="flex items-center gap-1 overflow-x-auto">
-          <button 
+          <button
             onClick={() => setActiveTab('community')}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'community'
-                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'community'
+              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-secondary hover:text-primary'
+              }`}
           >
             <Users size={16} />
             Cộng đồng
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('myposts')}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 relative ${
-              activeTab === 'myposts'
-                ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
+            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 relative ${activeTab === 'myposts'
+              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-secondary hover:text-primary'
+              }`}
           >
             <FileText size={16} />
             Bài viết của tôi
@@ -347,7 +347,7 @@ export default function CommunityPage() {
               rows={4}
               className="input w-full resize-none"
             />
-            
+
             {/* Image Upload */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 cursor-pointer text-sm text-secondary hover:text-primary transition-colors">
@@ -362,7 +362,7 @@ export default function CommunityPage() {
                   className="hidden"
                 />
               </label>
-              
+
               {/* Image Preview */}
               {selectedImages.length > 0 && (
                 <div className="grid grid-cols-4 gap-3">
@@ -383,10 +383,10 @@ export default function CommunityPage() {
                   ))}
                 </div>
               )}
-              
+
               {uploadingImages && (
                 <div className="flex items-center gap-2 text-sm text-secondary">
-                  <Loader2 className="animate-spin" size={16} />
+                  <LoadingSpinner size={16} className="text-blue-500" />
                   <span>Đang upload ảnh...</span>
                 </div>
               )}
@@ -400,7 +400,7 @@ export default function CommunityPage() {
               >
                 {posting ? (
                   <>
-                    <Loader2 className="animate-spin" size={16} />
+                    <LoadingSpinner size={16} className="text-white" />
                     <span>Đang đăng...</span>
                   </>
                 ) : (
@@ -434,13 +434,10 @@ export default function CommunityPage() {
       {activeTab === 'community' && (
         loading ? (
           <div className="card">
-            <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-              <p className="text-tertiary">Đang tải...</p>
-            </div>
+            <Loading size="lg" text="Đang tải..." />
           </div>
         ) : (
-          <div className="space-y-4 max-w-2xl mx-auto">
+          <div className="flex flex-col gap-4 w-full">
             {filteredPosts.map((post) => {
               const initials = getInitials(post.user.fullName)
               const isPinnedPost = post.content.startsWith('📌')
@@ -455,6 +452,11 @@ export default function CommunityPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold text-primary truncate">{post.user.fullName}</span>
+                        {post.user.contracts?.[0]?.room?.name && (
+                          <span className="badge badge-ghost text-xs bg-tertiary">
+                            {post.user.contracts[0].room.name}
+                          </span>
+                        )}
                         {isPinnedPost && (
                           <span className="badge badge-warning text-xs">
                             📌
@@ -470,11 +472,13 @@ export default function CommunityPage() {
                   {post.images && post.images.length > 0 && (
                     <div className="mb-4">
                       {post.images.length === 1 ? (
-                        <img
-                          src={post.images[0]}
-                          alt="Post"
-                          className="w-full rounded-xl object-cover max-h-96"
-                        />
+                        <div className="relative bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center rounded-xl overflow-hidden w-full max-h-[600px]">
+                          <img
+                            src={post.images[0]}
+                            alt="Post"
+                            className="w-full max-h-[600px] object-contain hover:scale-105 transition-transform duration-300 cursor-pointer"
+                          />
+                        </div>
                       ) : (
                         <div className={`grid gap-2 ${post.images.length === 2 ? 'grid-cols-2' : post.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
                           {post.images.slice(0, 6).map((img, idx) => (
@@ -495,98 +499,103 @@ export default function CommunityPage() {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-4 pt-4 border-t border-primary">
-                    <button 
-                      onClick={() => handleLike(post.id)}
-                      className={`flex items-center gap-2 transition-colors ${
-                        likedPosts.has(post.id)
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-secondary hover:text-blue-600 dark:hover:text-blue-400'
-                      }`}
-                    >
-                      <ThumbsUp size={18} className={likedPosts.has(post.id) ? 'fill-current' : ''} />
-                      <span className="text-sm">{postLikes[post.id] || post.likes || 0} lượt thích</span>
-                    </button>
-                    <button 
-                      onClick={() => handleComment(post.id)}
-                      className="flex items-center gap-2 text-secondary hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                      <MessageCircle size={18} />
-                      <span className="text-sm">{post.comments || 0} bình luận</span>
-                    </button>
-                    <button 
-                      onClick={() => handleShare(post.id)}
-                      className="flex items-center gap-2 text-secondary hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                    >
-                      <Share2 size={18} />
-                      <span className="text-sm">Chia sẻ</span>
-                    </button>
+                  <div className="flex items-center justify-between pt-4 border-t border-primary">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors justify-center text-sm ${likedPosts.has(post.id)
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
+                          : 'hover:bg-tertiary text-secondary'
+                          }`}
+                      >
+                        <ThumbsUp size={14} className={likedPosts.has(post.id) ? 'fill-current' : ''} />
+                        <span>{postLikes[post.id] || post.likes || 0} lượt thích</span>
+                      </button>
+                      <button
+                        onClick={() => handleComment(post.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm justify-center transition-colors"
+                      >
+                        <MessageCircle size={14} />
+                        <span>{post.comments || 0} bình luận</span>
+                      </button>
+                      <button
+                        onClick={() => handleShare(post.id)}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm font-medium transition-colors"
+                      >
+                        <Share2 size={16} />
+                        <span>Chia sẻ</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
             })}
-          {filteredPosts.length === 0 && (
-            <div className="card col-span-full">
-              <div className="text-center py-12">
-                <p className="text-tertiary">Không có bài viết nào</p>
+            {filteredPosts.length === 0 && (
+              <div className="card col-span-full">
+                <div className="text-center py-12">
+                  <p className="text-tertiary">Không có bài viết nào</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
         )
       )}
 
       {activeTab === 'myposts' && (
-          <div className="space-y-4">
-            {myPosts.length === 0 ? (
-              <div className="card p-12 text-center">
-                <FileText size={48} className="mx-auto text-tertiary mb-3" />
-                <p className="text-lg font-semibold text-primary mb-2">Bạn chưa có bài viết nào</p>
-                <p className="text-tertiary mb-4">Hãy đăng bài viết đầu tiên của bạn!</p>
-              </div>
-            ) : (
-              myPosts.map((post: Post) => {
-                const initials = getInitials(post.user.fullName)
-                const isPinnedPost = post.content.startsWith('📌')
-                return (
-                  <div key={post.id} className="card p-4 hover:shadow-lg transition-shadow">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white font-bold text-sm">{initials}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-primary text-sm">{post.user.fullName}</span>
-                          <span className={`badge ${
-                            post.status === 'PUBLIC' ? 'badge-success' : 
-                            post.status === 'PENDING' ? 'badge-warning' : 'badge-error'
-                          } text-xs`}>
-                            {post.status === 'PUBLIC' ? 'Đã duyệt' : 
-                              post.status === 'PENDING' ? 'Chờ duyệt' : 'Từ chối'}
+        <div className="space-y-4">
+          {myPosts.length === 0 ? (
+            <div className="card p-12 text-center">
+              <FileText size={48} className="mx-auto text-tertiary mb-3" />
+              <p className="text-lg font-semibold text-primary mb-2">Bạn chưa có bài viết nào</p>
+              <p className="text-tertiary mb-4">Hãy đăng bài viết đầu tiên của bạn!</p>
+            </div>
+          ) : (
+            myPosts.map((post: Post) => {
+              const initials = getInitials(post.user.fullName)
+              const isPinnedPost = post.content.startsWith('📌')
+              return (
+                <div key={post.id} className="card p-4 hover:shadow-lg transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-sm">{initials}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-primary text-sm">{post.user.fullName}</span>
+                        {post.user.contracts?.[0]?.room?.name && (
+                          <span className="badge badge-ghost text-xs bg-tertiary">
+                            {post.user.contracts[0].room.name}
                           </span>
-                          {isPinnedPost && (
-                            <span className="badge badge-warning text-xs">📌</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-primary line-clamp-2 mb-2">
-                          {isPinnedPost ? post.content.replace(/^📌\s*/, '') : post.content}
-                        </p>
-                        <div className="flex items-center gap-3 text-xs text-tertiary">
-                          <Clock size={12} />
-                          <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
-                          <span>•</span>
-                          <span>{post.likes || 0} likes</span>
-                          <span>•</span>
-                          <span>{post.comments || 0} bình luận</span>
-                        </div>
+                        )}
+                        <span className={`badge ${post.status === 'PUBLIC' ? 'badge-success' :
+                          post.status === 'PENDING' ? 'badge-warning' : 'badge-error'
+                          } text-xs`}>
+                          {post.status === 'PUBLIC' ? 'Đã duyệt' :
+                            post.status === 'PENDING' ? 'Chờ duyệt' : 'Từ chối'}
+                        </span>
+                        {isPinnedPost && (
+                          <span className="badge badge-warning text-xs">📌</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-primary line-clamp-2 mb-2">
+                        {isPinnedPost ? post.content.replace(/^📌\s*/, '') : post.content}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-tertiary">
+                        <Clock size={12} />
+                        <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+                        <span>•</span>
+                        <span>{post.likes || 0} likes</span>
+                        <span>•</span>
+                        <span>{post.comments || 0} bình luận</span>
                       </div>
                     </div>
                   </div>
-                )
-              })
-            )}
-          </div>
-        )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      )}
     </div>
   )
 }

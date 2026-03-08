@@ -46,6 +46,8 @@ export default function RenewalsPage() {
     const [selectedRequest, setSelectedRequest] = useState<RenewalRequest | null>(null)
     const [adminNote, setAdminNote] = useState('')
     const [action, setAction] = useState<'APPROVE' | 'REJECT' | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
 
     const fetchRequests = useCallback(async () => {
         try {
@@ -79,6 +81,11 @@ export default function RenewalsPage() {
             request.contract.room.name.toLowerCase().includes(searchLower)
         )
     })
+
+    const totalPages = Math.ceil(filteredRequests.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedRequests = filteredRequests.slice(startIndex, endIndex)
 
     const handleProcess = (request: RenewalRequest, actionType: 'APPROVE' | 'REJECT') => {
         setSelectedRequest(request)
@@ -129,28 +136,17 @@ export default function RenewalsPage() {
     }
 
     const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'PENDING':
-                return (
-                    <Badge color="warning" icon={Clock}>
-                        Chờ duyệt
-                    </Badge>
-                )
-            case 'APPROVED':
-                return (
-                    <Badge color="success" icon={CheckCircle}>
-                        Đã duyệt
-                    </Badge>
-                )
-            case 'REJECTED':
-                return (
-                    <Badge color="failure" icon={X}>
-                        Từ chối
-                    </Badge>
-                )
-            default:
-                return <span className="text-secondary">{status}</span>
+        const statusMap: Record<string, { label: string; color: string }> = {
+            PENDING: { label: 'Chờ duyệt', color: 'warning' },
+            APPROVED: { label: 'Đã duyệt', color: 'success' },
+            REJECTED: { label: 'Từ chối', color: 'failure' }
         }
+        const badge = statusMap[status] || { label: status, color: 'gray' }
+        return (
+            <Badge color={badge.color} className="whitespace-nowrap rounded font-medium inline-flex">
+                {badge.label}
+            </Badge>
+        )
     }
 
     const pendingCount = requests.filter(r => r.status === 'PENDING').length
@@ -167,211 +163,216 @@ export default function RenewalsPage() {
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <div
-                    className="card stat-card-blue cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setStatusFilter('all')}
-                    style={{ borderLeftColor: statusFilter === 'all' ? '#3b82f6' : 'transparent', borderLeftWidth: statusFilter === 'all' ? '4px' : '0px' }}
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TẤT CẢ</p>
-                            <p className="text-xl sm:text-2xl font-bold text-primary">{requests.length}</p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
-                            <FileText className="text-white" size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="card stat-card-yellow cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setStatusFilter('PENDING')}
-                    style={{ borderLeftColor: statusFilter === 'PENDING' ? '#eab308' : 'transparent', borderLeftWidth: statusFilter === 'PENDING' ? '4px' : '0px' }}
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">CHỜ DUYỆT</p>
-                            <p className="text-xl sm:text-2xl font-bold text-primary">{pendingCount}</p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-500 rounded-lg flex items-center justify-center shadow-md">
-                            <Clock className="text-white" size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="card stat-card-green cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setStatusFilter('APPROVED')}
-                    style={{ borderLeftColor: statusFilter === 'APPROVED' ? '#22c55e' : 'transparent', borderLeftWidth: statusFilter === 'APPROVED' ? '4px' : '0px' }}
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">ĐÃ DUYỆT</p>
-                            <p className="text-xl sm:text-2xl font-bold text-primary">{approvedCount}</p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
-                            <Check className="text-white" size={20} />
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="card stat-card-red cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => setStatusFilter('REJECTED')}
-                    style={{ borderLeftColor: statusFilter === 'REJECTED' ? '#ef4444' : 'transparent', borderLeftWidth: statusFilter === 'REJECTED' ? '4px' : '0px' }}
-                >
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TỪ CHỐI</p>
-                            <p className="text-xl sm:text-2xl font-bold text-primary">{rejectedCount}</p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500 rounded-lg flex items-center justify-center shadow-md">
-                            <X className="text-white" size={20} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Search */}
+            {/* Filters */}
             <div className="card p-3 sm:p-4">
-                <div className="relative">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-3">
+                        <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                            className="select flex-1"
+                        >
+                            <option value="all">Tất cả</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value="APPROVED">Đã duyệt</option>
+                            <option value="REJECTED">Từ chối</option>
+                        </select>
+                    </div>
+                    <div className="sm:col-span-1 lg:col-span-2 relative">
                     <input
                         type="text"
                         placeholder="Tìm kiếm theo tên, số điện thoại hoặc phòng..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                         className="input input-with-icon w-full pr-4 py-2 text-sm"
                     />
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                    </div>
                 </div>
             </div>
 
             {/* Table */}
-            <div className="card overflow-hidden p-0">
-                {loading ? (
-                    <div className="text-center py-12">
-                        <p className="text-tertiary">Đang tải...</p>
-                    </div>
-                ) : filteredRequests.length === 0 ? (
-                    <div className="card p-12 text-center">
-                        <FileText className="mx-auto text-tertiary" size={48} />
-                        <p className="text-tertiary mt-4">Không có yêu cầu gia hạn nào</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[800px]">
-                            <thead className="bg-tertiary border-b border-primary">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                                        CƯ DÂN
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                                        PHÒNG
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                                        NGÀY KẾT THÚC CŨ
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                                        NGÀY KẾT THÚC MỚI
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                                        NGÀY YÊU CẦU
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold text-secondary uppercase">
-                                        TRẠNG THÁI
-                                    </th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold text-secondary uppercase">
-                                        HÀNH ĐỘNG
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-primary">
-                                {filteredRequests.map((request) => (
-                                    <tr key={request.id} className="hover:bg-secondary transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
-                                                    <User size={18} className="text-white" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-primary">{request.user.fullName}</p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <Phone size={12} className="text-tertiary" />
-                                                        <p className="text-xs text-tertiary">{request.user.phone}</p>
+            {loading ? (
+                <div className="text-center py-12">
+                    <p className="text-tertiary">Đang tải...</p>
+                </div>
+            ) : filteredRequests.length === 0 ? (
+                <div className="card p-12 text-center">
+                    <FileText className="mx-auto text-tertiary" size={48} />
+                    <p className="text-tertiary mt-4">Không có yêu cầu gia hạn nào</p>
+                </div>
+            ) : (
+                <>
+                    <div className="card overflow-hidden p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[800px]">
+                                <thead className="bg-tertiary border-b border-primary">
+                                    <tr>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                                            CƯ DÂN
+                                        </th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                                            PHÒNG
+                                        </th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                                            NGÀY KẾT THÚC CŨ
+                                        </th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                                            NGÀY KẾT THÚC MỚI
+                                        </th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                                            NGÀY YÊU CẦU
+                                        </th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                                            TRẠNG THÁI
+                                        </th>
+                                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">
+                                            HÀNH ĐỘNG
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-primary">
+                                    {paginatedRequests.map((request) => (
+                                        <tr key={request.id} className="hover:bg-secondary transition-colors">
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md">
+                                                        <User size={18} className="text-white" />
                                                     </div>
-                                                    {request.user.email && (
-                                                        <div className="flex items-center gap-2 mt-0.5">
-                                                            <Mail size={12} className="text-tertiary" />
-                                                            <p className="text-xs text-tertiary">{request.user.email}</p>
+                                                    <div>
+                                                        <p className="text-sm font-medium text-primary">{request.user.fullName}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <Phone size={12} className="text-tertiary" />
+                                                            <p className="text-xs text-tertiary">{request.user.phone}</p>
                                                         </div>
+                                                        {request.user.email && (
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <Mail size={12} className="text-tertiary" />
+                                                                <p className="text-xs text-tertiary">{request.user.email}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                                <div className="flex items-center gap-2">
+                                                    <Building2 size={16} className="text-tertiary" />
+                                                    <span className="font-medium text-primary">{request.contract.room.name}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                                <div className="flex items-center gap-2 text-secondary">
+                                                    <Calendar size={14} />
+                                                    {formatDate(request.contract.endDate)}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                                <div className="flex items-center gap-2 text-blue-600 font-medium">
+                                                    <RefreshCw size={14} />
+                                                    {formatDate(request.newEndDate)}
+                                                </div>
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-secondary">
+                                                {formatDate(request.requestDate)}
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                                {getStatusBadge(request.status)}
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    {request.status === 'PENDING' ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleProcess(request, 'APPROVE')}
+                                                                disabled={processingId === request.id}
+                                                                className="btn btn-ghost btn-icon text-success"
+                                                                title="Duyệt"
+                                                            >
+                                                                {processingId === request.id ? (
+                                                                    <Loader2 size={16} className="animate-spin" />
+                                                                ) : (
+                                                                    <CheckCircle size={16} className="w-[18px] h-[18px]" />
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleProcess(request, 'REJECT')}
+                                                                disabled={processingId === request.id}
+                                                                className="btn btn-ghost btn-icon text-danger"
+                                                                title="Từ chối"
+                                                            >
+                                                                {processingId === request.id ? (
+                                                                    <Loader2 size={16} className="animate-spin" />
+                                                                ) : (
+                                                                    <X size={16} className="w-[18px] h-[18px]" />
+                                                                )}
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-sm text-secondary truncate max-w-[120px]" title={request.adminNote || 'Đã xử lý'}>
+                                                            {request.adminNote || 'Đã xử lý'}
+                                                        </span>
                                                     )}
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <Building2 size={16} className="text-tertiary" />
-                                                <span className="font-medium text-primary">{request.contract.room.name}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-secondary">
-                                                <Calendar size={14} />
-                                                {formatDate(request.contract.endDate)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-blue-600 font-medium">
-                                                <RefreshCw size={14} />
-                                                {formatDate(request.newEndDate)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-secondary">
-                                            {formatDate(request.requestDate)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {getStatusBadge(request.status)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {request.status === 'PENDING' ? (
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => handleProcess(request, 'APPROVE')}
-                                                        disabled={processingId === request.id}
-                                                        className="btn btn-success btn-sm"
-                                                    >
-                                                        {processingId === request.id ? (
-                                                            <Loader2 size={14} className="animate-spin" />
-                                                        ) : (
-                                                            <Check size={14} />
-                                                        )}
-                                                        Duyệt
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleProcess(request, 'REJECT')}
-                                                        disabled={processingId === request.id}
-                                                        className="btn btn-error btn-sm"
-                                                    >
-                                                        {processingId === request.id ? (
-                                                            <Loader2 size={14} className="animate-spin" />
-                                                        ) : (
-                                                            <X size={14} />
-                                                        )}
-                                                        Từ chối
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span className="text-sm text-secondary">
-                                                    {request.adminNote || 'Đã xử lý'}
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                )}
-            </div>
+
+                    {/* Pagination */}
+                    {filteredRequests.length > 0 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 sm:gap-0 card p-3 sm:p-4 mt-4">
+                            <p className="text-xs sm:text-sm text-secondary text-center sm:text-left">
+                                Hiển thị {startIndex + 1} đến {Math.min(endIndex, filteredRequests.length)} trong tổng số {filteredRequests.length} yêu cầu
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className="btn btn-secondary btn-sm"
+                                >
+                                    &lt;
+                                </button>
+                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                                    let pageNum
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i
+                                    } else {
+                                        pageNum = currentPage - 2 + i
+                                    }
+                                    if (pageNum > totalPages) return null
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`btn btn-sm ${currentPage === pageNum ? 'btn-primary' : 'btn-secondary'}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    )
+                                })}
+                                {totalPages > 5 && currentPage < totalPages - 2 && (
+                                    <span className="px-2 text-tertiary">...</span>
+                                )}
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="btn btn-secondary btn-sm"
+                                >
+                                    &gt;
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
 
             {/* Confirmation Modal */}
             {showModal && selectedRequest && (

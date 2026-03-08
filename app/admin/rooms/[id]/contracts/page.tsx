@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Calendar, DollarSign, Users, FileText, Phone, Mail, CheckCircle, XCircle, Clock, Building2 } from 'lucide-react'
 import Link from 'next/link'
+import Loading from '@/components/Loading'
 
 interface Contract {
   id: number
@@ -172,10 +173,7 @@ export default function RoomContractsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-tertiary">Đang tải...</p>
-        </div>
+        <Loading size="lg" text="Đang tải..." />
       </div>
     )
   }

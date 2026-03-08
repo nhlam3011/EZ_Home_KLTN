@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { TrendingUp, TrendingDown, AlertTriangle, Building2, DollarSign, Info, BarChart3 } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
@@ -114,10 +115,7 @@ export default function ForecastPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400 mx-auto mb-4"></div>
-          <p className="text-tertiary">Đang tính toán dự đoán...</p>
-        </div>
+        <Loading size="lg" text="Đang tính toán dự đoán..." />
       </div>
     )
   }

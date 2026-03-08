@@ -20,7 +20,11 @@ export async function GET(request: NextRequest) {
         user: {
           select: {
             fullName: true,
-            avatarUrl: true
+            avatarUrl: true,
+            contracts: {
+              where: { status: 'ACTIVE' },
+              include: { room: { select: { name: true } } }
+            }
           }
         }
       },
@@ -85,7 +89,11 @@ export async function POST(request: NextRequest) {
         user: {
           select: {
             fullName: true,
-            avatarUrl: true
+            avatarUrl: true,
+            contracts: {
+              where: { status: 'ACTIVE' },
+              include: { room: { select: { name: true } } }
+            }
           }
         }
       }
