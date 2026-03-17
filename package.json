@@ -24,6 +24,8 @@
     "next": "16.1.2",
     "next-auth": "^4.24.5",
     "nodemailer": "^7.0.12",
+    "pusher": "^5.3.2",
+    "pusher-js": "^8.4.2",
     "react": "19.2.3",
     "react-apexcharts": "^2.0.1",
     "react-dom": "19.2.3",

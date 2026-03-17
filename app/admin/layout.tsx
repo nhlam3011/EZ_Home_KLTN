@@ -10,6 +10,7 @@ import {
   FileText,
   Wrench,
   Settings,
+  SlidersHorizontal,
   Bell,
   LogOut,
   TrendingUp,
@@ -21,6 +22,8 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
+import { pusherClient } from '@/lib/pusher-client'
+import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
 
 const menuItems = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
@@ -37,6 +40,7 @@ const menuItems = [
 
 const systemItems = [
   { href: '/admin/services', label: 'Cấu hình Dịch vụ', icon: Settings },
+  { href: '/admin/settings', label: 'Cài đặt', icon: SlidersHorizontal },
 ]
 
 export default function AdminLayout({
@@ -68,6 +72,7 @@ export default function AdminLayout({
       '/admin/notifications': 'Thông báo',
       '/admin/forecast': 'Dự đoán AI',
       '/admin/services': 'Cấu hình Dịch vụ',
+      '/admin/settings': 'Cài đặt',
     }
 
     // Check exact match first
@@ -146,6 +151,24 @@ export default function AdminLayout({
           setPendingRenewalsCount(Array.isArray(data) ? data.length : (data.renewals?.length || 0))
         })
         .catch(() => { })
+
+      // Pusher real-time updates for Admin
+      const channel = pusherClient.subscribe(CHANNELS.ADMIN_MESSAGES)
+      channel.bind(EVENTS.NEW_MESSAGE, (data: { message: any }) => {
+        if (data.message.sender.role === 'TENANT') {
+          // Chỉ tăng unread nếu không đang trong route messages của đúng tenant đó
+          // Vì layout không biết selectedTenant cụ thể trong page, 
+          // ta chỉ có thể đơn giản là tăng count nếu không ở trang messages nói chung
+          // hoặc luôn tăng và để page xử lý việc giảm/đánh dấu đã đọc.
+          if (window.location.pathname !== '/admin/messages') {
+            setUnreadMessagesCount(prev => prev + 1)
+          }
+        }
+      })
+
+      return () => {
+        pusherClient.unsubscribe(CHANNELS.ADMIN_MESSAGES)
+      }
     }
   }, [router])
 

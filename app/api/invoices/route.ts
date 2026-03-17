@@ -57,6 +57,16 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
+    // Sort invoices by room name numerically
+    invoices.sort((a, b) => {
+      const roomA = a.contract?.room?.name || ''
+      const roomB = b.contract?.room?.name || ''
+      if (!roomA && !roomB) return 0
+      if (!roomA) return 1
+      if (!roomB) return -1
+      return roomA.localeCompare(roomB, undefined, { numeric: true, sensitivity: 'base' })
+    })
+
     return NextResponse.json(invoices)
   } catch (error) {
     console.error('Error fetching invoices:', error)

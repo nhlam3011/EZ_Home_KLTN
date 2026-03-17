@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { sendMessageReceivedEmail } from '@/lib/email'
+import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher'
 
 // GET /api/admin/messages - Lấy danh sách tin nhắn
 export async function GET(request: NextRequest) {
@@ -9,6 +10,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const tenantId = searchParams.get('tenantId') // Filter theo tenant cụ thể
     const userId = searchParams.get('userId') // Admin user ID từ query
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
 
     // Get current admin user
     const adminUser = await getCurrentUser(request, userId ? parseInt(userId) : undefined)
@@ -47,6 +51,10 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // Đếm tổng số tin nhắn
+    const totalMessages = await prisma.message.count({ where })
+
+    // Lấy tin nhắn với pagination
     const messages = await prisma.message.findMany({
       where,
       include: {
@@ -67,23 +75,43 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit
     })
 
-    // Lấy danh sách tenants đã có tin nhắn với admin
-    const tenantIds = new Set<number>()
-    messages.forEach(msg => {
-      if (msg.sender.role === 'TENANT') {
-        tenantIds.add(msg.sender.id)
-      }
-      if (msg.receiver.role === 'TENANT') {
-        tenantIds.add(msg.receiver.id)
-      }
-    })
-
-    // Lấy tất cả tenants (không chỉ những người đã có tin nhắn) với thông tin phòng
-    const allTenants = await prisma.user.findMany({
+    // Lấy danh sách tenants đã có tin nhắn với admin (distinct)
+    const tenantMessageData = await prisma.message.groupBy({
+      by: ['senderId', 'receiverId'],
       where: {
+        OR: [
+          { senderId: adminUser.id },
+          { receiverId: adminUser.id }
+        ]
+      },
+      _max: {
+        createdAt: true
+      }
+    })
+
+    // Lấy unique tenant IDs và thời gian tin nhắn mới nhất cho mỗi tenant
+    const latestMessageMap = new Map<number, Date>()
+    tenantMessageData.forEach(msg => {
+      const partnerId = msg.senderId === adminUser.id ? msg.receiverId : msg.senderId
+      const currentMax = latestMessageMap.get(partnerId)
+      const msgMax = msg._max.createdAt
+
+      if (msgMax && (!currentMax || msgMax > currentMax)) {
+        latestMessageMap.set(partnerId, msgMax)
+      }
+    })
+
+    const tenantIds = Array.from(latestMessageMap.keys())
+
+    // Lấy thông tin tenants cùng với phòng và số tin nhắn chưa đọc
+    const tenantsWithUnread = await prisma.user.findMany({
+      where: {
+        id: { in: tenantIds },
         role: 'TENANT',
         isActive: true
       },
@@ -105,52 +133,128 @@ export async function GET(request: NextRequest) {
           },
           take: 1,
           orderBy: { startDate: 'desc' }
+        },
+        _count: {
+          select: {
+            sentMessages: {
+              where: {
+                receiverId: adminUser.id,
+                isRead: false
+              }
+            }
+          }
         }
-      },
-      orderBy: { fullName: 'asc' }
+      }
     })
 
-    // Format tenants với thông tin phòng
-    const formattedTenants = allTenants.map(tenant => ({
+    // Lấy tin nhắn cuối cùng cho mỗi tenant để hiển thị ở sidebar
+    const tenantsWithLastMessage = await Promise.all(tenantsWithUnread.map(async (tenant) => {
+      const lastMessage = await prisma.message.findFirst({
+        where: {
+          OR: [
+            { senderId: adminUser.id, receiverId: tenant.id },
+            { senderId: tenant.id, receiverId: adminUser.id }
+          ]
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          sender: {
+            select: { role: true }
+          }
+        }
+      })
+
+      return {
+        ...tenant,
+        lastMessage: lastMessage ? {
+          content: lastMessage.content,
+          createdAt: lastMessage.createdAt,
+          images: lastMessage.images,
+          senderRole: lastMessage.sender.role
+        } : null
+      }
+    }))
+
+    // Sort tenants by last message time descending
+    tenantsWithLastMessage.sort((a, b) => {
+      const timeA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0
+      const timeB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0
+      return timeB - timeA
+    })
+
+    // Format tenants cho response
+    const formattedTenants = tenantsWithLastMessage.map(tenant => ({
       id: tenant.id,
       fullName: tenant.fullName,
       avatarUrl: tenant.avatarUrl,
       phone: tenant.phone,
-      room: tenant.contracts[0]?.room || null
+      room: tenant.contracts[0]?.room || null,
+      unreadCount: tenant._count.sentMessages,
+      lastMessage: tenant.lastMessage
     }))
 
-    // Lấy tenants đã có tin nhắn để đếm unread
-    const tenantsWithMessages = await prisma.user.findMany({
+    // Tạo unreadCounts object
+    const unreadCounts: Record<number, number> = {}
+    formattedTenants.forEach(tenant => {
+      unreadCounts[tenant.id] = tenant.unreadCount
+    })
+
+    // Lấy tất cả tenants active cho trường hợp tenant mới chưa có tin nhắn
+    const allTenantsNoMsg = await prisma.user.findMany({
       where: {
-        id: { in: Array.from(tenantIds) },
-        role: 'TENANT'
+        role: 'TENANT',
+        isActive: true,
+        id: { notIn: tenantIds }
       },
       select: {
         id: true,
         fullName: true,
         avatarUrl: true,
-        phone: true
-      }
+        phone: true,
+        contracts: {
+          where: { status: 'ACTIVE' },
+          include: {
+            room: {
+              select: {
+                id: true,
+                name: true,
+                floor: true
+              }
+            }
+          },
+          take: 1,
+          orderBy: { startDate: 'desc' }
+        }
+      },
+      orderBy: { fullName: 'asc' },
+      take: 50
     })
 
-    // Đếm số tin nhắn chưa đọc cho tất cả tenants
-    const unreadCounts: Record<number, number> = {}
-    for (const tenant of formattedTenants) {
-      const count = await prisma.message.count({
-        where: {
-          senderId: tenant.id,
-          receiverId: adminUser.id,
-          isRead: false
-        }
-      })
-      unreadCounts[tenant.id] = count
-    }
+    // Format tenants không có tin nhắn
+    const otherTenants = allTenantsNoMsg.map(tenant => ({
+      id: tenant.id,
+      fullName: tenant.fullName,
+      avatarUrl: tenant.avatarUrl,
+      phone: tenant.phone,
+      room: tenant.contracts[0]?.room || null,
+      unreadCount: 0,
+      lastMessage: null
+    }))
+
+    // Kết hợp cả hai danh sách - Ưu tiên tenants có tin nhắn trước
+    const allFormattedTenants = [...formattedTenants, ...otherTenants]
 
     return NextResponse.json({
       messages,
-      tenants: formattedTenants, // Trả về tất cả tenants với thông tin phòng
-      tenantsWithMessages, // Tenants đã có tin nhắn
-      unreadCounts
+      tenants: allFormattedTenants,
+      tenantsWithMessages: formattedTenants,
+      unreadCounts,
+      pagination: {
+        page,
+        limit,
+        totalMessages,
+        totalPages: Math.ceil(totalMessages / limit)
+      }
     })
   } catch (error) {
     console.error('Error fetching messages:', error)
@@ -245,15 +349,25 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Send email notification to tenant
+    // Send email notification to tenant (async - không chờ)
     if (message.receiver.email) {
-      await sendMessageReceivedEmail(
+      sendMessageReceivedEmail(
         message.receiver.email,
         message.sender.fullName,
         message.content,
         message.receiver.fullName,
         (message.images && message.images.length > 0) || false
-      )
+      ).catch(err => console.error('Failed to send email:', err))
+    }
+
+    // Trigger Pusher event for real-time update
+    try {
+      await pusherServer.trigger(CHANNELS.TENANT_MESSAGES, EVENTS.NEW_MESSAGE, {
+        message,
+        tenantId: message.receiverId,
+      })
+    } catch (pusherError) {
+      console.error('Pusher trigger error:', pusherError)
     }
 
     return NextResponse.json(message, { status: 201 })

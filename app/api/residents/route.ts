@@ -52,6 +52,16 @@ export async function GET(request: NextRequest) {
       orderBy: { fullName: 'asc' }
     })
 
+    // Sort residents by room name numerically
+    users.sort((a, b) => {
+      const roomA = a.contracts[0]?.room?.name || ''
+      const roomB = b.contracts[0]?.room?.name || ''
+      if (!roomA && !roomB) return a.fullName.localeCompare(b.fullName)
+      if (!roomA) return 1
+      if (!roomB) return -1
+      return roomA.localeCompare(roomB, undefined, { numeric: true, sensitivity: 'base' })
+    })
+
     return NextResponse.json({
       residents: users,
       total: users.length

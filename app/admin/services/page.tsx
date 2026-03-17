@@ -485,6 +485,12 @@ export default function ServicesPage() {
       .slice(0, 2)
   }
 
+  const getServiceStatusBadge = (isActive: boolean) => {
+    return isActive
+      ? { label: 'Hoạt động', color: 'success' as const }
+      : { label: 'Tạm ngưng', color: 'failure' as const }
+  }
+
   const filteredServices = services.filter(service => {
     if (search && !service.name.toLowerCase().includes(search.toLowerCase())) {
       return false
@@ -594,29 +600,15 @@ export default function ServicesPage() {
 
   return (
     <div className="space-y-6 px-2 sm:px-0">
-      <div className="card overflow-hidden border-transparent bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 p-6 text-white shadow-xl sm:p-8">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
-              <Sparkles size={14} />
-              Trung tâm dịch vụ admin
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">Quản lý dịch vụ</h1>
-              <p className="mt-2 max-w-2xl text-sm text-white/80 sm:text-base">
-                Đồng bộ cấu hình dịch vụ, điều phối đơn đăng ký và kiểm soát tạo hóa đơn trên một giao diện thống nhất với toàn bộ website.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2 text-xs font-medium text-white/90">
-              <span className="rounded-full bg-white/15 px-3 py-1">{activeServicesCount} dịch vụ đang bật</span>
-              <span className="rounded-full bg-white/15 px-3 py-1">{pendingOrdersCount} đơn chờ tiếp nhận</span>
-              <span className="rounded-full bg-white/15 px-3 py-1">{completedOrdersCount} đơn đã hoàn thành</span>
-            </div>
-          </div>
-
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý dịch vụ</h1>
+          <p className="text-secondary mt-1 text-sm sm:text-base">Đồng bộ cấu hình dịch vụ, điều phối đơn đăng ký và kiểm soát.</p>
+        </div>
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <Link
             href="/admin/services/new"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg transition-transform duration-200 hover:-translate-y-0.5 hover:bg-slate-100"
+            className="btn btn-primary btn-sm sm:btn-md"
           >
             <Plus size={18} />
             <span>Thêm dịch vụ</span>
@@ -1022,14 +1014,21 @@ export default function ServicesPage() {
                   <table className="w-full min-w-[820px]">
                     <thead className="border-b border-primary bg-tertiary/80">
                       <tr>
-                        {['Thông tin dịch vụ', 'Đơn vị tính', 'Đơn giá hiện tại', 'Trạng thái', 'Hành động'].map(header => (
-                          <th
-                            key={header}
-                            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs font-semibold text-secondary uppercase align-middle ${header === 'Hành động' ? 'text-center' : 'text-left'}`}
-                          >
-                            {header}
-                          </th>
-                        ))}
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                          Thông tin dịch vụ
+                        </th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">
+                          Đơn vị tính
+                        </th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle">
+                          Đơn giá hiện tại
+                        </th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">
+                          Trạng thái
+                        </th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">
+                          Hành động
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-primary">
@@ -1046,39 +1045,37 @@ export default function ServicesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-sm text-secondary">{service.unit}</td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-sm font-semibold text-primary">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-left text-sm text-secondary">
+                            {service.unit}
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-right text-sm font-semibold text-primary">
                             {formatCurrency(Number(service.unitPrice))} / {service.unit}
                           </td>
                           <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
-                            <div className="flex items-center gap-3">
-                              <label className="relative inline-flex cursor-pointer items-center">
-                                <input
-                                  type="checkbox"
-                                  className="peer sr-only"
-                                  checked={service.isActive}
-                                  onChange={() => handleToggleActive(service.id, service.isActive)}
-                                />
-                                <div className="h-6 w-11 rounded-full bg-tertiary after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-primary after:bg-primary after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
-                              </label>
-                              <span
-                                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${service.isActive
-                                    ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
-                                    : 'bg-neutral-secondary-medium border border-default-medium text-heading'
-                                  }`}
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleActive(service.id, service.isActive)}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${service.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                               >
-                                {service.isActive ? 'Hoạt động' : 'Tạm ngưng'}
-                              </span>
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${service.isActive ? 'translate-x-6' : 'translate-x-1'}`}
+                                />
+                              </button>
+                              <Badge color={getServiceStatusBadge(service.isActive).color} className="whitespace-nowrap rounded font-medium">
+                                {getServiceStatusBadge(service.isActive).label}
+                              </Badge>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">s*<div className="flex items-center justify-center gap-1">
-                            <button type="button" onClick={() => handleEdit(service)} className="btn btn-ghost btn-icon text-primary" title="Sửa">
-                              <Edit size={16} className="w-[18px] h-[18px]" />
-                            </button>
-                            <button type="button" onClick={() => handleDelete(service.id)} className="btn btn-ghost btn-icon text-danger" title="Xóa">
-                              <Trash2 size={16} className="w-[18px] h-[18px]" />
-                            </button>
-                          </div>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button type="button" onClick={() => handleEdit(service)} className="btn btn-ghost btn-icon text-primary" title="Sửa">
+                                <Edit size={16} className="w-[18px] h-[18px]" />
+                              </button>
+                              <button type="button" onClick={() => handleDelete(service.id)} className="btn btn-ghost btn-icon text-danger" title="Xóa">
+                                <Trash2 size={16} className="w-[18px] h-[18px]" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1098,14 +1095,9 @@ export default function ServicesPage() {
                         </div>
                         <p className="mt-1.5 text-sm text-secondary">{formatCurrency(Number(service.unitPrice))} / {service.unit}</p>
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${service.isActive
-                            ? 'bg-success-soft border border-success-subtle text-fg-success-strong'
-                            : 'bg-neutral-secondary-medium border border-default-medium text-heading'
-                          }`}
-                      >
-                        {service.isActive ? 'Hoạt động' : 'Tắt'}
-                      </span>
+                      <Badge color={getServiceStatusBadge(service.isActive).color} className="shrink-0 whitespace-nowrap rounded font-medium">
+                        {getServiceStatusBadge(service.isActive).label}
+                      </Badge>
                     </div>
 
                     <div className="mt-4 flex items-center justify-between rounded-2xl bg-tertiary/60 px-4 py-3">
@@ -1113,15 +1105,15 @@ export default function ServicesPage() {
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">Bật / tắt dịch vụ</p>
                         <p className="mt-0.5 text-sm text-primary">Cập nhật nhanh trạng thái</p>
                       </div>
-                      <label className="relative inline-flex cursor-pointer items-center">
-                        <input
-                          type="checkbox"
-                          className="peer sr-only"
-                          checked={service.isActive}
-                          onChange={() => handleToggleActive(service.id, service.isActive)}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleActive(service.id, service.isActive)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${service.isActive ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${service.isActive ? 'translate-x-6' : 'translate-x-1'}`}
                         />
-                        <div className="h-6 w-11 rounded-full bg-tertiary after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-primary after:bg-primary after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white" />
-                      </label>
+                      </button>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2 border-t border-primary pt-4">

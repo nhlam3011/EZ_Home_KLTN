@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { prisma } from './prisma'
 
 // Email configuration from environment variables
 const emailConfig = {
@@ -11,12 +12,13 @@ const emailConfig = {
   },
 }
 
+const WEBSITE_URL = 'https://ezhome.cloud'
+
 // Create reusable transporter
 let transporter: nodemailer.Transporter | null = null
 
 function getTransporter() {
   if (!transporter) {
-    // Only create transporter if credentials are provided
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
       console.warn('Email credentials not configured. Email notifications will be disabled.')
       return null
@@ -32,131 +34,161 @@ function getTransporter() {
   return transporter
 }
 
+// Shared Template Wrapper
+const emailLayout = (title: string, content: string, ctaText?: string, ctaUrl?: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased;">
+  <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+    
+    <!-- Brand Header -->
+    <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 32px 40px; text-align: left;">
+      <div style="color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: -0.02em;">
+        EZ-Home
+      </div>
+      <div style="color: rgba(255, 255, 255, 0.8); font-size: 14px; font-weight: 500; margin-top: 4px;">
+        Hệ thống quản lý nhà trọ thông minh
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div style="padding: 40px;">
+      <h2 style="margin: 0 0 20px 0; color: #1e293b; font-size: 22px; font-weight: 700; line-height: 1.3;">
+        ${title}
+      </h2>
+      <div style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+        ${content}
+      </div>
+
+      ${ctaText && ctaUrl ? `
+        <div style="text-align: center; margin-top: 30px;">
+          <a href="${ctaUrl}" style="display: inline-block; background-color: #3b82f6; color: #ffffff; font-weight: 700; font-size: 16px; padding: 14px 32px; text-decoration: none; border-radius: 16px; transition: background-color 0.2s; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);">
+            ${ctaText}
+          </a>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color: #f1f5f9; padding: 32px 40px; text-align: center;">
+      <div style="margin-bottom: 20px;">
+        <a href="${WEBSITE_URL}" style="color: #3b82f6; text-decoration: none; font-weight: 600; font-size: 14px;">ezhome.cloud</a>
+      </div>
+      <p style="margin: 0; color: #94a3b8; font-size: 13px; font-weight: 500;">
+        Email này được gửi tự động từ hệ thống quản lý EZ-Home.
+      </p>
+      <p style="margin: 10px 0 0 0; color: #94a3b8; font-size: 12px;">
+        © 2026 EZ-Home Management System. All rights reserved.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+`
+
 // Email templates
 export const emailTemplates = {
-  invoiceCreated: (invoiceId: number, amount: number, period: string, tenantName: string) => ({
-    subject: `Hóa đơn mới #${invoiceId} - EZ-Home`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Hóa đơn mới từ EZ-Home</h2>
-        <p>Xin chào <strong>${tenantName}</strong>,</p>
-        <p>Hóa đơn mới đã được tạo cho bạn:</p>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Mã hóa đơn:</strong> #${invoiceId}</p>
-          <p><strong>Kỳ thanh toán:</strong> ${period}</p>
-          <p><strong>Số tiền:</strong> <span style="color: #ef4444; font-size: 18px; font-weight: bold;">${amount.toLocaleString('vi-VN')} VNĐ</span></p>
-        </div>
-        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và thanh toán hóa đơn.</p>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-          Trân trọng,<br>
-          <strong>EZ-Home</strong>
-        </p>
+  invoiceCreated: (invoiceId: number, amount: number, period: string, tenantName: string) => {
+    const content = `
+      <p>Xin chào <strong>${tenantName}</strong>,</p>
+      <p>Một hóa đơn mới đã được tạo cho bạn vào kỳ thanh toán <strong>${period}</strong>.</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin: 24px 0;">
+        <div style="font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 700; margin-bottom: 8px;">Số tiền cần thanh toán</div>
+        <div style="font-size: 32px; font-weight: 800; color: #ef4444;">${amount.toLocaleString('vi-VN')} VNĐ</div>
+        <div style="font-size: 14px; color: #64748b; margin-top: 12px;">Mã hóa đơn: <span style="color: #1e293b; font-weight: 600;">#${invoiceId}</span></div>
       </div>
-    `,
-  }),
+      <p>Vui lòng đăng nhập để thanh toán sớm và tránh các khoản phí trễ hạn.</p>
+    `
+    return {
+      subject: `📢 Thông báo hóa đơn mới #${invoiceId} - EZ-Home`,
+      html: emailLayout(`Hóa đơn mới tháng ${period}`, content, 'Thanh toán ngay', `${WEBSITE_URL}/tenant/invoices`)
+    }
+  },
 
-  invoiceMessage: (invoiceId: number, message: string, tenantName: string) => ({
-    subject: `Tin nhắn về hóa đơn #${invoiceId} - EZ-Home`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Tin nhắn về hóa đơn</h2>
-        <p>Xin chào <strong>${tenantName}</strong>,</p>
-        <p>Bạn có tin nhắn mới về hóa đơn #${invoiceId}:</p>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="white-space: pre-wrap;">${message}</p>
-        </div>
-        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-          Trân trọng,<br>
-          <strong>EZ-Home</strong>
-        </p>
+  invoiceMessage: (invoiceId: number, message: string, tenantName: string) => {
+    const content = `
+      <p>Xin chào <strong>${tenantName}</strong>,</p>
+      <p>Quản lý hệ thống vừa gửi tin nhắn cho bạn về hóa đơn <strong>#${invoiceId}</strong>:</p>
+      <div style="background-color: #f1f5f9; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 0 16px 16px 0; margin: 24px 0; font-style: italic; color: #334155;">
+        ${message}
       </div>
-    `,
-  }),
+    `
+    return {
+      subject: `✉️ Phản hồi về hóa đơn #${invoiceId} - EZ-Home`,
+      html: emailLayout('Trao đổi về hóa đơn', content, 'Xem chi tiết', `${WEBSITE_URL}/tenant/invoices`)
+    }
+  },
 
-  issueStatusUpdate: (issueTitle: string, status: string, statusLabel: string, tenantName: string) => ({
-    subject: `Cập nhật trạng thái sự cố: ${issueTitle} - EZ-Home`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Cập nhật trạng thái sự cố</h2>
-        <p>Xin chào <strong>${tenantName}</strong>,</p>
-        <p>Yêu cầu của bạn đã được cập nhật:</p>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Tiêu đề:</strong> ${issueTitle}</p>
-          <p><strong>Trạng thái mới:</strong> <span style="color: #10b981; font-weight: bold;">${statusLabel}</span></p>
-        </div>
-        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-          Trân trọng,<br>
-          <strong>EZ-Home</strong>
-        </p>
+  issueStatusUpdate: (issueTitle: string, status: string, statusLabel: string, tenantName: string) => {
+    const content = `
+      <p>Xin chào <strong>${tenantName}</strong>,</p>
+      <p>Báo cáo sự cố của bạn đã có cập nhật mới về trạng thái:</p>
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 24px; margin: 24px 0; text-align: center;">
+        <div style="font-size: 15px; color: #166534; font-weight: 600; margin-bottom: 8px;">"${issueTitle}"</div>
+        <div style="font-size: 18px; font-weight: 800; color: #15803d; text-transform: uppercase;">${statusLabel}</div>
       </div>
-    `,
-  }),
+      <p>Đội ngũ kỹ thuật đang tiếp tục xử lý yêu cầu của bạn.</p>
+    `
+    return {
+      subject: `🛠️ Cập nhật bảo trì: ${issueTitle} - EZ-Home`,
+      html: emailLayout('Trạng thái xử lý sự cố', content, 'Xem tiến độ', `${WEBSITE_URL}/tenant/issues`)
+    }
+  },
 
-  generalNotification: (title: string, content: string, tenantName: string) => ({
-    subject: `${title} - EZ-Home`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">${title}</h2>
-        <p>Xin chào <strong>${tenantName}</strong>,</p>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="white-space: pre-wrap;">${content}</p>
-        </div>
-        <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết.</p>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-          Trân trọng,<br>
-          <strong>EZ-Home</strong>
-        </p>
+  generalNotification: (title: string, content: string, tenantName: string) => {
+    const bodyContent = `
+      <p>Xin chào <strong>${tenantName}</strong>,</p>
+      <div style="color: #334155; margin: 24px 0;">
+        ${content}
       </div>
-    `,
-  }),
+    `
+    return {
+      subject: `🔔 ${title} - EZ-Home`,
+      html: emailLayout(title, bodyContent, 'Xem trên hệ thống', WEBSITE_URL)
+    }
+  },
 
-  messageReceived: (senderName: string, content: string, tenantName: string, hasImages: boolean) => ({
-    subject: `Tin nhắn mới từ ${senderName} - EZ-Home`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #3b82f6;">Tin nhắn mới từ quản lý</h2>
-        <p>Xin chào <strong>${tenantName}</strong>,</p>
-        <p>Bạn có tin nhắn mới từ <strong>${senderName}</strong>:</p>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          ${content ? `<p style="white-space: pre-wrap; margin-bottom: ${hasImages ? '10px' : '0'};">${content}</p>` : ''}
-          ${hasImages ? '<p style="color: #6b7280; font-size: 14px; margin-top: 10px;">📷 Tin nhắn có đính kèm hình ảnh</p>' : ''}
-        </div>
-        <p>Vui lòng đăng nhập vào hệ thống để xem và trả lời tin nhắn.</p>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-          Trân trọng,<br>
-          <strong>EZ-Home</strong>
-        </p>
+  messageReceived: (senderName: string, content: string, tenantName: string, hasImages: boolean) => {
+    const bodyContent = `
+      <p>Xin chào <strong>${tenantName}</strong>,</p>
+      <p>Bạn vừa nhận được một tin nhắn cá nhân từ <strong>${senderName}</strong>:</p>
+      <div style="background-color: #eff6ff; border-radius: 20px; padding: 20px; margin: 24px 0; color: #1e3a8a;">
+        ${content ? `<p style="margin: 0; white-space: pre-wrap;">${content}</p>` : ''}
+        ${hasImages ? '<p style="color: #3b82f6; font-size: 13px; font-weight: 700; margin-top: 12px; display: flex; items-center gap: 2px;">📷 [Tin nhắn kèm theo hình ảnh]</p>' : ''}
       </div>
-    `,
-  }),
+    `
+    return {
+      subject: `💬 Tin nhắn mới từ ${senderName} - EZ-Home`,
+      html: emailLayout('Bạn có tin nhắn mới', bodyContent, 'Mở trò chuyện', `${WEBSITE_URL}/tenant/messages`)
+    }
+  },
 
-  invoiceComplaint: (invoiceId: number, tenantName: string, roomName: string, amount: number, complaint: string) => ({
-    subject: `🚨 Khiếu nại hóa đơn #${invoiceId.toString().padStart(6, '0')} - EZ-Home`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #ef4444;">⚠️ Khiếu nại hóa đơn mới</h2>
-        <p>Xin chào <strong>Quản trị viên</strong>,</p>
-        <p>Bạn có một khiếu nại mới về hóa đơn:</p>
-        <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Mã hóa đơn:</strong> #${invoiceId.toString().padStart(6, '0')}</p>
-          <p><strong>Khách thuê:</strong> ${tenantName}</p>
-          <p><strong>Phòng:</strong> ${roomName}</p>
-          <p><strong>Số tiền:</strong> <span style="color: #ef4444; font-weight: bold;">${amount.toLocaleString('vi-VN')} VNĐ</span></p>
+  invoiceComplaint: (invoiceId: number, tenantName: string, roomName: string, amount: number, complaint: string) => {
+    const bodyContent = `
+      <p>Xin chào <strong>Quản trị viên</strong>,</p>
+      <p>Có một khiếu nại mới từ khách thuê liên quan đến tài chính:</p>
+      <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 16px; padding: 24px; margin: 24px 0;">
+        <table style="width: 100%; font-size: 14px; color: #991b1b;">
+          <tr><td style="padding: 4px 0; font-weight: 700;">Hóa đơn:</td><td style="padding: 4px 0;">#${invoiceId}</td></tr>
+          <tr><td style="padding: 4px 0; font-weight: 700;">Khách thuê:</td><td style="padding: 4px 0;">${tenantName}</td></tr>
+          <tr><td style="padding: 4px 0; font-weight: 700;">Phòng:</td><td style="padding: 4px 0;">${roomName}</td></tr>
+          <tr><td style="padding: 4px 0; font-weight: 700;">Số tiền:</td><td style="padding: 4px 0; font-weight: 800;">${amount.toLocaleString('vi-VN')} VNĐ</td></tr>
+        </table>
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed #fecaca; color: #374151; font-style: italic;">
+          "${complaint}"
         </div>
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p><strong>Nội dung khiếu nại:</strong></p>
-          <p style="white-space: pre-wrap; margin-top: 10px;">${complaint}</p>
-        </div>
-        <p style="color: #6b7280; font-size: 14px;">Vui lòng đăng nhập vào hệ thống để xem chi tiết và xử lý khiếu nại.</p>
-        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-          Trân trọng,<br>
-          <strong>EZ-Home</strong>
-        </p>
       </div>
-    `,
-  }),
+    `
+    return {
+      subject: `🚨 Khiếu nại tài chính #${invoiceId} - EZ-Home`,
+      html: emailLayout('Yêu cầu xử lý khiếu nại', bodyContent, 'Xử lý ngay', `${WEBSITE_URL}/admin/invoices`)
+    }
+  },
 }
 
 // Send email function
@@ -166,6 +198,15 @@ export async function sendEmail(
   html: string
 ): Promise<boolean> {
   try {
+    const setting = await prisma.settings.findUnique({
+      where: { key: 'email_notifications' }
+    })
+
+    if (setting && setting.value === 'false') {
+      console.log('Email notifications are disabled in settings. Skipping.')
+      return false
+    }
+
     const transporter = getTransporter()
     if (!transporter) {
       console.log('Email transporter not available. Skipping email send.')
@@ -173,7 +214,7 @@ export async function sendEmail(
     }
 
     const mailOptions = {
-      from: `"EZ-Home" <${emailConfig.auth.user}>`,
+      from: `"EZ-Home Management" <${emailConfig.auth.user}>`,
       to,
       subject,
       html,

@@ -73,6 +73,7 @@ export default function ResidentsPage() {
   const [floorFilter, setFloorFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [maxFloors, setMaxFloors] = useState(15)
   const itemsPerPage = 10
   const [showCheckoutModal, setShowCheckoutModal] = useState(false)
   const [checkoutData, setCheckoutData] = useState<{ id: number; name: string } | null>(null)
@@ -81,6 +82,18 @@ export default function ResidentsPage() {
   useEffect(() => {
     fetchResidents()
   }, [search, floorFilter, statusFilter])
+
+  useEffect(() => {
+    // Fetch settings for max floors
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.maxFloors) {
+          setMaxFloors(parseInt(data.maxFloors))
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   const fetchResidents = async () => {
     setLoading(true)
@@ -297,7 +310,7 @@ export default function ResidentsPage() {
               className="select flex-1"
             >
               <option value="all">Tất cả</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(floor => (
+              {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
                 <option key={floor} value={floor}>Tầng {floor}</option>
               ))}
             </select>

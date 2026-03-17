@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher'
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         { senderId: adminUser.id, receiverId: tenantUser.id }
       ]
     }
-    
+
     // Chỉ lấy tin nhắn mới hơn lastMessageId (incremental loading)
     if (lastMessageId) {
       whereClause.id = { gt: parseInt(lastMessageId) }
@@ -183,6 +184,16 @@ export async function POST(request: NextRequest) {
         }
       }
     })
+
+    // Trigger Pusher event for real-time update
+    try {
+      await pusherServer.trigger(CHANNELS.ADMIN_MESSAGES, EVENTS.NEW_MESSAGE, {
+        message,
+        adminId: message.receiverId,
+      })
+    } catch (pusherError) {
+      console.error('Pusher trigger error:', pusherError)
+    }
 
     return NextResponse.json(message, { status: 201 })
   } catch (error) {

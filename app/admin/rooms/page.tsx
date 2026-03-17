@@ -44,6 +44,7 @@ export default function RoomsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [floorFilter, setFloorFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [maxFloors, setMaxFloors] = useState(10)
   const itemsPerPage = 8
   const [stats, setStats] = useState({
     total: 0,
@@ -61,6 +62,18 @@ export default function RoomsPage() {
   useEffect(() => {
     fetchRooms()
   }, [search, statusFilter, floorFilter])
+
+  useEffect(() => {
+    // Fetch settings for max floors
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.maxFloors) {
+          setMaxFloors(parseInt(data.maxFloors))
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   const fetchRooms = async () => {
     setLoading(true)
@@ -286,7 +299,7 @@ export default function RoomsPage() {
               className="select flex-1"
             >
               <option value="all">Tất cả</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(floor => (
+              {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
                 <option key={floor} value={floor}>Tầng {floor}</option>
               ))}
             </select>

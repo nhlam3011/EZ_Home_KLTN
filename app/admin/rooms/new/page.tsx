@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X, Building2, DollarSign, Users, Ruler, Home, Wrench, Image as ImageIcon } from 'lucide-react'
 import Link from 'next/link'
@@ -8,6 +8,7 @@ import Link from 'next/link'
 export default function NewRoomPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [maxFloors, setMaxFloors] = useState(10)
   const [formData, setFormData] = useState({
     name: '',
     floor: '',
@@ -68,6 +69,18 @@ export default function NewRoomPage() {
     const newValue = Math.max(1, current + delta)
     setFormData(prev => ({ ...prev, maxPeople: newValue.toString() }))
   }
+
+  useEffect(() => {
+    // Fetch settings for max floors
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.maxFloors) {
+          setMaxFloors(parseInt(data.maxFloors))
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -145,7 +158,7 @@ export default function NewRoomPage() {
                       className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     >
                       <option value="">Chọn tầng</option>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(floor => (
+                      {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
                         <option key={floor} value={floor}>Tầng {floor}</option>
                       ))}
                     </select>
@@ -288,15 +301,15 @@ export default function NewRoomPage() {
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[' Điều hòa', ' Nóng lạnh', ' Tủ lạnh', ' Giường tủ', ' Máy giặt chung'].map(amenity => (
-                      <label 
-                        key={amenity} 
+                      <label
+                        key={amenity}
                         className={`flex items-center gap-2 p-2 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group ${formData.amenities.includes(amenity) ? 'bg-tertiary border-blue-500' : ''}`}
                       >
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={formData.amenities.includes(amenity)}
                           onChange={(e) => handleAmenityChange(amenity, e.target.checked)}
-                          className="w-4 h-4 flex-shrink-0" 
+                          className="w-4 h-4 flex-shrink-0"
                         />
                         <span className="text-xs font-medium text-primary group-hover:text-blue-600 transition-colors select-none">
                           {amenity}

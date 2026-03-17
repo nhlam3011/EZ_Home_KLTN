@@ -315,3 +315,12 @@ model Message {
   @@index([receiverId, isRead])
   @@index([createdAt])
 }
+
+// Cấu hình hệ thống
+model Settings {
+  id          Int     @id @default(autoincrement())
+  key         String  @unique // VD: "maxFloors", "buildingName", ...
+  value       String  // Giá trị cấu hình
+  description String? // Mô tả cấu hình
+  updatedAt   DateTime @updatedAt
+}

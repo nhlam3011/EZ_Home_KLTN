@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
       orderBy: { name: 'asc' }
     })
 
+    // Sort rooms numerically by name (e.g., P.101, P.102, P.201)
+    rooms.sort((a, b) => {
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+    })
+
     // Filter by search term if provided (search in room name or tenant name)
     let filteredRooms = rooms
     if (search) {

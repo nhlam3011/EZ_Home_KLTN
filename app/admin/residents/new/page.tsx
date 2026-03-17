@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, X, Loader2, User, Plus, Users, Upload } from 'lucide-react'
+import { ArrowLeft, Save, X, Loader2, User, Plus, Users, Upload, RefreshCw } from 'lucide-react'
 
 interface Occupant {
   fullName: string
@@ -15,9 +15,13 @@ interface Occupant {
 
 export default function NewResidentPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
+  const [loadingOldData, setLoadingOldData] = useState(false)
   const [rooms, setRooms] = useState<any[]>([])
   const [occupants, setOccupants] = useState<Occupant[]>([])
+  const [existingUserId, setExistingUserId] = useState<string | null>(null)
+  const [oldUserData, setOldUserData] = useState<any>(null)
   const [formData, setFormData] = useState({
     phone: '',
     fullName: '',
@@ -35,7 +39,54 @@ export default function NewResidentPage() {
 
   useEffect(() => {
     fetchAvailableRooms()
+
+    // Check if there's a userId in the URL (renewing contract for existing user)
+    const userId = searchParams.get('userId')
+    if (userId) {
+      setExistingUserId(userId)
+      fetchOldUserData(userId)
+    }
   }, [])
+
+  const fetchOldUserData = async (userId: string) => {
+    setLoadingOldData(true)
+    try {
+      const response = await fetch(`/api/residents/${userId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setOldUserData(data)
+
+        // Auto-fill form with old user data
+        setFormData(prev => ({
+          ...prev,
+          phone: data.phone || '',
+          fullName: data.fullName || '',
+          email: data.email || '',
+          cccdNumber: data.cccdNumber || '',
+          dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
+          address: data.address || ''
+        }))
+
+        // Also fill occupants from the last contract if available
+        if (data.contracts && data.contracts.length > 0) {
+          const lastContract = data.contracts[0]
+          if (lastContract.occupants && lastContract.occupants.length > 0) {
+            setOccupants(lastContract.occupants.map((occ: any) => ({
+              fullName: occ.fullName || '',
+              cccdNumber: occ.cccdNumber || '',
+              phone: occ.phone || '',
+              dob: occ.dob ? new Date(occ.dob).toISOString().split('T')[0] : '',
+              relationship: occ.relationship || ''
+            })))
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching old user data:', error)
+    } finally {
+      setLoadingOldData(false)
+    }
+  }
 
   const fetchAvailableRooms = async () => {
     try {
@@ -124,7 +175,11 @@ export default function NewResidentPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-primary">Check-in Cư dân mới</h1>
-            <p className="text-secondary mt-1 text-sm sm:text-base">Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới</p>
+            <p className="text-secondary mt-1 text-sm sm:text-base">
+              {existingUserId
+                ? `Tạo hợp đồng mới cho cư dân: ${oldUserData?.fullName || 'Đang tải...'}`
+                : 'Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới'}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -159,6 +214,28 @@ export default function NewResidentPage() {
       {errors.submit && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-sm text-red-700">{errors.submit}</p>
+        </div>
+      )}
+
+      {/* Info banner for existing user */}
+      {existingUserId && oldUserData && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <RefreshCw size={20} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                Thông tin cư dân đã được điền tự động từ hợp đồng cũ
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Hợp đồng cũ: Phòng {oldUserData.contracts?.[0]?.room?.name || 'N/A'} |
+                Thời gian: {oldUserData.contracts?.[0]?.startDate ? new Date(oldUserData.contracts[0].startDate).toLocaleDateString('vi-VN') : 'N/A'} -
+                {oldUserData.contracts?.[0]?.endDate ? new Date(oldUserData.contracts[0].endDate).toLocaleDateString('vi-VN') : 'N/A'}
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Vui lòng kiểm tra và cập nhật thông tin nếu có thay đổi.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

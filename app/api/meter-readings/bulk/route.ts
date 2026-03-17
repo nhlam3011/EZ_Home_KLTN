@@ -21,44 +21,53 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get last month's readings
-    let lastMonth = parseInt(month) - 1
-    let lastYear = parseInt(year)
+    const monthNum = parseInt(month)
+    const yearNum = parseInt(year)
+
+    // Get last month's readings - batch query
+    let lastMonth = monthNum - 1
+    let lastYear = yearNum
     if (lastMonth === 0) {
       lastMonth = 12
       lastYear -= 1
     }
 
-    const lastReadings = await prisma.meterReading.findMany({
-      where: {
-        month: lastMonth,
-        year: lastYear
-      }
-    })
-
-    const lastReadingsMap = new Map(
-      lastReadings.map(r => [r.roomId, r])
-    )
-
-    // Get electricity, water, and common service prices from Service table
-    const elecService = await prisma.service.findFirst({
-      where: { name: 'Điện', isActive: true }
-    })
-    const waterService = await prisma.service.findFirst({
-      where: { name: 'Nước', isActive: true }
-    })
-    // Tìm dịch vụ chung (có thể tên là "Dịch vụ chung", "Phí quản lý", "Phí dịch vụ", etc.)
-    const commonService = await prisma.service.findFirst({
-      where: {
-        OR: [
-          { name: { contains: 'Dịch vụ chung', mode: 'insensitive' } },
-          { name: { contains: 'Phí quản lý', mode: 'insensitive' } },
-          { name: { contains: 'Phí dịch vụ', mode: 'insensitive' } },
-          { name: { contains: 'Quản lý', mode: 'insensitive' } }
-        ],
-        isActive: true
-      }
-    })
+    // Batch query: Get all needed data at once
+    const [
+      lastReadings,
+      elecService,
+      waterService,
+      commonService,
+      roomsWithContracts
+    ] = await Promise.all([
+      prisma.meterReading.findMany({
+        where: { month: lastMonth, year: lastYear }
+      }),
+      prisma.service.findFirst({ where: { name: 'Điện', isActive: true } }),
+      prisma.service.findFirst({ where: { name: 'Nước', isActive: true } }),
+      prisma.service.findFirst({
+        where: {
+          OR: [
+            { name: { contains: 'Dịch vụ chung', mode: 'insensitive' } },
+            { name: { contains: 'Phí quản lý', mode: 'insensitive' } },
+            { name: { contains: 'Phí dịch vụ', mode: 'insensitive' } },
+            { name: { contains: 'Quản lý', mode: 'insensitive' } }
+          ],
+          isActive: true
+        }
+      }),
+      prisma.room.findMany({
+        where: {
+          id: { in: readings.map(r => parseInt(r.roomId)) }
+        },
+        include: {
+          contracts: {
+            where: { status: 'ACTIVE' },
+            include: { occupants: true }
+          }
+        }
+      })
+    ])
 
     // Validate required services
     if (!elecService) {
@@ -79,19 +88,84 @@ export async function POST(request: NextRequest) {
     const waterPrice = Number(waterService.unitPrice)
     const commonServicePrice = commonService ? Number(commonService.unitPrice) : 0
 
-    const results = []
+    // Create maps for faster lookups
+    const lastReadingsMap = new Map(lastReadings.map(r => [r.roomId, r]))
+    const roomsMap = new Map(roomsWithContracts.map(r => [r.id, r]))
+
+    // Get existing meter readings for current month
+    const existingReadings = await prisma.meterReading.findMany({
+      where: {
+        roomId: { in: readings.map(r => parseInt(r.roomId)) },
+        month: monthNum,
+        year: yearNum
+      }
+    })
+    const existingReadingsMap = new Map(existingReadings.map(r => [r.roomId, r]))
+
+    // Get contracts for all rooms
+    const contracts = await prisma.contract.findMany({
+      where: {
+        roomId: { in: readings.map(r => parseInt(r.roomId)) },
+        status: 'ACTIVE'
+      },
+      include: {
+        occupants: true,
+        invoices: {
+          where: {
+            status: { in: ['UNPAID', 'OVERDUE'] },
+            paymentDueDate: { lt: new Date() }
+          }
+        }
+      }
+    })
+    const contractsMap = new Map(contracts.map(c => [c.roomId, c]))
+
+    // Get existing invoices for current month
+    const existingInvoices = await prisma.invoice.findMany({
+      where: {
+        contractId: { in: contracts.map(c => c.id) },
+        month: monthNum,
+        year: yearNum
+      }
+    })
+    const existingInvoicesMap = new Map(existingInvoices.map(i => [i.contractId, i]))
+
+    // Get next month readings to update
+    let nextMonth = monthNum + 1
+    let nextYear = yearNum
+    if (nextMonth > 12) {
+      nextMonth = 1
+      nextYear += 1
+    }
+
+    const nextMonthReadings = await prisma.meterReading.findMany({
+      where: {
+        roomId: { in: readings.map(r => parseInt(r.roomId)) },
+        month: nextMonth,
+        year: nextYear
+      }
+    })
+    const nextMonthReadingsMap = new Map(nextMonthReadings.map(r => [r.roomId, r]))
+
+    // Prepare data for batch operations
+    const meterReadingsToCreate: any[] = []
+    const meterReadingsToUpdate: any[] = []
+    const meterReadingsToUpdateNext: any[] = []
+    const invoicesToCreate: any[] = []
+    const invoicesToUpdate: any[] = []
+    const invoiceIdsToMarkPaid: number[] = []
     const errors = []
-    const invoicesCreated = []
 
     for (const reading of readings) {
       const { roomId, elecNew, waterNew } = reading
+      const roomIdNum = parseInt(roomId)
 
       if (elecNew === undefined || elecNew === null || waterNew === undefined || waterNew === null) {
-        continue // Skip empty readings
+        continue
       }
 
       try {
-        const lastReading = lastReadingsMap.get(roomId)
+        const lastReading = lastReadingsMap.get(roomIdNum)
         const elecOld = lastReading ? lastReading.elecNew : 0
         const waterOld = lastReading ? lastReading.waterNew : 0
 
@@ -112,129 +186,54 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Check if exists
-        const existing = await prisma.meterReading.findFirst({
-          where: {
-            roomId: parseInt(roomId),
-            month: parseInt(month),
-            year: parseInt(year)
-          }
-        })
+        const existing = existingReadingsMap.get(roomIdNum)
 
-        // Tính số tiêu thụ (số mới - số cũ)
+        // Tính số tiêu thụ
         const elecConsumption = parseFloat(elecNew) - elecOld
         const waterConsumption = parseFloat(waterNew) - waterOld
 
-        let meterReading
         if (existing) {
-          // Update - luôn tính lại số cũ từ tháng trước để đảm bảo đúng
-          meterReading = await prisma.meterReading.update({
+          meterReadingsToUpdate.push({
             where: { id: existing.id },
-            data: {
-              elecOld, // Số cũ từ tháng trước (luôn tính lại)
-              elecNew: parseFloat(elecNew),
-              waterOld, // Số cũ từ tháng trước (luôn tính lại)
-              waterNew: parseFloat(waterNew)
-            }
+            data: { elecOld, elecNew: parseFloat(elecNew), waterOld, waterNew: parseFloat(waterNew) }
           })
-          results.push(meterReading)
         } else {
-          // Create - chỉ tạo khi có số mới
-          meterReading = await prisma.meterReading.create({
-            data: {
-              roomId: parseInt(roomId),
-              month: parseInt(month),
-              year: parseInt(year),
-              elecOld, // Số cũ từ tháng trước (hoặc 0 nếu chưa có)
-              elecNew: parseFloat(elecNew),
-              waterOld, // Số cũ từ tháng trước (hoặc 0 nếu chưa có)
-              waterNew: parseFloat(waterNew)
-            }
+          meterReadingsToCreate.push({
+            roomId: roomIdNum,
+            month: monthNum,
+            year: yearNum,
+            elecOld,
+            elecNew: parseFloat(elecNew),
+            waterOld,
+            waterNew: parseFloat(waterNew)
           })
-          results.push(meterReading)
         }
 
-        // Cập nhật số cũ của tháng sau bằng số mới của tháng hiện tại
-        let nextMonth = parseInt(month) + 1
-        let nextYear = parseInt(year)
-        if (nextMonth > 12) {
-          nextMonth = 1
-          nextYear += 1
-        }
-
-        // Tìm meter reading của tháng sau (nếu đã tồn tại)
-        const nextMonthReading = await prisma.meterReading.findFirst({
-          where: {
-            roomId: parseInt(roomId),
-            month: nextMonth,
-            year: nextYear
-          }
-        })
-
+        // Update next month readings if exists
+        const nextMonthReading = nextMonthReadingsMap.get(roomIdNum)
         if (nextMonthReading) {
-          // Cập nhật số cũ của tháng sau bằng số mới của tháng hiện tại
-          await prisma.meterReading.update({
+          meterReadingsToUpdateNext.push({
             where: { id: nextMonthReading.id },
-            data: {
-              elecOld: parseFloat(elecNew),
-              waterOld: parseFloat(waterNew)
-            }
+            data: { elecOld: parseFloat(elecNew), waterOld: parseFloat(waterNew) }
           })
         }
-        // Nếu chưa có reading của tháng sau, không tạo mới - sẽ tự động lấy từ tháng hiện tại khi chốt tháng sau
 
-        // Auto-create or update invoice for active contracts
-        const activeContract = await prisma.contract.findFirst({
-          where: {
-            roomId: parseInt(roomId),
-            status: 'ACTIVE'
-          },
-          include: {
-            room: true,
-            occupants: true // Lấy danh sách người ở để tính số lượng
-          } as any // Type assertion để tránh lỗi TypeScript với Prisma client chưa được generate lại
-        })
-
+        // Handle invoice creation/update
+        const activeContract = contractsMap.get(roomIdNum)
         if (activeContract) {
-          // Tính số người trong phòng: 1 (người chủ hợp đồng) + số người ở cùng
-          const occupants = (activeContract as any).occupants || []
+          const occupants = activeContract.occupants || []
           const numberOfPeople = 1 + occupants.length
 
-          // Tính tiền dựa trên số tiêu thụ (số mới - số cũ)
           const amountRoom = Number(activeContract.rentPrice)
-          const amountElec = elecConsumption * elecPrice // Số tiêu thụ * giá điện
-          const amountWater = waterConsumption * waterPrice // Số tiêu thụ * giá nước
-          const amountCommonService = commonServicePrice * numberOfPeople // Phí dịch vụ chung * số người
-          const amountService = 0 // Phí xử lý sự cố và dịch vụ khác (mặc định 0)
+          const amountElec = elecConsumption * elecPrice
+          const amountWater = waterConsumption * waterPrice
+          const amountCommonService = commonServicePrice * numberOfPeople
+          const amountService = 0
           const totalAmount = amountRoom + amountElec + amountWater + amountCommonService + amountService
 
-          // Check if invoice already exists for this period
-          const existingInvoice = await prisma.invoice.findFirst({
-            where: {
-              contractId: activeContract.id,
-              month: parseInt(month),
-              year: parseInt(year)
-            }
-          })
-
-          // Find overdue invoices for this contract to add to current invoice
-          const now = new Date()
-          const overdueInvoices = await prisma.invoice.findMany({
-            where: {
-              contractId: activeContract.id,
-              status: {
-                in: ['UNPAID', 'OVERDUE']
-              },
-              paymentDueDate: {
-                lt: now // Payment due date has passed
-              }
-            }
-          })
-
-          // Calculate total overdue amount
+          // Calculate overdue
+          const overdueInvoices = activeContract.invoices || []
           const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
-
-          // Prepare overdue invoice details for storage
           const overdueInvoicesInfo = overdueInvoices.map(inv => ({
             id: inv.id,
             month: inv.month,
@@ -242,14 +241,12 @@ export async function POST(request: NextRequest) {
             amount: Number(inv.totalAmount)
           }))
 
-          // If invoice already exists, update it with new amounts
-          if (existingInvoice) {
-            // Calculate payment due date (10 days from now)
-            const paymentDueDate = new Date()
-            paymentDueDate.setDate(paymentDueDate.getDate() + 10)
+          const existingInvoice = existingInvoicesMap.get(activeContract.id)
+          const paymentDueDate = new Date()
+          paymentDueDate.setDate(paymentDueDate.getDate() + 10)
 
-            // Update existing invoice with new amounts
-            await prisma.invoice.update({
+          if (existingInvoice) {
+            invoicesToUpdate.push({
               where: { id: existingInvoice.id },
               data: {
                 amountRoom,
@@ -260,86 +257,85 @@ export async function POST(request: NextRequest) {
                 overdueInvoices: JSON.stringify(overdueInvoicesInfo),
                 totalAmount: totalAmount + overdueAmount,
                 paymentDueDate,
-                status: 'UNPAID' // Reset to UNPAID when updating
-              }
-            })
-            results.push(meterReading)
-            continue
-          }
-
-          // Chỉ tạo hóa đơn mới sau khi đã lưu số mới và có số tiêu thụ
-          if (elecConsumption >= 0 && waterConsumption >= 0) {
-            // Calculate payment due date (10 days from now)
-            const paymentDueDate = new Date()
-            paymentDueDate.setDate(paymentDueDate.getDate() + 10)
-
-            // Create invoice
-            const invoice = await prisma.invoice.create({
-              data: {
-                contractId: activeContract.id,
-                month: parseInt(month),
-                year: parseInt(year),
-                amountRoom,
-                amountElec,
-                amountWater,
-                amountCommonService,
-                amountService: 0,
-                overdueAmount,
-                overdueInvoices: JSON.stringify(overdueInvoicesInfo),
-                totalAmount: totalAmount + overdueAmount,
-                paymentDueDate,
                 status: 'UNPAID'
               }
             })
-            invoicesCreated.push(invoice.id)
-
-            // Mark overdue invoices as paid (they are now included in the new invoice)
+          } else if (elecConsumption >= 0 && waterConsumption >= 0) {
+            invoicesToCreate.push({
+              contractId: activeContract.id,
+              month: monthNum,
+              year: yearNum,
+              amountRoom,
+              amountElec,
+              amountWater,
+              amountCommonService,
+              amountService: 0,
+              overdueAmount,
+              overdueInvoices: JSON.stringify(overdueInvoicesInfo),
+              totalAmount: totalAmount + overdueAmount,
+              paymentDueDate,
+              status: 'UNPAID'
+            })
             if (overdueInvoices.length > 0) {
-              await prisma.invoice.updateMany({
-                where: {
-                  id: {
-                    in: overdueInvoices.map(inv => inv.id)
-                  }
-                },
-                data: {
-                  status: 'PAID',
-                  paidAt: new Date()
-                }
-              })
+              invoiceIdsToMarkPaid.push(...overdueInvoices.map(inv => inv.id))
             }
           }
         }
       } catch (error: any) {
         console.error(`Error processing room ${roomId}:`, error)
         let errorMessage = 'Lỗi khi lưu chỉ số'
+        if (error.code === 'P2002') errorMessage = 'Phòng này đã có chỉ số cho kỳ này'
+        else if (error.code === 'P2003') errorMessage = 'Phòng không tồn tại'
+        else if (error.code === 'P2025') errorMessage = 'Không tìm thấy dữ liệu'
 
-        // Provide more specific error messages
-        if (error.code === 'P2002') {
-          errorMessage = 'Phòng này đã có chỉ số cho kỳ này'
-        } else if (error.code === 'P2003') {
-          errorMessage = 'Phòng không tồn tại hoặc dữ liệu không hợp lệ'
-        } else if (error.code === 'P2025') {
-          errorMessage = 'Không tìm thấy dữ liệu liên quan'
-        } else if (error.message) {
-          errorMessage = error.message
-        }
-
-        errors.push({
-          roomId,
-          error: errorMessage,
-          details: error.code || undefined
-        })
+        errors.push({ roomId, error: errorMessage, details: error.code })
       }
     }
 
+    // Execute batch operations in transaction
+    await prisma.$transaction(async (tx) => {
+      // Batch create meter readings
+      if (meterReadingsToCreate.length > 0) {
+        await tx.meterReading.createMany({ data: meterReadingsToCreate, skipDuplicates: true })
+      }
+
+      // Batch update meter readings
+      for (const update of meterReadingsToUpdate) {
+        await tx.meterReading.update(update)
+      }
+
+      // Batch update next month readings
+      for (const update of meterReadingsToUpdateNext) {
+        await tx.meterReading.update(update)
+      }
+
+      // Batch create invoices
+      if (invoicesToCreate.length > 0) {
+        await tx.invoice.createMany({ data: invoicesToCreate })
+      }
+
+      // Batch update invoices
+      for (const update of invoicesToUpdate) {
+        await tx.invoice.update(update)
+      }
+
+      // Mark overdue invoices as paid
+      if (invoiceIdsToMarkPaid.length > 0) {
+        await tx.invoice.updateMany({
+          where: { id: { in: invoiceIdsToMarkPaid } },
+          data: { status: 'PAID', paidAt: new Date() }
+        })
+      }
+    })
+
     return NextResponse.json({
       success: true,
-      saved: results.length,
-      invoicesCreated: invoicesCreated.length,
+      saved: meterReadingsToCreate.length + meterReadingsToUpdate.length,
+      invoicesCreated: invoicesToCreate.length,
       errors: errors.length > 0 ? errors : undefined,
       message: errors.length > 0
-        ? `Đã lưu ${results.length} phòng, tạo ${invoicesCreated.length} hóa đơn, ${errors.length} phòng có lỗi`
-        : `Đã lưu thành công ${results.length} phòng và tạo ${invoicesCreated.length} hóa đơn`
+        ? `Đã lưa ${meterReadingsToCreate.length + meterReadingsToUpdate.length} phòng, tạo ${invoicesToCreate.length} hóa đơn, ${errors.length} phòng có lỗi`
+        : `Đã lưu thành công ${meterReadingsToCreate.length + meterReadingsToUpdate.length} phòng và tạo ${invoicesToCreate.length} hóa đơn`
     })
   } catch (error) {
     console.error('Error saving bulk meter readings:', error)

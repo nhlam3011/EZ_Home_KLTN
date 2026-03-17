@@ -345,48 +345,45 @@ export default function RoomContractsPage() {
                       Danh sách hóa đơn
                     </h3>
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full min-w-[800px]">
                         <thead className="bg-tertiary border-b border-primary">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Kỳ thanh toán</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Phòng</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Điện</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Nước</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Dịch vụ</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Tổng</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Trạng thái</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase">Ngày</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">Kỳ thanh toán</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell">Tiền phòng</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell">Tiền điện</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell">Tiền nước</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell">Dịch vụ</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle">Tổng</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">Trạng thái</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle hidden md:table-cell">Ngày tạo</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-primary">
                           {contract.invoices.map((invoice) => (
                             <tr key={invoice.id} className="hover:bg-tertiary transition-colors">
-                              <td className="px-4 py-3 text-sm text-primary font-medium">
-                                {invoice.month}/{invoice.year}
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                                <span className="text-sm font-medium text-primary whitespace-nowrap">Tháng {invoice.month}/{invoice.year}</span>
                               </td>
-                              <td className="px-4 py-3 text-sm text-secondary">
-                                {formatCurrency(Number(invoice.amountRoom))}
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                                <span className="text-xs sm:text-sm text-primary whitespace-nowrap">{formatCurrency(Number(invoice.amountRoom))}</span>
                               </td>
-                              <td className="px-4 py-3 text-sm text-secondary">
-                                {formatCurrency(Number(invoice.amountElec))}
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                                <span className="text-xs sm:text-sm text-primary whitespace-nowrap">{formatCurrency(Number(invoice.amountElec))}</span>
                               </td>
-                              <td className="px-4 py-3 text-sm text-secondary">
-                                {formatCurrency(Number(invoice.amountWater))}
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                                <span className="text-xs sm:text-sm text-primary whitespace-nowrap">{formatCurrency(Number(invoice.amountWater))}</span>
                               </td>
-                              <td className="px-4 py-3 text-sm text-secondary">
-                                {formatCurrency(Number(invoice.amountService) + Number(invoice.amountCommonService || 0))}
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                                <span className="text-xs sm:text-sm text-primary whitespace-nowrap">{formatCurrency(Number(invoice.amountService) + Number(invoice.amountCommonService || 0))}</span>
                               </td>
-                              <td className="px-4 py-3 text-sm font-semibold text-primary">
-                                {formatCurrency(Number(invoice.totalAmount))}
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
+                                <span className="text-sm font-semibold text-primary whitespace-nowrap">{formatCurrency(Number(invoice.totalAmount))}</span>
                               </td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle">
                                 {getInvoiceStatusBadge(invoice.status)}
                               </td>
-                              <td className="px-4 py-3 text-sm text-tertiary">
-                                {invoice.paidAt
-                                  ? formatDateTime(invoice.paidAt)
-                                  : formatDateTime(invoice.createdAt)
-                                }
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle hidden md:table-cell">
+                                <span className="text-xs sm:text-sm text-secondary whitespace-nowrap">{formatDate(invoice.createdAt)}</span>
                               </td>
                             </tr>
                           ))}

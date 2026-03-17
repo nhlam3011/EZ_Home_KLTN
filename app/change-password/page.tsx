@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, Eye, EyeOff, CheckCircle, Shield, AlertCircle, KeyRound } from 'lucide-react'
+import { Lock, Eye, EyeOff, CheckCircle, Shield, AlertCircle, KeyRound, Sparkles, ShieldCheck } from 'lucide-react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
 import Loading, { LoadingSpinner } from '@/components/Loading'
 
@@ -10,6 +10,7 @@ export default function ChangePasswordPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -24,6 +25,7 @@ export default function ChangePasswordPage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const userData = localStorage.getItem('user')
     if (!userData) {
       router.push('/login')
@@ -118,48 +120,13 @@ export default function ChangePasswordPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-secondary relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }}></div>
+      <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#0a0a0c]">
+        {/* Animated Background */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(17,24,39,1)_0%,_rgba(0,0,0,1)_100%)]"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/20 blur-[120px] animate-pulse"></div>
         </div>
         <Loading size="lg" text="Đang tải..." />
-      </div>
-    )
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-secondary relative overflow-hidden">
-        <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20">
-          <DarkModeToggle />
-        </div>
-
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }}></div>
-        </div>
-
-        {/* Gradient Orbs */}
-        <div className="absolute top-0 left-0 w-96 h-96 bg-green-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
-
-        <div className="w-full max-w-md relative z-10">
-          <div className="card text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
-              <CheckCircle className="text-green-600 dark:text-green-400 w-7 h-7 sm:w-8 sm:h-8" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-primary mb-2">Đổi mật khẩu thành công!</h2>
-            <p className="text-xs sm:text-sm text-secondary mb-4">Bạn sẽ được chuyển đến trang chủ...</p>
-            <Loading size="md" text="" className="py-2" />
-          </div>
-        </div>
       </div>
     )
   }
@@ -170,196 +137,221 @@ export default function ChangePasswordPage() {
     : 'Mật khẩu hiện tại (Số CCCD)'
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-secondary relative overflow-hidden">
-      {/* Dark Mode Toggle */}
-      <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-20">
-        <DarkModeToggle />
+    <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#050507] selection:bg-blue-500/30 font-sans">
+      {/* 1. FIXED TOP-RIGHT DARK MODE TOGGLE */}
+      <div className="fixed top-6 right-6 z-[100] animate-in fade-in slide-in-from-top-4 duration-1000">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-2 rounded-2xl shadow-2xl hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer group flex items-center gap-2">
+          <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest hidden sm:block px-1">Giao diện</div>
+          <DarkModeToggle />
+        </div>
       </div>
 
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)',
-          backgroundSize: '40px 40px'
-        }}></div>
+      {/* 2. ENHANCED DYNAMIC BACKGROUND */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,_#111827_0%,_#000000_100%)]"></div>
+
+        {/* Animated Orbs */}
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-600/15 blur-[150px] animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-20%] w-[60%] h-[60%] rounded-full bg-indigo-900/10 blur-[130px] animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      {/* Gradient Orbs */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 z-[1] opacity-[0.07] pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundSize: '80px 80px',
+          maskImage: 'radial-gradient(circle at center, black, transparent 80%)'
+        }}>
+      </div>
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo & Title */}
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="inline-flex items-center justify-center mb-4 sm:mb-6">
+      <div className="absolute inset-0 z-[2] opacity-[0.03] pointer-events-none mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+
+      {/* --- CONTENT --- */}
+      <div className={`relative z-10 w-full max-w-xl px-4 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+
+        {/* BRAND HERO SECTION */}
+        <div className="text-center mb-10">
+          <div className="mb-4 relative inline-block group">
+            <div className="absolute inset-0 bg-blue-500/20 blur-[50px] rounded-full scale-125 group-hover:bg-blue-400/30 transition-all duration-700"></div>
             <img
               src="/logo_final.png"
               alt="EZ-Home Logo"
-              className="w-25 h-25 sm:w-30 sm:h-30 object-contain"
+              className="relative w-28 h-28 object-contain filter drop-shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-transform duration-500 group-hover:scale-110"
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-1.5 sm:mb-2">EZ-Home</h1>
-          <p className="text-xs sm:text-sm text-secondary">Hệ thống quản lý nhà trọ thông minh</p>
+          <h1 className="text-4xl font-black tracking-tighter text-white bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-500 leading-tight">
+            EZ HOME
+          </h1>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <Sparkles size={14} className="text-blue-400" />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.4em]">Cập nhật bảo mật</span>
+          </div>
         </div>
 
-        {/* Change Password Card */}
-        <div className="card">
-          <div className="mb-5 sm:mb-6">
-            <div className="flex items-center gap-2.5 sm:gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                <KeyRound size={18} className="sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h2 className="text-lg sm:text-xl font-bold text-primary">Đổi mật khẩu lần đầu</h2>
-            </div>
-            <p className="text-xs sm:text-sm text-secondary mt-1.5 sm:mt-2">
-              Vui lòng đổi mật khẩu để bảo mật tài khoản của bạn
-            </p>
-            {isAdmin && (
-              <div className="mt-3 inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-full">
-                <Shield size={12} className="sm:w-3.5 sm:h-3.5 text-blue-600 dark:text-blue-400" />
-                <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Tài khoản Quản trị viên</span>
-              </div>
-            )}
-          </div>
+        {/* CHANGE PASSWORD CARD */}
+        <div className="bg-white/[0.03] backdrop-blur-[40px] border border-white/[0.08] rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.8)] overflow-hidden relative">
+          {/* Accent Glow */}
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
 
-          {errors.submit && (
-            <div className="mb-4 sm:mb-5 p-3 sm:p-3.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2.5">
-              <AlertCircle size={18} className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs sm:text-sm text-red-700 dark:text-fg-danger-strong flex-1">{errors.submit}</p>
+          {success ? (
+            <div className="p-14 text-center animate-in zoom-in-95 duration-500">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-green-500/20 rounded-full mb-8 shadow-[0_0_40px_rgba(34,197,94,0.3)]">
+                <CheckCircle className="text-green-400 w-12 h-12" />
+              </div>
+              <h2 className="text-3xl font-black text-white mb-4 tracking-tight">Cập nhật thành công</h2>
+              <p className="text-gray-400 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">Mật khẩu của bạn đã được thay đổi. Hệ thống đang chuyển hướng...</p>
+              <div className="mt-10 flex justify-center">
+                <div className="p-2 bg-white/5 rounded-full">
+                  <LoadingSpinner size={36} className="text-green-500" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-10 sm:p-14">
+              <div className="mb-10 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full mb-4">
+                  <KeyRound size={14} className="text-blue-400" />
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Security Upgrade</span>
+                </div>
+                <h2 className="text-3xl font-black text-white tracking-tight">Bảo mật tài khoản</h2>
+                <p className="text-sm font-medium text-gray-400 mt-2">Vui lòng cập nhật mật khẩu mới để tiếp tục sử dụng hệ thống.</p>
+
+                {isAdmin && (
+                  <div className="mt-5 inline-flex items-center gap-2 px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <Shield size={14} className="text-amber-400" />
+                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-tight">Quyền quản trị viên</span>
+                  </div>
+                )}
+              </div>
+
+              {errors.submit && (
+                <div className="mb-8 p-5 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center gap-4 animate-shake">
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                    <AlertCircle size={18} className="text-red-400" />
+                  </div>
+                  <p className="text-xs text-red-300 font-bold leading-relaxed">{errors.submit}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 ml-1 block">
+                    {currentPasswordLabel}
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type={showPasswords.current ? 'text' : 'password'}
+                      value={formData.currentPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder={isAdmin ? "Nhập mật khẩu cũ" : "Nhập số CCCD của bạn"}
+                      className={`w-full h-15 bg-white/[0.04] border ${errors.currentPassword ? 'border-red-500/40' : 'border-white/10'} rounded-2xl px-6 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold group-focus-within:bg-white/[0.08]`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-all"
+                    >
+                      {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.currentPassword && <p className="text-[11px] text-red-400 ml-1 font-bold">*{errors.currentPassword}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 ml-1 block">Mật khẩu mới</label>
+                  <div className="relative group">
+                    <input
+                      type={showPasswords.new ? 'text' : 'password'}
+                      value={formData.newPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Tối thiểu 6 ký tự"
+                      className={`w-full h-15 bg-white/[0.04] border ${errors.newPassword ? 'border-red-500/40' : 'border-white/10'} rounded-2xl px-6 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold group-focus-within:bg-white/[0.08]`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-all"
+                    >
+                      {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.newPassword && <p className="text-[11px] text-red-400 ml-1 font-bold">*{errors.newPassword}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 ml-1 block">Xác nhận mật khẩu</label>
+                  <div className="relative group">
+                    <input
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Nhập lại mật khẩu"
+                      className={`w-full h-15 bg-white/[0.04] border ${errors.confirmPassword ? 'border-red-500/40' : 'border-white/10'} rounded-2xl px-6 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all font-bold group-focus-within:bg-white/[0.08]`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-all"
+                    >
+                      {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="text-[11px] text-red-400 ml-1 font-bold">*{errors.confirmPassword}</p>}
+                </div>
+
+                <div className="pt-6">
+                  <div className="p-6 rounded-3xl bg-blue-900/10 border border-blue-500/10 flex items-start gap-4 mb-8 backdrop-blur-md">
+                    <ShieldCheck size={22} className="text-blue-400 shrink-0" />
+                    <div className="space-y-1">
+                      <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-widest">Tiêu chuẩn mật khẩu</h4>
+                      <ul className="text-[11px] text-gray-500 space-y-1 font-medium list-disc list-inside">
+                        <li>Độ dài tối thiểu 6 ký tự</li>
+                        <li>Nên bao gồm cả chữ và số</li>
+                        <li>Tránh sử dụng thông tin cá nhân</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="group/btn relative w-full h-16 rounded-2xl overflow-hidden transition-all duration-300 active:scale-[0.98] disabled:opacity-70"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-700 group-hover/btn:from-blue-600 group-hover/btn:to-indigo-600 transition-all duration-500"></div>
+                    <div className="relative flex items-center justify-center gap-4 text-white font-black text-lg tracking-wider">
+                      {loading ? (
+                        <LoadingSpinner size={28} className="text-white" />
+                      ) : (
+                        <>
+                          <span>XÁC NHẬN CẬP NHẬT</span>
+                          <Lock size={20} />
+                        </>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              </form>
             </div>
           )}
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-primary mb-1.5 sm:mb-2">
-                {currentPasswordLabel} <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary">
-                </div>
-                <input
-                  type={showPasswords.current ? 'text' : 'password'}
-                  value={formData.currentPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                  placeholder={isAdmin ? "Nhập mật khẩu hiện tại" : "Nhập số CCCD"}
-                  className={`input pl-9 sm:pl-10 pr-10 sm:pr-12 w-full ${errors.currentPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-secondary hover:text-primary hover:bg-secondary transition-colors"
-                  aria-label="Toggle password visibility"
-                >
-                  {showPasswords.current ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
-                </button>
-              </div>
-              {errors.currentPassword && (
-                <p className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                  <AlertCircle size={14} />
-                  {errors.currentPassword}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-primary mb-1.5 sm:mb-2">
-                Mật khẩu mới <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary">
-                </div>
-                <input
-                  type={showPasswords.new ? 'text' : 'password'}
-                  value={formData.newPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
-                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
-                  className={`input pl-9 sm:pl-10 pr-10 sm:pr-12 w-full ${errors.newPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-secondary hover:text-primary hover:bg-secondary transition-colors"
-                  aria-label="Toggle password visibility"
-                >
-                  {showPasswords.new ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
-                </button>
-              </div>
-              {errors.newPassword && (
-                <p className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                  <AlertCircle size={14} />
-                  {errors.newPassword}
-                </p>
-              )}
-              <p className="mt-1.5 text-xs text-tertiary">
-                Mật khẩu phải có ít nhất 6 ký tự và chứa cả chữ cái và số
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-primary mb-1.5 sm:mb-2">
-                Xác nhận mật khẩu mới <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary">
-                </div>
-                <input
-                  type={showPasswords.confirm ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Nhập lại mật khẩu mới"
-                  className={`input pl-9 sm:pl-10 pr-10 sm:pr-12 w-full ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-secondary hover:text-primary hover:bg-secondary transition-colors"
-                  aria-label="Toggle password visibility"
-                >
-                  {showPasswords.confirm ? <EyeOff size={18} className="sm:w-5 sm:h-5" /> : <Eye size={18} className="sm:w-5 sm:h-5" />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1.5 text-xs sm:text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
-                  <AlertCircle size={14} />
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
-              <div className="flex items-start gap-2 sm:gap-2.5">
-                <AlertCircle className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <div className="text-xs text-blue-800 dark:text-blue-300 flex-1">
-                  <p className="font-medium mb-1.5 text-primary">Lưu ý bảo mật:</p>
-                  <ul className="space-y-1 list-disc list-inside text-secondary leading-relaxed">
-                    <li>Không chia sẻ mật khẩu với người khác</li>
-                    <li>Chọn mật khẩu mạnh, khó đoán</li>
-                    <li>Đổi mật khẩu định kỳ để bảo mật</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn btn-primary btn-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6 sm:mt-7"
-            >
-              {loading ? (
-                <>
-                  <LoadingSpinner size={18} className="text-white" />
-                  <span className="text-sm sm:text-base">Đang xử lý...</span>
-                </>
-              ) : (
-                <>
-                  <Lock size={18} />
-                  <span className="text-sm sm:text-base">Đổi mật khẩu</span>
-                </>
-              )}
-            </button>
-          </form>
+        {/* Improved Footer */}
+        <div className="mt-12 flex flex-col items-center gap-2 opacity-40 hover:opacity-100 transition-opacity duration-500">
+          <div className="h-px w-24 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <p className="text-gray-600 text-[10px] font-bold tracking-[0.3em] uppercase">EZ-Home Security Infrastructure</p>
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(5px); }
+          75% { transform: translateX(-5px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+      `}</style>
     </div>
   )
 }

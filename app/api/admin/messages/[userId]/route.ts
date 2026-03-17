@@ -71,7 +71,7 @@ export async function GET(
         { senderId: tenantId, receiverId: adminUser.id }
       ]
     }
-    
+
     // Chỉ lấy tin nhắn mới hơn lastMessageId (incremental loading)
     if (lastMessageId) {
       whereClause.id = { gt: parseInt(lastMessageId) }
@@ -99,7 +99,7 @@ export async function GET(
         }
       },
       orderBy: { createdAt: 'asc' },
-      take: lastMessageId ? 50 : undefined // Giới hạn nếu chỉ lấy tin mới
+      take: lastMessageId ? 50 : 100 // Giới hạn nếu chỉ lấy tin mới
     })
 
     // Đánh dấu tin nhắn từ tenant là đã đọc
