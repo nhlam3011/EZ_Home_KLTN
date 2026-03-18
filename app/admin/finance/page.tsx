@@ -14,7 +14,12 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  X,
+  ChevronDown
 } from 'lucide-react'
 
 interface RoomReading {
@@ -45,6 +50,8 @@ export default function FinancePage() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [rooms, setRooms] = useState<RoomReading[]>([])
   const [readings, setReadings] = useState<Record<number, { elecNew: string; waterNew: string; error?: string }>>({})
+  const [selectedRooms, setSelectedRooms] = useState<number[]>([])
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
 
   useEffect(() => {
     if (pathname === '/admin/finance') {
@@ -139,7 +146,12 @@ export default function FinancePage() {
       let hasValidationError = false
       const validatedReadings: Array<{ roomId: number; elecNew: number; waterNew: number }> = []
 
-      for (const room of rooms) {
+      // Nếu có phòng được chọn, chỉ lưu các phòng đó
+      const roomsToSave = selectedRooms.length > 0
+        ? rooms.filter(room => selectedRooms.includes(room.id))
+        : rooms
+
+      for (const room of roomsToSave) {
         const reading = readings[room.id]
         if (!reading || (!reading.elecNew && !reading.waterNew)) {
           continue
@@ -301,68 +313,146 @@ export default function FinancePage() {
               <h2 className="text-lg sm:text-xl font-semibold text-primary">Quản lý chỉ số</h2>
               <p className="text-xs sm:text-sm text-secondary mt-1">Ghi nhận chỉ số điện nước hàng tháng</p>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              <button className="btn btn-secondary btn-sm sm:btn-md">
-                <Upload size={18} strokeWidth={2} />
-                <span>Import</span>
-              </button>
-              <button className="btn btn-secondary btn-sm sm:btn-md">
-                <Download size={18} strokeWidth={2} />
-                <span>Export</span>
-              </button>
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">
               <button
                 onClick={handleSaveReadings}
                 disabled={saving}
-                className="btn btn-primary btn-sm sm:btn-md"
+                className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
               >
                 {saving ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>Đang lưu...</span>
+                    <span className="font-bold">Đang lưu...</span>
                   </>
                 ) : (
                   <>
                     <Save size={18} strokeWidth={2} />
-                    <span>Lưu thay đổi</span>
+                    <span className="font-bold whitespace-nowrap">
+                      {selectedRooms.length > 0 ? `Lưu ${selectedRooms.length} phòng` : 'Lưu thay đổi'}
+                    </span>
                   </>
                 )}
               </button>
+
+              <div className="grid grid-cols-2 gap-2 order-2 lg:flex lg:gap-3 lg:order-none">
+                <button
+                  className="btn btn-secondary h-11 px-4 rounded-2xl flex items-center justify-center gap-2 group hover:bg-white dark:hover:bg-gray-700 transition-all"
+                  title="Nhập dữ liệu Excel"
+                >
+                  <Upload size={18} strokeWidth={2} className="group-hover:translate-y-[-2px] transition-transform" />
+                  <span className="font-bold">Import</span>
+                </button>
+                <button
+                  className="btn btn-secondary h-11 px-4 rounded-2xl flex items-center justify-center gap-2 group hover:bg-white dark:hover:bg-gray-700 transition-all"
+                  title="Xuất dữ liệu"
+                >
+                  <Download size={18} strokeWidth={2} className="group-hover:translate-y-[2px] transition-transform" />
+                  <span className="font-bold">Export</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="card p-3 sm:p-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <label className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">KỲ CHỐT SỐ</label>
-                <select
-                  value={`${selectedMonth}/${selectedYear}`}
-                  onChange={(e) => {
-                    const [month, year] = e.target.value.split('/')
-                    setSelectedMonth(parseInt(month))
-                    setSelectedYear(parseInt(year))
-                  }}
-                  className="select flex-1"
+          {/* Period Selector & Tools Row */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-20 !overflow-visible">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {/* Modern Inline Period Picker */}
+              <div className="relative w-full sm:w-auto">
+                <button
+                  onClick={() => setShowMonthPicker(!showMonthPicker)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showMonthPicker
+                    ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                    : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                    }`}
                 >
-                  {generateMonthYearOptions().map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${showMonthPicker ? 'bg-blue-100 dark:bg-blue-900/40 text-[var(--accent-blue)]' : 'bg-blue-50 dark:bg-blue-900/30 text-[var(--accent-blue)]'
+                    }`}>
+                    <Calendar size={14} />
+                  </div>
+                  <div className="text-left pr-1 flex-1">
+                    <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}</p>
+                  </div>
+                  <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 ${showMonthPicker ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showMonthPicker && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40 transition-opacity"
+                      onClick={() => setShowMonthPicker(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-3 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                      <div className="flex items-center justify-between mb-3 bg-tertiary/30 p-1.5 rounded-xl">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedYear(y => y - 1)
+                            setSelectedRooms([])
+                          }}
+                          className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <span className="text-sm font-bold text-primary">Năm {selectedYear}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedYear(y => y + 1)
+                            setSelectedRooms([])
+                          }}
+                          className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => {
+                              setSelectedMonth(m)
+                              setSelectedRooms([])
+                              setShowMonthPicker(false)
+                            }}
+                            className={`py-2 rounded-xl text-xs font-bold transition-all ${selectedMonth === m
+                              ? 'bg-[var(--accent-blue)] text-white shadow-inner scale-95'
+                              : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-secondary border border-transparent hover:border-blue-100 dark:hover:border-blue-800'
+                              }`}
+                          >
+                            T{m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm phòng..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="input input-with-icon w-full pr-4 py-2 text-sm"
-                  />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+
+              {selectedRooms.length > 0 && (
+                <div className="flex items-center justify-between sm:justify-start gap-2 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-2xl border border-blue-100 dark:border-blue-800 animate-fadeIn h-11 w-full sm:w-auto">
+                  <span className="text-xs text-blue-700 dark:text-blue-300 font-bold whitespace-nowrap">
+                    Đã chọn: {selectedRooms.length} phòng
+                  </span>
+                  <button
+                    onClick={() => setSelectedRooms([])}
+                    className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors text-blue-500"
+                  >
+                    <X size={14} strokeWidth={3} />
+                  </button>
                 </div>
-              </div>
+              )}
+            </div>
+
+            <div className="relative flex-1 lg:max-w-md w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+              <input
+                type="text"
+                placeholder="Tìm phòng hoặc khách thuê..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+              />
             </div>
           </div>
 
@@ -379,6 +469,24 @@ export default function FinancePage() {
                   <table className="w-full">
                     <thead className="bg-tertiary border-b border-primary">
                       <tr>
+                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
+                          <label className="inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
+                              checked={selectedRooms.length > 0 && filteredRooms.every(room => selectedRooms.includes(room.id))}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const allIds = filteredRooms.map(room => room.id)
+                                  setSelectedRooms([...new Set([...selectedRooms, ...allIds])])
+                                } else {
+                                  const unselectedIds = filteredRooms.map(room => room.id)
+                                  setSelectedRooms(selectedRooms.filter(id => !unselectedIds.includes(id)))
+                                }
+                              }}
+                            />
+                          </label>
+                        </th>
                         <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase sticky left-0 bg-tertiary z-10">PHÒNG</th>
                         <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                           <div className="flex items-center gap-1 sm:gap-2">
@@ -412,7 +520,7 @@ export default function FinancePage() {
                     <tbody className="divide-y divide-primary">
                       {filteredRooms.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-8 text-center text-xs sm:text-sm text-tertiary">
+                          <td colSpan={9} className="px-4 py-8 text-center text-xs sm:text-sm text-tertiary">
                             Không có phòng nào
                           </td>
                         </tr>
@@ -434,6 +542,22 @@ export default function FinancePage() {
                               className={`hover:bg-tertiary transition-colors ${hasError ? 'bg-red-50 dark:bg-red-900/20' : ''
                                 }`}
                             >
+                              <td className="px-2 sm:px-4 py-2 sm:py-3 align-middle">
+                                <label className="inline-flex items-center cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
+                                    checked={selectedRooms.includes(room.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedRooms([...selectedRooms, room.id])
+                                      } else {
+                                        setSelectedRooms(selectedRooms.filter(id => id !== room.id))
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </td>
                               <td className="px-3 sm:px-4 py-2 sm:py-3 sticky left-0 bg-primary dark:bg-secondary z-10">
                                 <div>
                                   <p className="text-xs sm:text-sm font-medium text-primary">{room.name}</p>

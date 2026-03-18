@@ -238,14 +238,22 @@ model Issue {
   createdAt   DateTime      @default(now())
 }
 
+enum PostCategory {
+  ANNOUNCEMENT
+  DISCUSSION
+  FEEDBACK
+  MARKET
+}
+
 model Post {
-  id        Int      @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
   content   String
   images    String[]
-  status    String   @default("PENDING") // PENDING, PUBLIC
-  createdAt DateTime @default(now())
+  category  PostCategory @default(DISCUSSION)
+  status    String       @default("PENDING") // PENDING, PUBLIC
+  createdAt DateTime     @default(now())
 }
 
 model AiForecast {

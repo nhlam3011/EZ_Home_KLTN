@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TextInput, Select, Button, Badge } from 'flowbite-react'
-import { Search, Eye, X, Save, XCircle, XCircle as XIcon, User, Calendar, MapPin, AlertCircle, Image as ImageIcon, DollarSign, FileText, Clock, CheckCircle2, XCircle as CancelIcon, Receipt, MoreVertical, Wrench, AlertTriangle, CheckCircle, Ban } from 'lucide-react'
+import { Search, Eye, X, Save, XCircle, XCircle as XIcon, User, Calendar, MapPin, AlertCircle, Image as ImageIcon, DollarSign, FileText, Clock, CheckCircle2, XCircle as CancelIcon, Receipt, MoreVertical, Wrench, AlertTriangle, CheckCircle, Ban, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, List, Check, RotateCcw, Maximize, Plus } from 'lucide-react'
 
 interface Issue {
   id: number
@@ -37,6 +37,7 @@ export default function MaintenancePage() {
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [showSidePanel, setShowSidePanel] = useState(false)
   const [showCancelModal, setShowCancelModal] = useState(false)
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null)
@@ -276,326 +277,186 @@ export default function MaintenancePage() {
   const cancelledIssues = issues.filter(i => i.status === 'CANCELLED' && (statusFilter === 'all' || statusFilter === 'CANCELLED'))
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+    <div className="space-y-6 px-2 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Bảo trì & Sự cố</h1>
-          <p className="text-sm sm:text-base text-secondary mt-1">Quản lý các yêu cầu báo hỏng và tiến độ sửa chữa căn hộ</p>
+        <div className="min-w-0 text-center sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">BẢO TRÌ & SỰ CỐ</h1>
+          <p className="text-secondary mt-1 text-sm sm:text-base">Theo dõi và xử lý các yêu cầu bảo trì căn hộ.</p>
         </div>
-      </div>
-
-      <div className="border-b border-primary mb-4">
-        <div className="flex items-center gap-2 sm:gap-6">
-          <button
-            onClick={() => setViewMode('table')}
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${viewMode === 'table' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'}`}
-          >
-            Dạng bảng
+        <div className="flex gap-2 justify-center sm:justify-end">
+          <button type="button" onClick={() => setViewMode('table')} className={`btn btn-sm px-4 rounded-xl font-bold ${viewMode === 'table' ? 'btn-primary' : 'btn-secondary text-primary'}`}>
+            <List size={16} /> DANH SÁCH
           </button>
-          <button
-            onClick={() => setViewMode('kanban')}
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${viewMode === 'kanban' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-secondary hover:text-primary'}`}
-          >
-            Bảng Kanban
+          <button type="button" onClick={() => setViewMode('kanban')} className={`btn btn-sm px-4 rounded-xl font-bold ${viewMode === 'kanban' ? 'btn-primary' : 'btn-secondary text-primary'}`}>
+            <LayoutGrid size={16} /> KANBAN
           </button>
         </div>
       </div>
 
-      {/* Table View */}
-      {viewMode === 'table' && (
-        <>
-          {/* Search and Filters */}
-          <div className="card p-3 sm:p-4 mb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3">
-                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="select flex-1"
-                >
-                  <option value="all">Tất cả trạng thái</option>
-                  <option value="PENDING">Chờ xử lý</option>
-                  <option value="PROCESSING">Đang sửa</option>
-                  <option value="DONE">Hoàn thành</option>
-                  <option value="CANCELLED">Đã hủy</option>
-                </select>
-              </div>
-              <div className="sm:col-span-1 lg:col-span-2 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm theo mã, tiêu đề, tên cư dân hoặc phòng..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input input-with-icon w-full pr-4 py-2 text-sm"
-                />
-              </div>
-            </div>
-          </div>
+      {/* Main Content Area */}
+      <div>
+        {viewMode === 'table' ? (
+          <div className="space-y-6">
+            {/* Filters */}
+            <div className="card p-3 sm:p-4 !overflow-visible relative z-20">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {/* Status Filter */}
+                  <div className="relative w-full sm:w-auto">
+                    <button
+                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showStatusDropdown
+                        ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                        : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                        }`}
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                        statusFilter === 'PENDING' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' :
+                          statusFilter === 'PROCESSING' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                            statusFilter === 'DONE' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                              'bg-gray-50 dark:bg-gray-900/20 text-gray-500'
+                        }`}>
+                        {statusFilter === 'all' && <Wrench size={14} />}
+                        {statusFilter === 'PENDING' && <AlertTriangle size={14} />}
+                        {statusFilter === 'PROCESSING' && <Wrench size={14} />}
+                        {statusFilter === 'DONE' && <CheckCircle size={14} />}
+                        {statusFilter === 'CANCELLED' && <Ban size={14} />}
+                      </div>
+                      <div className="text-left pr-1 flex-1">
+                        <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                          TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' :
+                            statusFilter === 'PENDING' ? 'CHỜ XỬ LÝ' :
+                              statusFilter === 'PROCESSING' ? 'ĐANG SỬA' :
+                                statusFilter === 'COMPLETED' ? 'HOÀN THÀNH' : 'ĐÃ HỦY'}
+                        </p>
+                      </div>
+                      <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+                    </button>
 
-          {/* Table - Desktop */}
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-tertiary">Đang tải...</p>
-            </div>
-          ) : (
-            <>
-              {/* Desktop Table */}
-              <div className="hidden lg:block card overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-tertiary border-b border-primary">
-                      <tr>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">MÃ</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">TIÊU ĐỀ</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">PHÒNG</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">NGƯỜI BÁO CÁO</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">TRẠNG THÁI</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle">CHI PHÍ</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">NGÀY TẠO</th>
-                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">HÀNH ĐỘNG</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-primary">
-                      {issues
-                        .filter(issue => {
-                          if (statusFilter !== 'all' && issue.status !== statusFilter) return false
-                          if (!searchQuery) return true
-                          const query = searchQuery.toLowerCase()
-                          return (
-                            issue.title.toLowerCase().includes(query) ||
-                            issue.room.name.toLowerCase().includes(query) ||
-                            issue.user.fullName.toLowerCase().includes(query) ||
-                            issue.id.toString().includes(query)
-                          )
-                        })
-                        .map((issue) => {
-                          const statusBadge = getStatusBadge(issue.status)
-                          const initials = getInitials(issue.user.fullName)
-
-                          return (
-                            <tr key={issue.id} className="hover:bg-tertiary transition-colors">
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
-                                <span className="text-sm font-medium text-primary">#{issue.id}</span>
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
-                                <div className="flex items-start gap-2">
-                                  <span className="text-sm text-primary font-medium">{issue.title}</span>
-                                  {issue.images && issue.images.length > 0 && (
-                                    <ImageIcon size={16} className="text-tertiary flex-shrink-0 mt-0.5" />
-                                  )}
-                                </div>
-                                <p className="text-xs text-tertiary mt-1 line-clamp-2 max-w-md">
-                                  {issue.description.split('---')[0].trim()}
-                                </p>
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">
-                                <div className="flex items-center justify-center gap-2">
-                                  <MapPin size={14} className="text-tertiary" />
-                                  <span className="text-sm text-primary">{issue.room.name}</span>
-                                </div>
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-primary">{issue.user.fullName}</p>
-                                    {issue.user.phone && (
-                                      <p className="text-xs text-tertiary">{issue.user.phone}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">
-                                <div className="flex justify-center">
-                                  <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex justify-center">
-                                    {statusBadge.label}
-                                  </Badge>
-                                </div>
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-right">
-                                {issue.repairCost ? (
-                                  <span className="text-sm font-semibold text-primary">
-                                    {new Intl.NumberFormat('vi-VN', {
-                                      style: 'currency',
-                                      currency: 'VND',
-                                      minimumFractionDigits: 0
-                                    }).format(Number(issue.repairCost))}
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-tertiary">-</span>
-                                )}
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
-                                <div className="flex items-center gap-2">
-                                  <Calendar size={14} className="text-tertiary" />
-                                  <span className="text-sm text-secondary">
-                                    {new Intl.DateTimeFormat('vi-VN', {
-                                      day: '2-digit',
-                                      month: '2-digit',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    }).format(new Date(issue.createdAt))}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-tertiary mt-1">{formatRelativeTime(issue.createdAt)}</p>
-                              </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
-                                <div className="flex items-center justify-center">
-                                  <div className="flex items-center gap-1 justify-center">
-                                    <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
-                                      <Eye size={18} />
-                                    </button>
-                                    {issue.status === 'PENDING' && (
-                                      <>
-                                        <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
-                                          <CheckCircle2 size={18} />
-                                        </button>
-                                        <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
-                                          <XIcon size={18} />
-                                        </button>
-                                      </>
-                                    )}
-                                    {issue.status === 'PROCESSING' && (
-                                      <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
-                                        <CheckCircle2 size={18} />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                    </tbody>
-                  </table>
+                    {showStatusDropdown && (
+                      <>
+                        <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                        <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                          {[
+                            { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                            { id: 'PENDING', label: 'CHỜ XỬ LÝ', icon: <AlertTriangle size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
+                            { id: 'PROCESSING', label: 'ĐANG SỬA CHỮA', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                            { id: 'DONE', label: 'HOÀN THÀNH', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                            { id: 'CANCELLED', label: 'ĐÃ HỦY', icon: <Ban size={16} />, color: 'text-gray-500', bg: 'bg-gray-50/50 dark:bg-gray-900/10' }
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false) }}
+                              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                            >
+                              <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                                {item.icon}
+                              </div>
+                              <span className="uppercase">{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-                {issues.filter(issue => {
-                  if (statusFilter !== 'all' && issue.status !== statusFilter) return false
-                  if (!searchQuery) return true
-                  const query = searchQuery.toLowerCase()
-                  return (
-                    issue.title.toLowerCase().includes(query) ||
-                    issue.room.name.toLowerCase().includes(query) ||
-                    issue.user.fullName.toLowerCase().includes(query) ||
-                    issue.id.toString().includes(query)
-                  )
-                }).length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-tertiary">Không tìm thấy sự cố nào</p>
-                    </div>
-                  )}
+
+                <div className="relative flex-1 lg:max-w-md w-full">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Tìm theo mã, nội dung, phòng hoặc cư dân..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                  />
+                </div>
               </div>
+            </div>
 
-              {/* Mobile/Tablet Card View */}
-              <div className="lg:hidden space-y-3">
-                {issues
-                  .filter(issue => {
-                    if (statusFilter !== 'all' && issue.status !== statusFilter) return false
-                    if (!searchQuery) return true
-                    const query = searchQuery.toLowerCase()
-                    return (
-                      issue.title.toLowerCase().includes(query) ||
-                      issue.room.name.toLowerCase().includes(query) ||
-                      issue.user.fullName.toLowerCase().includes(query) ||
-                      issue.id.toString().includes(query)
-                    )
-                  })
-                  .map((issue) => {
-                    const statusBadge = getStatusBadge(issue.status)
-                    const initials = getInitials(issue.user.fullName)
-
-                    return (
-                      <div key={issue.id} className="card p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm font-semibold text-primary">#{issue.id}</span>
-                              {issue.images && issue.images.length > 0 && (
-                                <ImageIcon size={14} className="text-tertiary flex-shrink-0" />
-                              )}
-                              <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex justify-center">
-                                {statusBadge.label}
-                              </Badge>
-                            </div>
-                            <h3 className="text-sm font-medium text-primary mb-1 line-clamp-2">{issue.title}</h3>
-                            <p className="text-xs text-tertiary line-clamp-2 mb-2">
-                              {issue.description.split('---')[0].trim()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 mb-3">
-                          <div className="flex items-center gap-2 text-xs text-secondary">
-                            <MapPin size={12} className="text-tertiary" />
-                            <span>{issue.room.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-primary truncate">{issue.user.fullName}</p>
-                              {issue.user.phone && (
-                                <p className="text-xs text-tertiary">{issue.user.phone}</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-tertiary">
-                            <Calendar size={12} />
-                            <span>{formatRelativeTime(issue.createdAt)}</span>
-                          </div>
-                          {issue.repairCost && (
-                            <div className="text-xs">
-                              <span className="text-tertiary">Chi phí: </span>
-                              <span className="font-semibold text-primary">
-                                {new Intl.NumberFormat('vi-VN', {
-                                  style: 'currency',
-                                  currency: 'VND',
-                                  minimumFractionDigits: 0
-                                }).format(Number(issue.repairCost))}
+            {/* Desktop Table */}
+            <div className="hidden lg:block card overflow-hidden p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                  <thead className="bg-tertiary border-b border-primary">
+                    <tr>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">Thông tin yêu cầu</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">Phòng</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">Người báo cáo</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">Trạng thái</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase">Chi phí</th>
+                      <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary">
+                    {issues
+                      .filter(issue => {
+                        if (statusFilter !== 'all' && issue.status !== statusFilter) return false
+                        if (!searchQuery) return true
+                        const query = searchQuery.toLowerCase()
+                        return (
+                          issue.title.toLowerCase().includes(query) ||
+                          issue.room.name.toLowerCase().includes(query) ||
+                          issue.user.fullName.toLowerCase().includes(query) ||
+                          issue.id.toString().includes(query)
+                        )
+                      })
+                      .map((issue) => {
+                        const statusBadge = getStatusBadge(issue.status)
+                        const initials = getInitials(issue.user.fullName)
+                        return (
+                          <tr key={issue.id} className="hover:bg-tertiary transition-colors">
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <div>
+                                <span className="text-xs font-medium text-secondary">REQ-{issue.id}</span>
+                                <p className="text-sm font-medium text-primary line-clamp-1">{issue.title}</p>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Clock size={12} className="text-tertiary" />
+                                  <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
+                              <span className="text-sm text-primary font-medium">{issue.room.name}</span>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
+                                </div>
+                                <span className="text-sm text-primary truncate max-w-[150px]">{issue.user.fullName}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
+                              <Badge color={statusBadge.color} className="justify-center py-1 min-h-[24px]">{statusBadge.label}</Badge>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-right">
+                              <span className="text-sm font-medium text-primary">
+                                {issue.repairCost ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(issue.repairCost) : '---'}
                               </span>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-primary mt-3">
-                          <button onClick={() => handleViewDetails(issue)} className="btn btn-secondary btn-sm flex items-center gap-2">
-                            <Eye size={16} />
-                            Xem chi tiết
-                          </button>
-                          {(issue.status === 'PENDING' || issue.status === 'PROCESSING') && (
-                            <div className="flex items-center gap-1 justify-end">
-                              <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4 text-center">
+                              <button
+                                onClick={() => handleViewDetails(issue)}
+                                className="btn btn-ghost btn-icon text-primary"
+                                title="Chi tiết"
+                              >
                                 <Eye size={18} />
                               </button>
-                              {issue.status === 'PENDING' && (
-                                <>
-                                  <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
-                                    <CheckCircle2 size={18} />
-                                  </button>
-                                  <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
-                                    <XIcon size={18} />
-                                  </button>
-                                </>
-                              )}
-                              {issue.status === 'PROCESSING' && (
-                                <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
-                                  <CheckCircle2 size={18} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                {issues.filter(issue => {
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="lg:hidden space-y-4">
+              {issues
+                .filter(issue => {
                   if (statusFilter !== 'all' && issue.status !== statusFilter) return false
                   if (!searchQuery) return true
                   const query = searchQuery.toLowerCase()
@@ -605,814 +466,255 @@ export default function MaintenancePage() {
                     issue.user.fullName.toLowerCase().includes(query) ||
                     issue.id.toString().includes(query)
                   )
-                }).length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-tertiary">Không tìm thấy sự cố nào</p>
+                })
+                .map((issue) => (
+                  <div
+                    key={issue.id}
+                    onClick={() => handleViewDetails(issue)}
+                    className="card p-4 active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="text-xs font-medium text-secondary">#{issue.id}</span>
+                        <p className="font-medium text-primary">{issue.title}</p>
+                      </div>
+                      <Badge color={getStatusBadge(issue.status).color} className="justify-center py-1 min-h-[24px]">{getStatusBadge(issue.status).label}</Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-tertiary">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={12} />
+                        <span>P.{issue.room.name}</span>
+                      </div>
+                      <span>{formatRelativeTime(issue.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+
+            {/* Empty State */}
+            {
+              issues.filter(issue => {
+                if (statusFilter !== 'all' && issue.status !== statusFilter) return false
+                if (!searchQuery) return true
+                const query = searchQuery.toLowerCase()
+                return (
+                  issue.title.toLowerCase().includes(query) ||
+                  issue.room.name.toLowerCase().includes(query) ||
+                  issue.user.fullName.toLowerCase().includes(query) ||
+                  issue.id.toString().includes(query)
+                )
+              }).length === 0 && (
+                <div className="card p-12 text-center">
+                  <Search size={52} className="mx-auto text-tertiary" />
+                  <h3 className="mt-4 text-lg font-semibold text-primary">Không tìm thấy yêu cầu</h3>
+                  <p className="mt-2 text-sm text-secondary">Thử thay đổi bộ lọc để xem thêm dữ liệu.</p>
+                </div>
+              )
+            }
+          </div>
+        ) : (
+          /* Kanban Board */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { status: 'PENDING', title: 'Chờ xử lý', items: pendingIssues, dotClass: 'bg-amber-500', countClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 border border-amber-200 dark:border-amber-800' },
+              { status: 'PROCESSING', title: 'Đang sửa', items: processingIssues, dotClass: 'bg-blue-500', countClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 border border-blue-200 dark:border-blue-800' },
+              { status: 'DONE', title: 'Hoàn thành', items: doneIssues, dotClass: 'bg-green-500', countClass: 'bg-green-100 dark:bg-green-900/30 text-green-600 border border-green-200 dark:border-green-800' },
+              { status: 'CANCELLED', title: 'Đã hủy', items: cancelledIssues, dotClass: 'bg-gray-400 dark:bg-gray-500', countClass: 'bg-neutral-secondary-medium border border-default-medium text-heading' }
+            ].map((col) => (
+              <div key={col.status} className="flex flex-col gap-4">
+                <div className="flex items-center justify-between px-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${col.dotClass}`}></div>
+                    <h3 className="text-xs font-semibold text-secondary uppercase tracking-wider">{col.title}</h3>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${col.countClass}`}>{col.items.length}</span>
+                </div>
+                <div className="flex-1 space-y-3 p-2 rounded-2xl bg-tertiary/30 border border-dashed border-primary min-h-[400px]">
+                  {col.items.map((issue) => {
+                    const initials = getInitials(issue.user.fullName)
+                    return (
+                      <div
+                        key={issue.id}
+                        className="card p-4 hover:shadow-md transition-all cursor-pointer group"
+                        onClick={() => handleViewDetails(issue)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-xs font-medium text-secondary">#{issue.id}</span>
+                          <MoreVertical size={14} className="text-tertiary opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <h4 className="text-sm font-medium text-primary line-clamp-2 mb-3">{issue.title}</h4>
+                        <div className="flex items-center gap-2 text-xs text-secondary mb-3">
+                          <MapPin size={12} className="text-blue-500" />
+                          <span>{issue.room.name}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-primary">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-[10px] font-bold">{initials}</div>
+                            <span className="text-xs text-secondary truncate max-w-[80px]">{issue.user.fullName}</span>
+                          </div>
+                          <span className="text-[10px] text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {col.items.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 opacity-40">
+                      <Wrench size={28} className="text-tertiary mb-2" />
+                      <p className="text-xs text-tertiary">Trống</p>
                     </div>
                   )}
-              </div>
-            </>
-          )
-          }
-        </>
-      )}
-
-      {/* Kanban Board */}
-      {
-        viewMode === 'kanban' && (
-          loading ? (
-            <div className="text-center py-12">
-              <p className="text-tertiary">Đang tải...</p>
-            </div>
-          ) : (
-            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6`}>
-              {/* Pending Column */}
-              <div className="bg-tertiary rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                  <h3 className="font-semibold text-primary">Chờ xử lý</h3>
-                  <span className="bg-warning-soft border border-warning-subtle text-warning text-xs font-medium px-1.5 py-0.5 rounded">
-                    {pendingIssues.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {pendingIssues.map((issue) => {
-                    const initials = getInitials(issue.user.fullName)
-                    return (
-                      <div
-                        key={issue.id}
-                        className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handleViewDetails(issue)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-semibold text-primary">#{issue.id}</p>
-                            <p className="text-sm text-primary mt-1">{issue.title}</p>
-                            <p className="text-xs text-tertiary mt-1">
-                              {issue.room.name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-blue-600 font-semibold text-xs">{initials}</span>
-                            </div>
-                            <span className="text-xs text-secondary">{issue.user.fullName}</span>
-                          </div>
-                          <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
-                        </div>
-                        <div className="flex justify-end mt-3 pt-3 border-t border-primary">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
-                              <Eye size={18} />
-                            </button>
-                            {issue.status === 'PENDING' && (
-                              <>
-                                <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
-                                  <CheckCircle2 size={18} />
-                                </button>
-                                <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
-                                  <XIcon size={18} />
-                                </button>
-                              </>
-                            )}
-                            {issue.status === 'PROCESSING' && (
-                              <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
-                                <CheckCircle2 size={18} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
                 </div>
               </div>
-
-              {/* Processing Column */}
-              <div className="bg-tertiary rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                  <h3 className="font-semibold text-primary">Đang sửa</h3>
-                  <span className="bg-brand-softer border border-brand-subtle text-fg-brand-strong text-xs font-medium px-1.5 py-0.5 rounded">
-                    {processingIssues.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {processingIssues.map((issue) => {
-                    const initials = getInitials(issue.user.fullName)
-                    return (
-                      <div
-                        key={issue.id}
-                        className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handleViewDetails(issue)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-semibold text-primary">#{issue.id}</p>
-                            <p className="text-sm text-primary mt-1">{issue.title}</p>
-                            <p className="text-xs text-tertiary mt-1">
-                              {issue.room.name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                            </div>
-                            <span className="text-xs text-secondary">{issue.user.fullName}</span>
-                          </div>
-                          <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
-                        </div>
-                        <div className="flex justify-end mt-3 pt-3 border-t border-primary">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button onClick={() => handleViewDetails(issue)} className="btn btn-ghost btn-icon text-primary" title="Xem chi tiết">
-                              <Eye size={18} />
-                            </button>
-                            {issue.status === 'PENDING' && (
-                              <>
-                                <button onClick={() => handleStatusChange(issue.id, 'PROCESSING')} className="btn btn-ghost btn-icon text-info" title="Nhận đơn">
-                                  <CheckCircle2 size={18} />
-                                </button>
-                                <button onClick={() => handleOpenCancelModal(issue.id)} className="btn btn-ghost btn-icon text-danger" title="Hủy đơn">
-                                  <XIcon size={18} />
-                                </button>
-                              </>
-                            )}
-                            {issue.status === 'PROCESSING' && (
-                              <button onClick={() => handleStatusChange(issue.id, 'DONE')} className="btn btn-ghost btn-icon text-success" title="Hoàn thành">
-                                <CheckCircle2 size={18} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Done Column */}
-              <div className="bg-tertiary rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <h3 className="font-semibold text-primary">Hoàn thành</h3>
-                  <span className="bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded">
-                    {doneIssues.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {doneIssues.map((issue) => {
-                    const initials = getInitials(issue.user.fullName)
-                    return (
-                      <div
-                        key={issue.id}
-                        className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handleViewDetails(issue)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-semibold text-primary">#{issue.id}</p>
-                            <p className="text-sm text-primary mt-1">{issue.title}</p>
-                            <p className="text-xs text-tertiary mt-1">
-                              {issue.room.name}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                            </div>
-                            <span className="text-xs text-secondary">{issue.user.fullName}</span>
-                          </div>
-                          <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
-                        </div>
-                        <div className="mt-3 bg-success-soft border border-success-subtle text-fg-success-strong text-xs font-medium px-1.5 py-0.5 rounded text-center">
-                          Đã xử lý
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Cancelled Column */}
-              <div className="bg-tertiary rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2 h-2 rounded-full bg-secondary"></div>
-                  <h3 className="font-semibold text-primary">Đã hủy</h3>
-                  <span className="bg-neutral-secondary-medium border border-default-medium text-heading text-xs font-medium px-1.5 py-0.5 rounded">
-                    {cancelledIssues.length}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {cancelledIssues.map((issue) => {
-                    const initials = getInitials(issue.user.fullName)
-                    const cancelReason = issue.description.includes('--- Lý do hủy ---')
-                      ? issue.description.split('--- Lý do hủy ---\n')[1]?.trim() || ''
-                      : ''
-                    return (
-                      <div
-                        key={issue.id}
-                        className="card p-4 hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handleViewDetails(issue)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-semibold text-primary">#{issue.id}</p>
-                            <p className="text-sm text-primary mt-1">{issue.title}</p>
-                            <p className="text-xs text-tertiary mt-1">
-                              {issue.room.name}
-                            </p>
-                          </div>
-                        </div>
-                        {cancelReason && (
-                          <p className="text-xs text-red-600 dark:text-red-400 italic mt-2 bg-red-50 dark:bg-red-900/30 p-2 rounded">
-                            {cancelReason.length > 50 ? cancelReason.substring(0, 50) + '...' : cancelReason}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-primary">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
-                            </div>
-                            <span className="text-xs text-secondary">{issue.user.fullName}</span>
-                          </div>
-                          <span className="text-xs text-tertiary">{formatRelativeTime(issue.createdAt)}</span>
-                        </div>
-                        <div className="mt-3 px-3 py-2 bg-tertiary text-secondary rounded-lg text-sm font-medium text-center">
-                          Đã hủy
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )
-        )
-      }
+            ))}
+          </div>
+        )}
+      </div >
 
       {/* Side Panel */}
       {
         showSidePanel && selectedIssue && (
-          <div className="fixed inset-0 z-50 flex flex-col lg:flex-row">
-            {/* Background with image gallery - Hidden on mobile */}
-            <div
-              className="hidden lg:flex flex-1 bg-black relative overflow-hidden cursor-pointer group"
-              onClick={() => setShowSidePanel(false)}
-            >
-              {selectedIssue.images && selectedIssue.images.length > 0 && (() => {
-                const currentImage = selectedIssue.images[selectedImageIndex]
-                const isValidImage = currentImage && (
-                  currentImage.startsWith('http://') ||
-                  currentImage.startsWith('https://') ||
-                  currentImage.startsWith('/') ||
-                  currentImage.startsWith('data:image/')
-                )
-
-                return isValidImage ? (
-                  <>
-                    <img
-                      src={currentImage}
-                      alt={`Issue image ${selectedImageIndex + 1}`}
-                      className="w-full h-full object-cover transition-opacity duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/30"></div>
-
-                    {/* Image counter and navigation */}
-                    {selectedIssue.images.length > 1 && (
-                      <>
-                        <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs font-medium">
-                          {selectedImageIndex + 1} / {selectedIssue.images.length}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedImageIndex(prev =>
-                              prev > 0 ? prev - 1 : selectedIssue.images.length - 1
-                            )
-                          }}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <X size={20} className="rotate-90" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedImageIndex(prev =>
-                              prev < selectedIssue.images.length - 1 ? prev + 1 : 0
-                            )
-                          }}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-black/80 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <X size={20} className="-rotate-90" />
-                        </button>
-                      </>
-                    )}
-
-                    {/* Thumbnail strip at bottom */}
-                    {selectedIssue.images.length > 1 && (
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4 pb-2">
-                        {selectedIssue.images.map((img, idx) => {
-                          if (!img || img.trim() === '') return null
-                          return (
-                            <button
-                              key={idx}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedImageIndex(idx)
-                              }}
-                              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${selectedImageIndex === idx
-                                ? 'border-white scale-110'
-                                : 'border-white/30 hover:border-white/60'
-                                }`}
-                            >
-                              <img
-                                src={img.trim()}
-                                alt={`Thumbnail ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {/* Click hint */}
-                    <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                      Click để đóng
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="text-white/50 text-center">
-                      <ImageIcon size={48} className="mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Không có ảnh</p>
-                    </div>
+          <div className="fixed inset-0 z-50 flex items-stretch justify-end">
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowSidePanel(false)} />
+            <div className="relative w-full max-w-2xl bg-primary shadow-2xl flex flex-col border-l border-primary">
+              {/* Header */}
+              <div className="p-6 sm:p-8 border-b border-primary">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-secondary">REQ-{selectedIssue.id}</span>
+                    <Badge color={getStatusBadge(selectedIssue.status).color} className="justify-center py-1 min-h-[24px]">{getStatusBadge(selectedIssue.status).label}</Badge>
                   </div>
-                )
-              })()}
-              {(!selectedIssue.images || selectedIssue.images.length === 0) && (
-                <div className="w-full h-full bg-gradient-to-br from-primary via-secondary to-tertiary flex items-center justify-center">
-                  <div className="text-tertiary text-center">
-                    <ImageIcon size={64} className="mx-auto mb-4 opacity-30" />
-                    <p className="text-lg font-medium">Không có ảnh hiện trạng</p>
-                    <p className="text-sm mt-2 opacity-50">Click để đóng</p>
-                  </div>
+                  <button onClick={() => setShowSidePanel(false)} className="btn btn-ghost btn-icon text-secondary">
+                    <X size={20} />
+                  </button>
                 </div>
-              )}
-            </div>
-            <div className="w-full lg:ml-auto lg:w-full lg:max-w-lg bg-primary h-full overflow-y-auto shadow-2xl">
-              {/* Header with gradient */}
-              <div className="sticky top-0 z-10">
-                <div className={`relative overflow-hidden ${selectedIssue.status === 'PENDING' ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
-                  selectedIssue.status === 'PROCESSING' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                    selectedIssue.status === 'DONE' ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                      'bg-gradient-to-r from-gray-500 to-gray-600'
-                  }`}>
-                  <div className="absolute inset-0 bg-black opacity-10"></div>
-                  <div className="relative p-4 sm:p-6 text-white">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center backdrop-blur-sm flex-shrink-0">
-                            <AlertCircle size={16} className="sm:w-5 sm:h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-xs font-medium text-white text-opacity-90">Yêu cầu</span>
-                            <p className="text-base sm:text-lg font-bold">#{selectedIssue.id}</p>
-                          </div>
-                        </div>
-                        <h2 className="text-lg sm:text-xl font-bold mb-2 break-words">{selectedIssue.title}</h2>
-                        <div className="flex items-center gap-2 text-xs sm:text-sm text-white text-opacity-90 flex-wrap">
-                          <MapPin size={12} className="sm:w-4 sm:h-4 flex-shrink-0" />
-                          <span>Phòng {selectedIssue.room.name}</span>
-                          {selectedIssue.room.floor && <span>• Tầng {selectedIssue.room.floor}</span>}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowSidePanel(false)}
-                        className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors flex-shrink-0 ml-2"
-                      >
-                        <XCircle size={18} className="sm:w-5 sm:h-5 text-white" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm ${selectedIssue.status === 'PENDING' ? 'bg-yellow-400 bg-opacity-30 text-white' :
-                        selectedIssue.status === 'PROCESSING' ? 'bg-blue-400 bg-opacity-30 text-white' :
-                          selectedIssue.status === 'DONE' ? 'bg-green-400 bg-opacity-30 text-white' :
-                            'bg-gray-400 bg-opacity-30 text-white'
-                        }`}>
-                        {selectedIssue.status === 'PENDING' ? 'CHỜ XỬ LÝ' :
-                          selectedIssue.status === 'PROCESSING' ? 'ĐANG SỬA' :
-                            selectedIssue.status === 'DONE' ? 'HOÀN THÀNH' : 'ĐÃ HỦY'}
-                      </span>
-                    </div>
-                  </div>
+                <h2 className="text-xl font-bold text-primary">{selectedIssue.title}</h2>
+                <div className="flex items-center gap-4 mt-2 text-xs text-secondary">
+                  <div className="flex items-center gap-1"><MapPin size={14} /> Phòng {selectedIssue.room.name}</div>
+                  <div className="flex items-center gap-1"><Clock size={14} /> {formatRelativeTime(selectedIssue.createdAt)}</div>
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
-                {/* Reporter Info Card */}
-                <div className="bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-indigo-50 dark:to-indigo-900/20 rounded-xl p-3 sm:p-4 border border-blue-100 dark:border-blue-800">
-                  <div className="flex items-center gap-2 mb-3">
-                    <User size={14} className="sm:w-4 sm:h-4 text-blue-600" />
-                    <h3 className="text-xs sm:text-sm font-semibold text-primary">Người báo cáo</h3>
-                  </div>
-                  <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md flex-shrink-0">
-                      <span className="text-white font-semibold text-xs sm:text-sm">
-                        {getInitials(selectedIssue.user.fullName)}
-                      </span>
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+                <section>
+                  <h3 className="text-xs font-semibold text-secondary uppercase mb-3">Người báo cáo</h3>
+                  <div className="card p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm">{getInitials(selectedIssue.user.fullName)}</div>
+                    <div>
+                      <h4 className="text-sm font-medium text-primary">{selectedIssue.user.fullName}</h4>
+                      <p className="text-xs text-tertiary">Cư dân tòa nhà</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm sm:text-base font-semibold text-primary truncate">{selectedIssue.user.fullName}</p>
-                      <p className="text-xs text-secondary">Khách thuê</p>
-                    </div>
-                    <button className="btn btn-outline-primary btn-sm text-xs sm:text-sm whitespace-nowrap flex-shrink-0">
-                      Xem hồ sơ
-                    </button>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-secondary bg-primary bg-opacity-60 rounded-lg px-2 sm:px-3 py-2">
-                    <Calendar size={12} className="flex-shrink-0" />
-                    <span className="break-words">
-                      Đã báo cáo: {new Date(selectedIssue.createdAt).toLocaleDateString('vi-VN', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                </div>
+                </section>
 
-                {/* Description Card */}
-                <div className="card rounded-xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FileText size={16} className="text-secondary" />
-                    <h3 className="text-sm font-semibold text-primary">Mô tả sự cố</h3>
-                  </div>
-                  <div className="bg-tertiary rounded-lg p-4 border border-primary">
-                    <p className="text-sm text-primary whitespace-pre-wrap leading-relaxed">
+                <section>
+                  <h3 className="text-xs font-semibold text-secondary uppercase mb-3">Nội dung chi tiết</h3>
+                  <div className="card p-4">
+                    <p className="text-sm text-secondary leading-relaxed whitespace-pre-wrap">
                       {selectedIssue.description.split('\n\n--- Admin Notes ---')[0].split('\n\n--- Lý do hủy ---')[0]}
                     </p>
                   </div>
-                  {selectedIssue.description.includes('--- Admin Notes ---') && (
-                    <div className="mt-4 pt-4 border-t border-primary">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                        <h4 className="text-xs font-semibold text-blue-700">Ghi chú của Admin</h4>
-                      </div>
-                      <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
-                        <p className="text-sm text-blue-900 dark:text-blue-200 whitespace-pre-wrap">
-                          {selectedIssue.description.split('--- Admin Notes ---\n')[1]?.split('\n\n--- Lý do hủy ---')[0] || ''}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedIssue.description.includes('--- Lý do hủy ---') && (
-                    <div className="mt-4 pt-4 border-t border-primary">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CancelIcon size={14} className="text-red-600" />
-                        <h4 className="text-xs font-semibold text-red-700">Lý do hủy đơn</h4>
-                      </div>
-                      <div className="bg-red-50 dark:bg-red-900/30 rounded-lg p-3 border border-red-100 dark:border-red-800">
-                        <p className="text-sm text-red-800 dark:text-red-200 whitespace-pre-wrap">
-                          {selectedIssue.description.split('--- Lý do hủy ---\n')[1] || ''}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                </section>
 
-                {/* Images Card */}
-                {selectedIssue.images && selectedIssue.images.length > 0 && (
-                  <div className="bg-primary rounded-xl p-3 sm:p-5 border border-primary shadow-sm">
-                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                      <ImageIcon size={14} className="sm:w-4 sm:h-4 text-secondary" />
-                      <h3 className="text-xs sm:text-sm font-semibold text-primary">Ảnh hiện trạng</h3>
-                      <span className="ml-auto text-xs text-tertiary bg-tertiary px-2 py-1 rounded-full">
-                        {selectedIssue.images.length} ảnh
-                      </span>
+                {selectedIssue.description.includes('--- Admin Notes ---') && (
+                  <section>
+                    <h3 className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase mb-3">Ghi chú xử lý</h3>
+                    <div className="card p-4 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10">
+                      <p className="text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
+                        {selectedIssue.description.split('--- Admin Notes ---\n')[1]?.split('\n\n--- Lý do hủy ---')[0] || ''}
+                      </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      {selectedIssue.images.map((img, idx) => {
-                        if (!img || img.trim() === '') return null
-
-                        // Try to display image - if it fails, show placeholder
-                        const imageSrc = img.trim()
-
-                        return (
-                          <div
-                            key={idx}
-                            className="aspect-video bg-tertiary rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:opacity-90 transition-opacity group relative"
-                            onClick={() => {
-                              if (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) {
-                                window.open(imageSrc, '_blank')
-                              } else if (imageSrc.startsWith('/')) {
-                                window.open(imageSrc, '_blank')
-                              } else if (imageSrc.startsWith('data:image/')) {
-                                const newWindow = window.open()
-                                if (newWindow) {
-                                  newWindow.document.write(`<img src="${imageSrc}" style="max-width: 100%; height: auto;" />`)
-                                }
-                              } else {
-                                // Try to open anyway
-                                window.open(imageSrc, '_blank')
-                              }
-                            }}
-                          >
-                            <img
-                              src={imageSrc}
-                              alt={`Ảnh ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback if image fails to load
-                                const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                const parent = target.parentElement
-                                if (parent) {
-                                  // Check if fallback already exists
-                                  if (!parent.querySelector('.image-fallback')) {
-                                    const fallback = document.createElement('span')
-                                    fallback.className = 'text-gray-400 text-xs image-fallback'
-                                    fallback.textContent = `Ảnh ${idx + 1}`
-                                    parent.appendChild(fallback)
-                                  }
-                                }
-                              }}
-                              onLoad={(e) => {
-                                // Hide fallback if image loads successfully
-                                const target = e.target as HTMLImageElement
-                                const parent = target.parentElement
-                                if (parent) {
-                                  const fallback = parent.querySelector('.image-fallback')
-                                  if (fallback) {
-                                    fallback.remove()
-                                  }
-                                }
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
-                              <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-                                Click để phóng to
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <p className="text-xs text-tertiary mt-3 text-center flex items-center justify-center gap-1">
-                      <ImageIcon size={12} />
-                      Click vào ảnh để phóng to
-                    </p>
-                  </div>
+                  </section>
                 )}
 
-                {/* Admin Actions Card */}
-                <div className="bg-tertiary dark:bg-gray-800 rounded-xl p-5 border border-primary shadow-sm">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
-                      <Save size={16} className="text-white" />
+                {selectedIssue.images && selectedIssue.images.length > 0 && (
+                  <section>
+                    <h3 className="text-xs font-semibold text-secondary uppercase mb-3">Hình ảnh hiện trạng</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedIssue.images.map((img: string, idx: number) => (
+                        <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden bg-tertiary cursor-pointer group" onClick={() => window.open(img, '_blank')}>
+                          <img src={img} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                            <Maximize size={20} className="text-white opacity-0 group-hover:opacity-100 transition-all" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <h3 className="text-sm font-semibold text-primary">Xử lý yêu cầu</h3>
-                  </div>
-                  <div className="space-y-4">
+                  </section>
+                )}
+
+                <section className="pt-4 border-t border-primary">
+                  <h3 className="text-xs font-semibold text-secondary uppercase mb-3">Cập nhật tiến độ</h3>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
-                        <DollarSign size={14} className="text-green-600 dark:text-green-400" />
-                        Phí xử lý sự cố (VND)
-                      </label>
-                      <input
-                        type="number"
-                        value={updateData.repairCost}
-                        onChange={(e) => setUpdateData(prev => ({ ...prev, repairCost: e.target.value }))}
-                        placeholder="500,000"
-                        className="input w-full px-4 py-3 bg-primary border-2 border-primary text-primary placeholder:text-tertiary focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20"
-                      />
-                      <p className="text-xs text-secondary dark:text-tertiary mt-1">
-                        Chi phí này sẽ được thêm vào hóa đơn khi tạo hóa đơn từ sự cố
-                      </p>
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
-                        <FileText size={14} className="text-blue-600 dark:text-blue-400" />
-                        Ghi chú của Admin
-                      </label>
-                      <textarea
-                        value={updateData.adminNotes}
-                        onChange={(e) => setUpdateData(prev => ({ ...prev, adminNotes: e.target.value }))}
-                        rows={4}
-                        placeholder="Đã gọi thợ điện lạnh. Hẹn 2h chiều nay qua kiểm tra và khắc phục..."
-                        className="input w-full resize-none bg-primary border-2 border-primary text-primary placeholder:text-tertiary focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20"
-                      />
-                    </div>
-                    <div>
-                      <label className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
-                        <Clock size={14} className="text-purple-600 dark:text-purple-400" />
-                        Cập nhật trạng thái
-                      </label>
-                      <Select
-                        value={updateData.status}
-                        onChange={(e) => setUpdateData(prev => ({ ...prev, status: e.target.value }))}
-                        sizing="md"
-                      >
-                        <option value="PENDING">🟡 Chờ xử lý</option>
-                        <option value="PROCESSING">🔵 Đang sửa</option>
-                        <option value="DONE">🟢 Hoàn thành</option>
-                        <option value="CANCELLED">⚫ Đã hủy</option>
+                      <label className="text-xs font-medium text-secondary mb-1 block">Trạng thái mới</label>
+                      <Select value={updateData.status} onChange={(e) => setUpdateData(prev => ({ ...prev, status: e.target.value }))}>
+                        <option value="PENDING">Chờ xử lý</option>
+                        <option value="PROCESSING">Đang sửa chữa</option>
+                        <option value="DONE">Hoàn thành</option>
+                        <option value="CANCELLED">Hủy bỏ</option>
                       </Select>
                     </div>
+                    <div>
+                      <label className="text-xs font-medium text-secondary mb-1 block">Chi phí (VNĐ)</label>
+                      <input type="number" value={updateData.repairCost} onChange={(e) => setUpdateData(prev => ({ ...prev, repairCost: e.target.value }))} className="input w-full" placeholder="0" />
+                    </div>
                   </div>
-                </div>
+                  <div>
+                    <label className="text-xs font-medium text-secondary mb-1 block">Ghi chú quản lý</label>
+                    <textarea value={updateData.adminNotes} onChange={(e) => setUpdateData(prev => ({ ...prev, adminNotes: e.target.value }))} className="input w-full min-h-[100px] resize-none" placeholder="Nhập ghi chú xử lý..." />
+                  </div>
+                </section>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="sticky bottom-0 bg-primary border-t border-primary p-3 sm:p-4 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 flex items-center gap-2 sm:gap-3 shadow-lg flex-wrap">
-                  {selectedIssue.status === 'PENDING' && (
-                    <Button
-                      color="failure"
-                      size="sm"
-                      className="sm:w-auto"
-                      onClick={() => handleOpenCancelModal(selectedIssue.id)}
-                    >
-                      <CancelIcon size={16} className="mr-2" />
-                      <span>Hủy đơn</span>
-                    </Button>
-                  )}
-                  {selectedIssue.status === 'DONE' && contract && (
-                    <Button
-                      color="success"
-                      size="sm"
-                      className="sm:w-auto"
-                      onClick={handleOpenInvoiceModal}
-                    >
-                      <Receipt size={16} className="mr-2" />
-                      <span>Tạo hóa đơn</span>
-                    </Button>
-                  )}
-                  <Button
-                    color="blue"
-                    size="sm"
-                    className="flex-1 min-w-0"
-                    onClick={handleUpdateIssue}
-                  >
-                    <Save size={18} />
-                    <span>Lưu thay đổi</span>
-                  </Button>
-                  <Button
-                    color="gray"
-                    size="sm"
-                    onClick={() => setShowSidePanel(false)}
-                  >
-                    Đóng
-                  </Button>
-                </div>
+              {/* Footer */}
+              <div className="p-6 sm:p-8 border-t border-primary bg-tertiary flex items-center gap-3">
+                {selectedIssue.status === 'PENDING' && (
+                  <button onClick={() => handleOpenCancelModal(selectedIssue.id)} className="btn btn-secondary flex-1">Hủy yêu cầu</button>
+                )}
+                {selectedIssue.status === 'DONE' && contract && (
+                  <button onClick={handleOpenInvoiceModal} className="btn btn-success flex-1">Tạo hóa đơn</button>
+                )}
+                <button onClick={handleUpdateIssue} className="btn btn-primary flex-[2]">Lưu thay đổi</button>
               </div>
             </div>
           </div>
         )
       }
 
-      {/* Create Invoice Modal */}
+      {/* Invoice Modal */}
       {
         showInvoiceModal && contract && selectedIssue && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-primary rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-4 sm:p-6">
-                <div className="flex items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Receipt size={16} className="sm:w-5 sm:h-5 text-white" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-base sm:text-xl font-bold text-primary break-words">Thêm phí xử lý sự cố vào hóa đơn</h2>
-                      <p className="text-xs sm:text-sm text-secondary break-words">Sự cố #{selectedIssue.id}: {selectedIssue.title}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowInvoiceModal(false)
-                    }}
-                    className="p-2 hover:bg-tertiary rounded-lg transition-colors flex-shrink-0"
-                  >
-                    <XCircle size={18} className="sm:w-5 sm:h-5 text-tertiary" />
-                  </button>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowInvoiceModal(false)} />
+            <div className="relative w-full max-w-lg card p-8">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-2xl flex items-center justify-center mx-auto mb-4"><Receipt size={28} /></div>
+                  <h2 className="text-xl font-bold text-primary">Tạo hóa đơn sửa chữa</h2>
+                  <p className="text-sm text-secondary mt-1">Sự cố #{selectedIssue.id}</p>
                 </div>
-
                 <div className="space-y-4">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">Khách hàng</p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">{selectedIssue.user.fullName}</p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Phòng {selectedIssue.room.name}</p>
-                  </div>
-
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                          Hóa đơn riêng cho sự cố
-                        </p>
-                        <p className="text-xs text-blue-700 dark:text-blue-300">
-                          Hóa đơn này sẽ được tạo <strong>riêng biệt</strong>, không gộp vào hóa đơn tháng hiện có.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs sm:text-sm font-medium text-primary mb-2">
-                        Tháng
-                      </label>
-                      <Select
-                        value={invoiceData.month}
-                        onChange={(e) => setInvoiceData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
-                        sizing="md"
-                      >
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
+                      <label className="text-xs font-medium text-secondary mb-1 block">Tháng</label>
+                      <Select value={invoiceData.month} onChange={(e) => setInvoiceData(prev => ({ ...prev, month: parseInt(e.target.value) }))}>
+                        {[...Array(12)].map((_, i) => <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>)}
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-xs sm:text-sm font-medium text-primary mb-2">
-                        Năm
-                      </label>
-                      <input
-                        type="number"
-                        value={invoiceData.year}
-                        onChange={(e) => setInvoiceData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
-                        className="input w-full text-sm sm:text-base"
-                      />
+                      <label className="text-xs font-medium text-secondary mb-1 block">Năm</label>
+                      <input type="number" value={invoiceData.year} onChange={(e) => setInvoiceData(prev => ({ ...prev, year: parseInt(e.target.value) }))} className="input w-full" />
                     </div>
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Phí xử lý sự cố (VND)
-                      <span className="text-xs text-tertiary ml-2">(Sự cố #{selectedIssue.id}: {selectedIssue.title})</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={invoiceData.amountService}
-                      onChange={(e) => setInvoiceData(prev => ({ ...prev, amountService: e.target.value }))}
-                      className="input w-full"
-                      placeholder="Nhập phí xử lý sự cố"
-                    />
-                    {selectedIssue.repairCost && (
-                      <p className="text-xs text-tertiary mt-1">
-                        Chi phí đã nhập: {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND',
-                          minimumFractionDigits: 0
-                        }).format(Number(selectedIssue.repairCost))}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="bg-tertiary rounded-lg p-4 border border-primary">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-primary">Tổng cộng:</span>
-                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                        {new Intl.NumberFormat('vi-VN', {
-                          style: 'currency',
-                          currency: 'VND',
-                          minimumFractionDigits: 0
-                        }).format(
-                          parseFloat(invoiceData.amountService || '0')
-                        )}
-                      </span>
-                    </div>
+                    <label className="text-xs font-medium text-secondary mb-1 block">Số tiền (VNĐ)</label>
+                    <input type="number" value={invoiceData.amountService} onChange={(e) => setInvoiceData(prev => ({ ...prev, amountService: e.target.value }))} className="input w-full text-lg font-bold" />
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 sm:gap-3 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-primary dark:border-primary flex-wrap">
-                  <Button
-                    color="success"
-                    size="sm"
-                    className="flex-1 min-w-0"
-                    onClick={handleCreateInvoice}
-                  >
-                    <Receipt size={18} />
-                    <span>Tạo hóa đơn riêng</span>
-                  </Button>
-                  <Button
-                    color="gray"
-                    size="sm"
-                    onClick={() => {
-                      setShowInvoiceModal(false)
-                      setExistingInvoice(null)
-                    }}
-                  >
-                    Hủy
-                  </Button>
+                <div className="flex flex-col gap-2 pt-2">
+                  <button onClick={handleCreateInvoice} className="btn btn-primary w-full">Xác nhận tạo</button>
+                  <button onClick={() => setShowInvoiceModal(false)} className="btn btn-secondary w-full">Hủy thao tác</button>
                 </div>
               </div>
             </div>
@@ -1420,56 +722,21 @@ export default function MaintenancePage() {
         )
       }
 
-      {/* Cancel Issue Modal */}
+      {/* Cancel Modal */}
       {
         showCancelModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-primary rounded-lg shadow-xl max-w-md w-full">
-              <div className="p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-3 sm:mb-4">
-                  <h2 className="text-lg sm:text-xl font-bold text-primary">Hủy đơn sự cố</h2>
-                  <button
-                    onClick={() => {
-                      setShowCancelModal(false)
-                      setSelectedIssueId(null)
-                      setCancelReason('')
-                    }}
-                    className="p-2 hover:bg-tertiary rounded-lg transition-colors flex-shrink-0"
-                  >
-                    <XCircle size={18} className="sm:w-5 sm:h-5 text-tertiary" />
-                  </button>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
+            <div className="relative w-full max-w-lg card p-8">
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4"><Ban size={28} /></div>
+                  <h2 className="text-xl font-bold text-primary">Lý do hủy yêu cầu?</h2>
                 </div>
-                <p className="text-sm sm:text-base text-secondary mb-3 sm:mb-4">
-                  Vui lòng nêu rõ lý do không nhận đơn sự cố này:
-                </p>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Nhập lý do hủy đơn..."
-                  className="input w-full resize-none text-sm sm:text-base"
-                  rows={4}
-                />
-                <div className="flex items-center gap-2 sm:gap-3 mt-4 sm:mt-6 flex-wrap">
-                  <Button
-                    color="failure"
-                    size="sm"
-                    className="flex-1 min-w-0"
-                    onClick={handleCancelIssue}
-                  >
-                    Xác nhận hủy
-                  </Button>
-                  <Button
-                    color="gray"
-                    size="sm"
-                    className="flex-1 min-w-0"
-                    onClick={() => {
-                      setShowCancelModal(false)
-                      setSelectedIssueId(null)
-                      setCancelReason('')
-                    }}
-                  >
-                    Hủy
-                  </Button>
+                <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="input w-full min-h-[120px] resize-none" placeholder="Vui lòng cho cư dân biết lý do..." />
+                <div className="flex flex-col gap-2">
+                  <button onClick={handleCancelIssue} className="btn bg-red-500 hover:bg-red-600 text-white w-full">Xác nhận hủy</button>
+                  <button onClick={() => setShowCancelModal(false)} className="btn btn-secondary w-full">Trở lại</button>
                 </div>
               </div>
             </div>

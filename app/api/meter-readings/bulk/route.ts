@@ -246,6 +246,9 @@ export async function POST(request: NextRequest) {
           paymentDueDate.setDate(paymentDueDate.getDate() + 10)
 
           if (existingInvoice) {
+            // Chỉ cập nhật status nếu hoá đơn chưa được thanh toán
+            // Nếu đã paid thì giữ nguyên status cũ
+            const newStatus = existingInvoice.status === 'PAID' ? 'PAID' : 'UNPAID'
             invoicesToUpdate.push({
               where: { id: existingInvoice.id },
               data: {
@@ -257,7 +260,9 @@ export async function POST(request: NextRequest) {
                 overdueInvoices: JSON.stringify(overdueInvoicesInfo),
                 totalAmount: totalAmount + overdueAmount,
                 paymentDueDate,
-                status: 'UNPAID'
+                status: newStatus,
+                // Giữ nguyên paidAt nếu đã thanh toán
+                ...(existingInvoice.status === 'PAID' && { paidAt: existingInvoice.paidAt })
               }
             })
           } else if (elecConsumption >= 0 && waterConsumption >= 0) {
@@ -326,6 +331,9 @@ export async function POST(request: NextRequest) {
           data: { status: 'PAID', paidAt: new Date() }
         })
       }
+    }, {
+      maxWait: 10000, // 10s để lấy connection
+      timeout: 30000, // 30s để thực thi transaction
     })
 
     return NextResponse.json({

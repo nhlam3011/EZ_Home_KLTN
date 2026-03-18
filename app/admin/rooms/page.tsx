@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
-import { Plus, Download, Search, Edit, Trash2, Building2, Users, DollarSign, X, Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle } from 'lucide-react'
+import { Plus, Download, Search, Edit, Trash2, Building2, Users, DollarSign, X, Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Loading from '@/components/Loading'
 
 interface Room {
@@ -58,6 +58,8 @@ export default function RoomsPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [deleteRoomId, setDeleteRoomId] = useState<number | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [showFloorDropdown, setShowFloorDropdown] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   useEffect(() => {
     fetchRooms()
@@ -263,61 +265,121 @@ export default function RoomsPage() {
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Danh sách phòng</h1>
+        <div className="text-center sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">Danh sách phòng</h1>
           <p className="text-secondary mt-1 text-sm sm:text-base">Quản lý trạng thái và thông tin cư dân</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          <button
-            onClick={handleExport}
-            className="btn btn-secondary btn-sm sm:btn-md"
-          >
-            <Download size={18} strokeWidth={2} />
-            <span>Export</span>
-          </button>
+        <div className="flex flex-col xs:flex-row gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3 justify-center sm:justify-end">
           <Link
             href="/admin/rooms/new"
-            className="btn btn-primary btn-sm sm:btn-md"
+            className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none"
           >
             <Plus size={18} />
-            <span>Thêm phòng mới</span>
+            <span className="font-bold">Thêm phòng mới</span>
           </Link>
+          <button
+            onClick={handleExport}
+            className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-2 lg:order-none"
+          >
+            <Download size={18} strokeWidth={2} />
+            <span className="font-bold">Export</span>
+          </button>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="card p-3 sm:p-4">
+      <div className="card p-3 sm:p-4 !overflow-visible relative z-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TẦNG:</label>
-            <select
-              value={floorFilter}
-              onChange={(e) => {
-                setFloorFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="select flex-1"
+          <div className="relative w-full sm:w-auto">
+            <button
+              onClick={() => setShowFloorDropdown(!showFloorDropdown)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showFloorDropdown
+                ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                }`}
             >
-              <option value="all">Tất cả</option>
-              {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
-                <option key={floor} value={floor}>Tầng {floor}</option>
-              ))}
-            </select>
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500">
+                <Building2 size={14} />
+              </div>
+              <div className="text-left pr-1 flex-1">
+                <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                  TẦNG: {floorFilter === 'all' ? 'TẤT CẢ' : `TẦNG ${floorFilter}`}
+                </p>
+              </div>
+              <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showFloorDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showFloorDropdown && (
+              <>
+                <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowFloorDropdown(false)} />
+                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left max-h-[300px] overflow-y-auto no-scrollbar">
+                  <button
+                    onClick={() => { setFloorFilter('all'); setShowFloorDropdown(false); setCurrentPage(1); }}
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${floorFilter === 'all' ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                  >
+                    TẤT CẢ CÁC TẦNG
+                  </button>
+                  {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
+                    <button
+                      key={floor}
+                      onClick={() => { setFloorFilter(floor.toString()); setShowFloorDropdown(false); setCurrentPage(1); }}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all mt-1 whitespace-nowrap ${floorFilter === floor.toString() ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                    >
+                      TẦNG {floor}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="select flex-1"
+
+          <div className="relative w-full sm:w-auto">
+            <button
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showStatusDropdown
+                ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                }`}
             >
-              <option value="all">Tất cả</option>
-              <option value="AVAILABLE">Trống</option>
-              <option value="RENTED">Có khách</option>
-            </select>
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                statusFilter === 'AVAILABLE' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                  'bg-red-50 dark:bg-red-900/20 text-red-500'
+                }`}>
+                {statusFilter === 'all' && <Home size={14} />}
+                {statusFilter === 'AVAILABLE' && <CheckCircle size={14} />}
+                {statusFilter === 'RENTED' && <Users size={14} />}
+              </div>
+              <div className="text-left pr-1 flex-1">
+                <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                  Trạng thái: {statusFilter === 'all' ? 'TẤT CẢ' : statusFilter === 'AVAILABLE' ? 'TRỐNG' : 'ĐÃ THUÊ'}
+                </p>
+              </div>
+              <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showStatusDropdown && (
+              <>
+                <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                  {[
+                    { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <Home size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                    { id: 'AVAILABLE', label: 'TRỐNG', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                    { id: 'RENTED', label: 'ĐANG THUÊ', icon: <Users size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false); setCurrentPage(1); }}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                    >
+                      <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                        {item.icon}
+                      </div>
+                      <span className="uppercase">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="relative">
@@ -414,7 +476,7 @@ export default function RoomsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs sm:text-sm text-secondary">Trạng thái:</span>
-                      <Badge color={getStatusBadge(room.status)} className="rounded font-semibold">
+                      <Badge color={getStatusBadge(room.status)} className="rounded font-semibold justify-center py-1 min-h-[24px]">
                         {getStatusLabel(room.status)}
                       </Badge>
                     </div>
@@ -509,7 +571,7 @@ export default function RoomsPage() {
       {/* Room Detail Modal */}
       {showDetailModal && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 animate-fadeIn"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setShowDetailModal(false)
@@ -517,35 +579,28 @@ export default function RoomsPage() {
             }
           }}
         >
-          <div className="bg-primary rounded-xl sm:rounded-2xl shadow-2xl max-w-4xl w-full max-h-[98vh] sm:max-h-[95vh] overflow-hidden flex flex-col animate-scale-in">
+          <div className="bg-primary rounded-[2rem] shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scaleIn border border-white/10">
             {loadingDetail ? (
-              <div className="p-8 sm:p-12 text-center">
+              <div className="p-12 text-center">
                 <Loading size="lg" text="Đang tải thông tin phòng..." />
               </div>
             ) : selectedRoom ? (
               <>
-                {/* Header with gradient */}
-                <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6 text-white relative overflow-visible">
-                  <div className="absolute inset-0 opacity-20" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                  }}></div>
-                  <div className="relative flex items-center justify-between gap-2 sm:gap-3 min-h-[60px] sm:min-h-[70px] md:min-h-[80px]">
-                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
-                      <div className="w-9 h-9 sm:w-11 sm:h-11 md:w-14 md:h-14 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/30 flex-shrink-0">
-                        <Building2 size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                {/* Header */}
+                <div className="bg-gradient-to-r from-[#4F46E5] to-[#4338CA] p-5 sm:p-6 text-white relative overflow-hidden flex-shrink-0">
+                  <div className="relative flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20 flex-shrink-0">
+                        <Building2 size={20} className="sm:w-6 sm:h-6" />
                       </div>
-                      <div className="min-w-0 flex-1 py-1">
-                        <h2 className="text-base sm:text-xl md:text-2xl font-bold mb-1.5 sm:mb-2 leading-tight truncate">{selectedRoom.name}</h2>
-                        <p className="text-blue-100 text-xs sm:text-sm flex items-center gap-1 sm:gap-2 flex-wrap leading-normal min-h-[18px] sm:min-h-[20px]">
-                          <MapPin size={12} className="sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
-                          <span className="whitespace-nowrap">Tầng {selectedRoom.floor}</span>
+                      <div>
+                        <h2 className="text-lg sm:text-xl font-black mb-0.5 sm:mb-1">{selectedRoom.name}</h2>
+                        <div className="flex items-center gap-1.5 text-blue-100 text-[10px] sm:text-xs font-bold">
+                          <span className="bg-black/10 px-2 py-0.5 rounded-full">Tầng {selectedRoom.floor}</span>
                           {selectedRoom.roomType && (
-                            <>
-                              <span className="mx-0.5 sm:mx-1 hidden sm:inline">•</span>
-                              <span className="truncate max-w-[120px] sm:max-w-none">{selectedRoom.roomType}</span>
-                            </>
+                            <span className="bg-black/10 px-2 py-0.5 rounded-full">{selectedRoom.roomType}</span>
                           )}
-                        </p>
+                        </div>
                       </div>
                     </div>
                     <button
@@ -553,250 +608,149 @@ export default function RoomsPage() {
                         setShowDetailModal(false)
                         setSelectedRoom(null)
                       }}
-                      className="p-1.5 sm:p-2 hover:bg-white/20 rounded-lg transition-all hover:scale-110 flex-shrink-0 active:scale-95"
-                      aria-label="Đóng"
+                      className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-lg sm:rounded-xl transition-all"
                     >
-                      <X size={18} className="sm:w-5 sm:h-5 md:w-5.5 md:h-5.5" />
+                      <X size={16} className="sm:w-[18px] sm:h-[18px]" />
                     </button>
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="overflow-y-auto flex-1 p-4 sm:p-6 bg-gradient-to-b from-primary to-secondary/50">
+                <div className="overflow-y-auto flex-1 p-4 sm:p-6 bg-tertiary/20">
+                  <div className="space-y-5 sm:space-y-6">
+                    {/* Status & Quick Info */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-2">
+                      <Badge color={getStatusBadge(selectedRoom.status)} className="rounded-xl px-4 py-1.5 font-bold uppercase text-xs">
+                        {getStatusLabel(selectedRoom.status)}
+                      </Badge>
+                    </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-                    {/* Left Column - Main Info */}
-                    <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                      {/* Status & Quick Info */}
-                      <div className="card hover:shadow-lg transition-shadow">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-primary">
-                          <h3 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 sm:gap-3">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                              <Building2 size={18} className="sm:w-5 sm:h-5 text-white" />
-                            </div>
-                            <span>Thông tin phòng</span>
-                          </h3>
-                          <span className={getStatusBadge(selectedRoom.status)}>
-                            {getStatusLabel(selectedRoom.status)}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                          <div className="p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg sm:rounded-xl border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all group">
-                            <p className="text-xs text-tertiary mb-1.5 sm:mb-2 font-medium uppercase tracking-wide">Diện tích</p>
-                            <p className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                              <Ruler size={18} className="sm:w-5 sm:h-5 text-blue-500 flex-shrink-0" />
-                              <span className="truncate">{selectedRoom.area ? `${selectedRoom.area} m²` : 'Chưa cập nhật'}</span>
-                            </p>
-                          </div>
-                          <div className="p-4 sm:p-5 bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg sm:rounded-xl border border-purple-200 dark:border-purple-800 hover:shadow-md transition-all group">
-                            <p className="text-xs text-tertiary mb-1.5 sm:mb-2 font-medium uppercase tracking-wide">Số người tối đa</p>
-                            <p className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                              <Users size={18} className="sm:w-5 sm:h-5 text-purple-500 flex-shrink-0" />
-                              <span>{selectedRoom.maxPeople} người</span>
-                            </p>
-                          </div>
-                          <div className="p-4 sm:p-5 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/20 rounded-lg sm:rounded-xl border border-green-200 dark:border-green-800 hover:shadow-md transition-all group">
-                            <p className="text-xs text-tertiary mb-1.5 sm:mb-2 font-medium uppercase tracking-wide">Giá thuê/tháng</p>
-                            <p className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                              <DollarSign size={18} className="sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
-                              <span className="truncate">{formatCurrency(Number(selectedRoom.price))}</span>
-                            </p>
-                          </div>
-                          {selectedRoom.roomType && (
-                            <div className="p-4 sm:p-5 bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg sm:rounded-xl border border-orange-200 dark:border-orange-800 hover:shadow-md transition-all group">
-                              <p className="text-xs text-tertiary mb-1.5 sm:mb-2 font-medium uppercase tracking-wide">Loại phòng</p>
-                              <p className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
-                                <Home size={18} className="sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
-                                <span className="truncate">{selectedRoom.roomType}</span>
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                    {/* Quick Info Grid */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                      <div className="bg-primary p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-primary">
+                        <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-1">Diện tích</p>
+                        <p className="text-lg sm:text-xl font-black text-primary">{selectedRoom.area ? `${selectedRoom.area} m²` : '-'}</p>
                       </div>
-
-                      {/* Description */}
-                      {selectedRoom.description && (
-                        <div className="card hover:shadow-lg transition-shadow">
-                          <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                              <FileText size={16} className="sm:w-5 sm:h-5 text-white" />
-                            </div>
-                            <span>Mô tả phòng</span>
-                          </h3>
-                          <div className="bg-gradient-to-br from-tertiary to-secondary/30 p-4 sm:p-5 rounded-lg sm:rounded-xl border border-primary">
-                            <p className="text-xs sm:text-sm text-secondary whitespace-pre-wrap leading-relaxed">
-                              {selectedRoom.description}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Amenities */}
-                      {selectedRoom.amenities && selectedRoom.amenities.length > 0 && (
-                        <div className="card hover:shadow-lg transition-shadow">
-                          <h3 className="text-base sm:text-lg font-semibold text-primary mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                              <CheckCircle size={16} className="sm:w-5 sm:h-5 text-white" />
-                            </div>
-                            <span>Tiện ích phòng</span>
-                          </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                            {selectedRoom.amenities.map((amenity, index) => (
-                              <div
-                                key={index}
-                                className="px-3 py-2 sm:px-4 sm:py-2.5 text-primary dark:text-primary rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 hover:bg-tertiary transition-colors"
-                              >
-                                <CheckCircle size={14} className="sm:w-4 sm:h-4 text-primary dark:text-primary flex-shrink-0" />
-                                <span className="truncate">{amenity}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      <div className="bg-primary p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-primary">
+                        <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-1">Giá thuê</p>
+                        <p className="text-lg sm:text-xl font-black text-primary">{formatCurrency(Number(selectedRoom.price))}</p>
+                      </div>
+                      <div className="bg-primary p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-primary">
+                        <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-1">Số người</p>
+                        <p className="text-lg sm:text-xl font-black text-primary">{selectedRoom.maxPeople || 0} người</p>
+                      </div>
+                      <div className="bg-primary p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-primary">
+                        <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-1">Loại phòng</p>
+                        <p className="text-lg sm:text-xl font-black text-primary">{selectedRoom.roomType || '-'}</p>
+                      </div>
                     </div>
 
-                    {/* Right Column - Contract Info */}
-                    <div className="space-y-4 sm:space-y-6">
-                      {/* Current Tenant */}
-                      {selectedRoom.contracts && selectedRoom.contracts.length > 0 ? (
-                        selectedRoom.contracts.map((contract) => (
-                          <div key={contract.id} className="card bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-green-900/30 dark:via-emerald-900/20 dark:to-teal-900/20 border-2 border-green-300 dark:border-green-700 shadow-lg hover:shadow-xl transition-shadow">
-                            <h3 className="text-base sm:text-lg font-semibold text-primary mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3 pb-3 border-b border-green-200 dark:border-green-800">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-                                <Users size={16} className="sm:w-5 sm:h-5 text-white" />
-                              </div>
-                              <span>Khách thuê</span>
-                            </h3>
-                            <div className="space-y-3 sm:space-y-4">
+                    {/* Tenant & Contract Info */}
+                    {selectedRoom.contracts && selectedRoom.contracts.length > 0 && selectedRoom.contracts.some(c => c.status === 'ACTIVE') ? (
+                      <div className="bg-primary p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-primary">
+                        <h3 className="text-sm sm:text-base font-black text-primary mb-4 flex items-center gap-2">
+                          <Users size={18} />
+                          Thông tin khách thuê
+                        </h3>
+                        {selectedRoom.contracts.filter(c => c.status === 'ACTIVE').map((contract) => (
+                          <div key={contract.id} className="space-y-4">
+                            {/* Main Tenant */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                               <div>
-                                <p className="text-xs sm:text-sm text-tertiary mb-1">Tên khách thuê</p>
-                                <p className="text-sm sm:text-base font-bold text-primary break-words">{contract.user.fullName}</p>
+                                <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-1.5">Người thuê chính</p>
+                                <p className="font-bold text-primary">{contract.user.fullName}</p>
+                                {contract.user.phone && <p className="text-sm text-secondary mt-1">{contract.user.phone}</p>}
+                                {contract.user.email && <p className="text-sm text-secondary truncate mt-0.5">{contract.user.email}</p>}
                               </div>
-                              {contract.user.phone && (
-                                <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                  <Phone size={14} className="sm:w-4 sm:h-4 text-tertiary flex-shrink-0" />
-                                  <span className="text-secondary break-all">{contract.user.phone}</span>
-                                </div>
-                              )}
-                              {contract.user.email && (
-                                <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                  <Mail size={14} className="sm:w-4 sm:h-4 text-tertiary flex-shrink-0" />
-                                  <span className="text-secondary break-all">{contract.user.email}</span>
-                                </div>
-                              )}
-                              {contract.startDate && (
-                                <div className="pt-2 sm:pt-3 border-t border-primary">
-                                  <p className="text-xs text-tertiary mb-1.5 sm:mb-2">Thời gian hợp đồng</p>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                      <Calendar size={12} className="sm:w-3.5 sm:h-3.5 text-tertiary flex-shrink-0" />
-                                      <span className="text-secondary break-words">
-                                        Bắt đầu: {formatDate(contract.startDate)}
-                                      </span>
-                                    </div>
-                                    {contract.endDate && (
-                                      <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                        <Calendar size={12} className="sm:w-3.5 sm:h-3.5 text-tertiary flex-shrink-0" />
-                                        <span className="text-secondary break-words">
-                                          Kết thúc: {formatDate(contract.endDate)}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              {(contract.deposit || contract.rentPrice) && (
-                                <div className="pt-2 sm:pt-3 border-t border-primary">
-                                  <p className="text-xs text-tertiary mb-1.5 sm:mb-2">Thông tin tài chính</p>
-                                  <div className="space-y-1">
-                                    {contract.deposit && (
-                                      <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                                        <span className="text-secondary">Tiền cọc:</span>
-                                        <span className="font-semibold text-primary text-right break-words">
-                                          {formatCurrency(Number(contract.deposit))}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {contract.rentPrice && (
-                                      <div className="flex items-center justify-between text-xs sm:text-sm gap-2">
-                                        <span className="text-secondary">Giá thuê:</span>
-                                        <span className="font-semibold text-primary text-right break-words">
-                                          {formatCurrency(Number(contract.rentPrice))}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                              {contract.occupants && contract.occupants.length > 0 && (
-                                <div className="pt-2 sm:pt-3 border-t border-primary">
-                                  <p className="text-xs text-tertiary mb-1.5 sm:mb-2">Người ở cùng</p>
-                                  <div className="space-y-1">
-                                    {contract.occupants.map((occupant) => (
-                                      <div key={occupant.id} className="text-xs sm:text-sm text-secondary flex items-center gap-2">
-                                        <Users size={12} className="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                                        <span className="break-words">{occupant.fullName}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              <div className="pt-2 sm:pt-3 border-t border-primary mt-2 sm:mt-3">
-                                <Link
-                                  href={`/admin/rooms/${selectedRoom.id}/contracts`}
-                                  className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 flex items-center gap-2 font-medium"
-                                  onClick={() => {
-                                    setShowDetailModal(false)
-                                    setSelectedRoom(null)
-                                  }}
-                                >
-                                  <FileText size={12} className="sm:w-3.5 sm:h-3.5 flex-shrink-0" />
-                                  <span className="break-words">Xem chi tiết hợp đồng</span>
-                                </Link>
+                              <div>
+                                <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-1.5">Hợp đồng</p>
+                                {contract.startDate && (
+                                  <p className="text-sm text-secondary">
+                                    {formatDate(contract.startDate)} - {contract.endDate ? formatDate(contract.endDate) : '...'}
+                                  </p>
+                                )}
+                                <p className="text-sm text-secondary mt-1.5">
+                                  Giá thuê: <span className="font-bold text-primary">{formatCurrency(Number(contract.rentPrice || 0))}</span>
+                                </p>
+                                <p className="text-sm text-secondary mt-0.5">
+                                  Đặt cọc: <span className="font-bold text-primary">{formatCurrency(Number(contract.deposit || 0))}</span>
+                                </p>
                               </div>
                             </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="card bg-tertiary border-dashed border-2 border-primary">
-                          <div className="text-center py-8">
-                            <Users size={48} className="text-tertiary mx-auto mb-3" />
-                            <p className="text-sm text-tertiary">Phòng chưa có khách thuê</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
 
+                            {/* Occupants */}
+                            {contract.occupants && contract.occupants.length > 0 && (
+                              <div className="pt-3 sm:pt-4 border-t border-primary">
+                                <p className="text-[10px] sm:text-xs font-bold text-tertiary uppercase mb-2">Người ở cùng ({contract.occupants.length})</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {contract.occupants.map((occupant) => (
+                                    <span key={occupant.id} className="bg-tertiary px-3 py-1.5 rounded-xl text-sm font-medium text-secondary">
+                                      {occupant.fullName}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Contract Link */}
+                            <div className="pt-3 sm:pt-4">
+                              <Link
+                                href={`/admin/rooms/${selectedRoom.id}/contracts`}
+                                className="text-sm font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                onClick={() => {
+                                  setShowDetailModal(false)
+                                  setSelectedRoom(null)
+                                }}
+                              >
+                                Xem chi tiết hợp đồng
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-primary p-5 rounded-2xl border border-dashed border-primary text-center">
+                        <Users size={32} className="text-tertiary mx-auto mb-2 opacity-20" />
+                        <p className="text-sm font-medium text-tertiary">Phòng trống</p>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    {selectedRoom.description && (
+                      <div className="bg-primary p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-primary">
+                        <h3 className="text-sm sm:text-base font-black text-primary mb-2.5">Mô tả</h3>
+                        <p className="text-sm text-secondary leading-relaxed">{selectedRoom.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 sm:p-6 bg-primary border-t border-primary flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href={`/admin/rooms/${selectedRoom.id}`}
+                    className="btn btn-primary h-11 px-6 rounded-2xl flex-1"
+                    onClick={() => {
+                      setShowDetailModal(false)
+                      setSelectedRoom(null)
+                    }}
+                  >
+                    <Edit size={16} />
+                    Chỉnh sửa
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowDetailModal(false)
+                      setSelectedRoom(null)
+                    }}
+                    className="btn btn-secondary h-11 px-6 rounded-2xl"
+                  >
+                    Đóng
+                  </button>
                 </div>
               </>
-            ) : null}
-
-            {/* Footer Actions */}
-            {selectedRoom && (
-              <div className="border-t-2 border-primary bg-gradient-to-r from-tertiary to-secondary/50 p-3 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
-                <Link
-                  href={`/admin/rooms/${selectedRoom.id}`}
-                  className="btn btn-primary btn-md sm:btn-lg flex-1 justify-center"
-                  onClick={() => {
-                    setShowDetailModal(false)
-                    setSelectedRoom(null)
-                  }}
-                >
-                  <Edit size={18} className="sm:w-5 sm:h-5" />
-                  <span className="whitespace-nowrap">Chỉnh sửa phòng</span>
-                </Link>
-                <button
-                  onClick={() => {
-                    setShowDetailModal(false)
-                    setSelectedRoom(null)
-                  }}
-                  className="btn btn-secondary btn-md sm:btn-lg flex-shrink-0 w-full sm:w-auto sm:min-w-[120px] justify-center"
-                >
-                  <X size={18} className="sm:w-5 sm:h-5" />
-                  <span>Đóng</span>
-                </button>
-              </div>
+            ) : (
+              <div className="p-8 text-center text-secondary">Không tìm thấy thông tin phòng</div>
             )}
           </div>
         </div>

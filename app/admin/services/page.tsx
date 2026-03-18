@@ -19,7 +19,13 @@ import {
   Settings2,
   ClipboardList,
   Wallet,
-  PackageCheck
+  PackageCheck,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  AlertCircle,
+  Loader2
 } from 'lucide-react'
 import Loading from '@/components/Loading'
 
@@ -66,6 +72,7 @@ export default function ServicesPage() {
   const [ordersLoading, setOrdersLoading] = useState(true)
   const [orderSearch, setOrderSearch] = useState('')
   const [orderStatusFilter, setOrderStatusFilter] = useState('all')
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
 
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -605,13 +612,13 @@ export default function ServicesPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý dịch vụ</h1>
           <p className="text-secondary mt-1 text-sm sm:text-base">Đồng bộ cấu hình dịch vụ, điều phối đơn đăng ký và kiểm soát.</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">
           <Link
             href="/admin/services/new"
-            className="btn btn-primary btn-sm sm:btn-md"
+            className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
           >
             <Plus size={18} />
-            <span>Thêm dịch vụ</span>
+            <span className="font-bold">Thêm dịch vụ</span>
           </Link>
         </div>
       </div>
@@ -687,17 +694,64 @@ export default function ServicesPage() {
 
       {activeTab === 'registrations' && (
         <>
-          <div className="card p-3 sm:p-4 mb-4">
+          <div className="card p-3 sm:p-4 mb-4 !overflow-visible relative z-20">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3">
-                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-                <select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value)} className="select flex-1">
-                  <option value="all">Mọi trạng thái</option>
-                  <option value="PENDING">Mới</option>
-                  <option value="PROCESSING">Đang làm</option>
-                  <option value="DONE">Hoàn thành</option>
-                  <option value="CANCELLED">Đã hủy</option>
-                </select>
+              <div className="relative flex-1 sm:max-w-[240px]">
+                <button
+                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showStatusDropdown
+                    ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                    : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                    }`}
+                >
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${orderStatusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                    orderStatusFilter === 'PENDING' ? 'bg-red-50 dark:bg-red-900/20 text-red-500' :
+                      orderStatusFilter === 'PROCESSING' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                        orderStatusFilter === 'DONE' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                          'bg-gray-50 dark:bg-gray-900/20 text-gray-500'
+                    }`}>
+                    {orderStatusFilter === 'all' && <ClipboardList size={14} />}
+                    {orderStatusFilter === 'PENDING' && <AlertCircle size={14} />}
+                    {orderStatusFilter === 'PROCESSING' && <Loader2 size={14} className="animate-spin-slow" />}
+                    {orderStatusFilter === 'DONE' && <CheckCircle size={14} />}
+                    {orderStatusFilter === 'CANCELLED' && <XCircle size={14} />}
+                  </div>
+                  <div className="text-left pr-1 flex-1">
+                    <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                      TRẠNG THÁI: {orderStatusFilter === 'all' ? 'TẤT CẢ' :
+                        orderStatusFilter === 'PENDING' ? 'MỚI' :
+                          orderStatusFilter === 'PROCESSING' ? 'ĐANG XỬ LÝ' :
+                            orderStatusFilter === 'DONE' ? 'HOÀN THÀNH' : 'ĐÃ HỦY'}
+                    </p>
+                  </div>
+                  <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showStatusDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                    <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                      {[
+                        { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <ClipboardList size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                        { id: 'PENDING', label: 'MỚI', icon: <AlertCircle size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' },
+                        { id: 'PROCESSING', label: 'ĐANG LÀM', icon: <Loader2 size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                        { id: 'DONE', label: 'HOÀN THÀNH', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                        { id: 'CANCELLED', label: 'ĐÃ HỦY', icon: <XCircle size={16} />, color: 'text-gray-500', bg: 'bg-gray-50/50 dark:bg-gray-900/10' }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => { setOrderStatusFilter(item.id); setShowStatusDropdown(false); setCurrentPage(1); }}
+                          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${orderStatusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                        >
+                          <div className={`p-1.5 rounded-lg ${orderStatusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                            {item.icon}
+                          </div>
+                          <span className="uppercase">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
               <div className="sm:col-span-1 lg:col-span-2 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
@@ -782,7 +836,7 @@ export default function ServicesPage() {
                               <p className="mt-0.5 text-xs text-tertiary">{formatRelativeTime(order.orderDate)}</p>
                             </td>
                             <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle align-top">
-                              <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex">
+                              <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium inline-flex justify-center py-1 min-h-[24px]">
                                 {statusBadge.label}
                               </Badge>
                               {order.status === 'CANCELLED' && order.note?.startsWith('Lý do hủy:') && (
@@ -814,7 +868,7 @@ export default function ServicesPage() {
                           </div>
                           <p className="mt-1 text-sm text-secondary">Phòng {roomName}</p>
                         </div>
-                        <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium shrink-0">
+                        <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium shrink-0 justify-center py-1 min-h-[24px]">
                           {statusBadge.label}
                         </Badge>
                       </div>
@@ -1062,7 +1116,7 @@ export default function ServicesPage() {
                                   className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${service.isActive ? 'translate-x-6' : 'translate-x-1'}`}
                                 />
                               </button>
-                              <Badge color={getServiceStatusBadge(service.isActive).color} className="whitespace-nowrap rounded font-medium">
+                              <Badge color={getServiceStatusBadge(service.isActive).color} className="whitespace-nowrap rounded font-medium justify-center py-1 min-h-[24px]">
                                 {getServiceStatusBadge(service.isActive).label}
                               </Badge>
                             </div>
@@ -1095,7 +1149,7 @@ export default function ServicesPage() {
                         </div>
                         <p className="mt-1.5 text-sm text-secondary">{formatCurrency(Number(service.unitPrice))} / {service.unit}</p>
                       </div>
-                      <Badge color={getServiceStatusBadge(service.isActive).color} className="shrink-0 whitespace-nowrap rounded font-medium">
+                      <Badge color={getServiceStatusBadge(service.isActive).color} className="shrink-0 whitespace-nowrap rounded font-medium justify-center py-1 min-h-[24px]">
                         {getServiceStatusBadge(service.isActive).label}
                       </Badge>
                     </div>

@@ -6,13 +6,32 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const type = searchParams.get('type')
+    const category = searchParams.get('category')
+    const userId = searchParams.get('userId')
+    const status = searchParams.get('status')
 
-    const where: any = {
-      status: 'PUBLIC'
+    const where: any = {}
+
+    // Default visibility for tenant feed
+    if (status === 'all') {
+      // For "My Posts" tab, show all statuses if userId is provided
+      if (userId) {
+        where.userId = parseInt(userId)
+      }
+    } else {
+      where.status = 'PUBLIC'
     }
 
-    // Filter by type if provided
-    // Note: You may need to add a 'type' field to Post model
+    if (category && category !== 'ALL') {
+      where.category = category
+    }
+
+    // Filter out internal invoice notifications
+    where.NOT = {
+      content: {
+        startsWith: '[Hóa đơn #'
+      }
+    }
 
     const posts = await prisma.post.findMany({
       where,
@@ -29,17 +48,10 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: { createdAt: 'desc' },
-      take: 20
+      take: 50
     })
 
-    // Add mock likes and comments
-    const postsWithStats = posts.map(post => ({
-      ...post,
-      likes: Math.floor(Math.random() * 50),
-      comments: Math.floor(Math.random() * 10)
-    }))
-
-    return NextResponse.json(postsWithStats)
+    return NextResponse.json(posts)
   } catch (error) {
     console.error('Error fetching posts:', error)
     return NextResponse.json(
@@ -52,7 +64,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { content, images, userId } = body
+    const { content, images, userId, category } = body
 
     if (!content) {
       return NextResponse.json(
@@ -71,19 +83,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (user.role !== 'TENANT') {
-      return NextResponse.json(
-        { error: 'Only tenant users can create posts' },
-        { status: 403 }
-      )
-    }
-
     const post = await prisma.post.create({
       data: {
         userId: user.id,
         content,
         images: images || [],
-        status: 'PENDING' // Bài viết cần được admin duyệt
+        category: category || 'DISCUSSION',
+        status: user.role === 'ADMIN' ? 'PUBLIC' : 'PENDING'
       },
       include: {
         user: {

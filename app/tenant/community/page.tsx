@@ -1,13 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Search, Image as ImageIcon, ThumbsUp, MessageCircle, Share2, X, Sparkles, AlertCircle, CheckCircle, FileText, Users, Clock } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import {
+  Search, Image as ImageIcon, ThumbsUp, MessageCircle,
+  Share2, X, AlertCircle, CheckCircle, FileText,
+  Users, Clock, Send, Filter, Plus, ChevronRight,
+  Megaphone, MessageSquare, Heart, Bookmark
+} from 'lucide-react'
 import Loading, { LoadingSpinner } from '@/components/Loading'
 
 interface Post {
   id: number
   content: string
   images: string[]
+  category: 'ANNOUNCEMENT' | 'DISCUSSION' | 'FEEDBACK' | 'MARKET'
   status: string
   createdAt: Date
   userId?: number
@@ -20,25 +26,36 @@ interface Post {
   comments?: number
 }
 
+const CATEGORIES = [
+  { id: 'ALL', label: 'Tất cả', icon: Users, color: 'blue' },
+  { id: 'ANNOUNCEMENT', label: 'Thông báo', icon: Megaphone, color: 'orange' },
+  { id: 'DISCUSSION', label: 'Thảo luận', icon: MessageSquare, color: 'purple' },
+  { id: 'FEEDBACK', label: 'Góp ý', icon: Heart, color: 'red' },
+  { id: 'MARKET', label: 'Mua bán', icon: Bookmark, color: 'green' },
+]
+
 export default function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [myPosts, setMyPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [activeCategory, setActiveCategory] = useState('ALL')
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set())
   const [postLikes, setPostLikes] = useState<Record<number, number>>({})
   const [newPostContent, setNewPostContent] = useState('')
+  const [newPostCategory, setNewPostCategory] = useState<'ANNOUNCEMENT' | 'DISCUSSION' | 'FEEDBACK' | 'MARKET'>('DISCUSSION')
   const [posting, setPosting] = useState(false)
   const [selectedImages, setSelectedImages] = useState<string[]>([])
   const [uploadingImages, setUploadingImages] = useState(false)
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [activeTab, setActiveTab] = useState<'community' | 'myposts'>('community')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     fetchPosts()
     fetchMyPosts()
-  }, [searchQuery])
+  }, [searchQuery, activeCategory])
 
   const showAlert = (message: string) => {
     setSuccessMessage(message)
@@ -51,12 +68,9 @@ export default function CommunityPage() {
       const userData = localStorage.getItem('user')
       if (!userData) return
       const user = JSON.parse(userData)
-      // Fetch only posts by this user
       const response = await fetch(`/api/tenant/posts?userId=${user.id}&status=all`)
       const data = await response.json()
-      // Filter to only show user's own posts (both PENDING and PUBLIC)
-      const userPosts = data.filter((post: Post) => post.user.fullName === user.fullName || post.userId === user.id)
-      setMyPosts(userPosts)
+      setMyPosts(data)
     } catch (error) {
       console.error('Error fetching my posts:', error)
     }
@@ -67,21 +81,15 @@ export default function CommunityPage() {
     try {
       const params = new URLSearchParams()
       if (searchQuery) params.append('search', searchQuery)
+      if (activeCategory !== 'ALL') params.append('category', activeCategory)
 
-      // Fetch all posts for community feed
       const response = await fetch(`/api/tenant/posts?${params.toString()}`)
       const data = await response.json()
 
-      // Filter to show only PUBLIC posts (from all users) in community tab
-      const communityPosts = data.filter((post: Post) =>
-        post.status === 'PUBLIC' && !post.content.startsWith('[Hóa đơn #')
-      )
+      // Separate pinned posts (admins usually start with pins)
+      const pinned = data.filter((post: Post) => post.content.startsWith('📌'))
+      const regular = data.filter((post: Post) => !post.content.startsWith('📌'))
 
-      // Separate pinned posts and regular posts
-      const pinned = communityPosts.filter((post: Post) => post.content.startsWith('📌'))
-      const regular = communityPosts.filter((post: Post) => !post.content.startsWith('📌'))
-
-      // Sort: pinned first, then by date (newest first)
       setPosts([...pinned, ...regular])
 
       const likesMap: Record<number, number> = {}
@@ -105,17 +113,8 @@ export default function CommunityPage() {
     setPosting(true)
     try {
       const userData = localStorage.getItem('user')
-      if (!userData) {
-        alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.')
-        return
-      }
-
+      if (!userData) return
       const user = JSON.parse(userData)
-
-      if (user.role !== 'TENANT') {
-        alert('Chỉ cư dân mới có thể đăng bài')
-        return
-      }
 
       const response = await fetch('/api/tenant/posts', {
         method: 'POST',
@@ -123,22 +122,24 @@ export default function CommunityPage() {
         body: JSON.stringify({
           content: newPostContent,
           images: selectedImages,
+          category: newPostCategory,
           userId: user.id
         })
       })
 
       if (response.ok) {
-        showAlert('Đã đăng bài thành công! Bài viết của bạn đang chờ được duyệt.')
+        showAlert('Đã đăng bài thành công! Bài viết đang chờ duyệt.')
         setNewPostContent('')
         setSelectedImages([])
+        setShowCreateModal(false)
         fetchPosts()
+        fetchMyPosts()
       } else {
         const error = await response.json()
-        alert(error.error || 'Có lỗi xảy ra khi đăng bài')
+        alert(error.error || 'Có lỗi xảy ra')
       }
     } catch (error) {
       console.error('Error creating post:', error)
-      alert('Có lỗi xảy ra khi đăng bài')
     } finally {
       setPosting(false)
     }
@@ -153,20 +154,8 @@ export default function CommunityPage() {
 
     try {
       for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-
-        if (!file.type.startsWith('image/')) {
-          alert(`File ${file.name} không phải là ảnh`)
-          continue
-        }
-
-        if (file.size > 5 * 1024 * 1024) {
-          alert(`File ${file.name} quá lớn (tối đa 5MB)`)
-          continue
-        }
-
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', files[i])
 
         const response = await fetch('/api/posts/upload', {
           method: 'POST',
@@ -176,415 +165,280 @@ export default function CommunityPage() {
         if (response.ok) {
           const data = await response.json()
           newImages.push(data.url)
-        } else {
-          const error = await response.json()
-          alert(`Lỗi upload ${file.name}: ${error.error}`)
         }
       }
-
       setSelectedImages(prev => [...prev, ...newImages])
     } catch (error) {
       console.error('Error uploading images:', error)
-      alert('Có lỗi xảy ra khi upload ảnh')
     } finally {
       setUploadingImages(false)
-      e.target.value = ''
     }
-  }
-
-  const handleRemoveImage = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index))
-  }
-
-  const formatDate = (date: Date | string) => {
-    return new Intl.DateTimeFormat('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(new Date(date))
   }
 
   const formatRelativeTime = (date: Date | string) => {
     const now = new Date()
     const diff = now.getTime() - new Date(date).getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor(diff / (1000 * 60))
+    const hours = Math.floor(minutes / 60)
     const days = Math.floor(hours / 24)
 
     if (days > 0) return `${days} ngày trước`
     if (hours > 0) return `${hours} giờ trước`
+    if (minutes > 0) return `${minutes} phút trước`
     return 'Vừa xong'
-  }
-
-  const handleLike = async (postId: number) => {
-    const isLiked = likedPosts.has(postId)
-    const newLikedPosts = new Set(likedPosts)
-
-    if (isLiked) {
-      newLikedPosts.delete(postId)
-      setPostLikes(prev => ({ ...prev, [postId]: (prev[postId] || 0) - 1 }))
-    } else {
-      newLikedPosts.add(postId)
-      setPostLikes(prev => ({ ...prev, [postId]: (prev[postId] || 0) + 1 }))
-    }
-
-    setLikedPosts(newLikedPosts)
-
-    // Note: Like endpoint may not be implemented yet
-    try {
-      const response = await fetch(`/api/tenant/posts/${postId}/like`, {
-        method: isLiked ? 'DELETE' : 'POST'
-      })
-      if (!response.ok) {
-        // Silently fail if endpoint doesn't exist
-        console.log('Like endpoint not available')
-      }
-    } catch (error) {
-      // Silently fail if endpoint doesn't exist
-      console.log('Like endpoint not available')
-    }
-  }
-
-  const handleComment = (postId: number) => {
-    const comment = prompt('Nhập bình luận của bạn:')
-    if (comment && comment.trim()) {
-      showAlert('Bình luận đã được gửi!')
-    }
-  }
-
-  const handleShare = async (postId: number) => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Bài viết từ EZ-Home',
-          text: 'Xem bài viết này trên EZ-Home',
-          url: window.location.href
-        })
-      } else {
-        await navigator.clipboard.writeText(window.location.href)
-        showAlert('Đã sao chép liên kết vào clipboard!')
-      }
-    } catch (error) {
-      console.error('Error sharing:', error)
-    }
   }
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const filteredPosts = posts.filter(post => {
-    if (!searchQuery) return true
-    const query = searchQuery.toLowerCase()
-    return (
-      post.content.toLowerCase().includes(query) ||
-      post.user.fullName.toLowerCase().includes(query)
-    )
-  })
+  const getCategoryTheme = (category: string) => {
+    switch (category) {
+      case 'ANNOUNCEMENT': return { bg: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400', label: 'Thông báo' }
+      case 'FEEDBACK': return { bg: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', label: 'Góp ý' }
+      case 'MARKET': return { bg: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', label: 'Mua bán' }
+      default: return { bg: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', label: 'Thảo luận' }
+    }
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto pb-20 sm:pb-10 px-4">
       {/* Success Alert */}
       {showSuccessAlert && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-in">
-          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
-            <CheckCircle size={20} />
-            <span>{successMessage}</span>
+        <div className="fixed top-20 right-4 z-50 animate-in fade-in slide-in-from-right duration-300">
+          <div className="bg-white dark:bg-slate-800 border-l-4 border-green-500 shadow-xl rounded-lg px-6 py-4 flex items-center gap-3">
+            <CheckCircle className="text-green-500" size={20} />
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{successMessage}</span>
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">Cộng đồng</h1>
-        <p className="text-sm sm:text-base text-secondary mt-1">Kết nối và chia sẻ với cộng đồng</p>
-      </div>
+      {/* Header & Tabs */}
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md pt-4 -mx-4 px-4 pb-2 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Cộng đồng</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Không gian chung cho mọi cư dân</p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="hidden sm:flex btn btn-primary items-center gap-2 px-5"
+          >
+            <Plus size={18} />
+            Đăng bài
+          </button>
+        </div>
 
-      {/* Tabs */}
-      <div className="border-b border-primary">
-        <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex items-center gap-6 border-b border-primary/50">
           <button
             onClick={() => setActiveTab('community')}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'community'
-              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-secondary hover:text-primary'
+            className={`pb-3 text-sm font-semibold transition-all relative ${activeTab === 'community'
+                ? 'text-blue-600'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
           >
-            <Users size={16} />
-            Cộng đồng
+            Bảng tin
+            {activeTab === 'community' && (
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('myposts')}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap flex items-center gap-2 relative ${activeTab === 'myposts'
-              ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-secondary hover:text-primary'
+            className={`pb-3 text-sm font-semibold transition-all relative ${activeTab === 'myposts'
+                ? 'text-blue-600'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
               }`}
           >
-            <FileText size={16} />
             Bài viết của tôi
-            {myPosts.filter(p => p.status !== 'PUBLIC').length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-orange-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
-                {myPosts.filter(p => p.status !== 'PUBLIC').length}
-              </span>
+            {activeTab === 'myposts' && (
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />
             )}
           </button>
         </div>
       </div>
 
-      {/* Create Post Form */}
-      <div className="card">
-        <div className="p-4 sm:p-5">
-          <h3 className="text-base sm:text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-            <AlertCircle size={18} className="sm:w-5 sm:h-5" />
-            Đăng bài viết
-          </h3>
-          <div className="space-y-4">
-            <textarea
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              placeholder="Bạn muốn chia sẻ gì với cộng đồng?"
-              rows={4}
-              className="input w-full resize-none"
-            />
-
-            {/* Image Upload */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-secondary hover:text-primary transition-colors">
-                <ImageIcon size={18} />
-                <span>Thêm ảnh</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageSelect}
-                  disabled={uploadingImages}
-                  className="hidden"
-                />
-              </label>
-
-              {/* Image Preview */}
-              {selectedImages.length > 0 && (
-                <div className="grid grid-cols-4 gap-3">
-                  {selectedImages.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-primary"
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {uploadingImages && (
-                <div className="flex items-center gap-2 text-sm text-secondary">
-                  <LoadingSpinner size={16} className="text-blue-500" />
-                  <span>Đang upload ảnh...</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end pt-3 border-t border-primary">
-              <button
-                onClick={handleCreatePost}
-                disabled={!newPostContent.trim() || posting || uploadingImages}
-                className="btn btn-primary btn-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {posting ? (
-                  <>
-                    <LoadingSpinner size={16} className="text-white" />
-                    <span>Đang đăng...</span>
-                  </>
-                ) : (
-                  'Đăng bài'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search - only show for community tab */}
       {activeTab === 'community' && (
-        <div className="card">
-          <div className="p-4">
+        <div className="space-y-6">
+          {/* Filters & Search */}
+          <div className="space-y-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tertiary w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
-                placeholder="Tìm kiếm bài viết..."
+                placeholder="Tìm nội dung, người đăng..."
+                className="input pl-12 bg-white dark:bg-slate-900 border-none shadow-sm focus:ring-2 focus:ring-blue-500/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="input input-with-icon w-full pl-8 sm:pl-10 pr-4 py-2 text-sm"
               />
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Posts Feed */}
-      {activeTab === 'community' && (
-        loading ? (
-          <div className="card">
-            <Loading size="lg" text="Đang tải..." />
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all duration-300 ${activeCategory === cat.id
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                >
+                  <cat.icon size={16} />
+                  <span className="text-sm font-medium">{cat.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col gap-4 w-full">
-            {filteredPosts.map((post) => {
-              const initials = getInitials(post.user.fullName)
-              const isPinnedPost = post.content.startsWith('📌')
-              return (
-                <div key={post.id} className="card p-5 hover:shadow-lg transition-shadow">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                      <span className="text-white font-semibold">
-                        {initials}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-primary truncate">{post.user.fullName}</span>
-                        {post.user.contracts?.[0]?.room?.name && (
-                          <span className="badge badge-ghost text-xs bg-tertiary">
-                            {post.user.contracts[0].room.name}
-                          </span>
-                        )}
-                        {isPinnedPost && (
-                          <span className="badge badge-warning text-xs">
-                            📌
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-tertiary">{formatRelativeTime(post.createdAt)}</p>
-                    </div>
+
+          {/* Feed */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <LoadingSpinner size={40} className="text-blue-500 mb-4" />
+              <p className="text-slate-500 text-sm animate-pulse">Đang tải tin mới...</p>
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {posts.length === 0 ? (
+                <div className="card text-center py-16 bg-white dark:bg-slate-800/50">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="text-slate-400" size={32} />
                   </div>
-                  <p className="text-primary mb-4 whitespace-pre-wrap break-words leading-relaxed">
-                    {isPinnedPost ? post.content.replace(/^📌\s*/, '') : post.content}
-                  </p>
-                  {post.images && post.images.length > 0 && (
-                    <div className="mb-4">
-                      {post.images.length === 1 ? (
-                        <div className="relative bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center rounded-xl overflow-hidden w-full max-h-[600px]">
-                          <img
-                            src={post.images[0]}
-                            alt="Post"
-                            className="w-full max-h-[600px] object-contain hover:scale-105 transition-transform duration-300 cursor-pointer"
-                          />
-                        </div>
-                      ) : (
-                        <div className={`grid gap-2 ${post.images.length === 2 ? 'grid-cols-2' : post.images.length === 3 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
-                          {post.images.slice(0, 6).map((img, idx) => (
-                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden">
-                              <img
-                                src={img}
-                                alt={`Post ${idx + 1}`}
-                                className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                              />
-                              {idx === 5 && post.images.length > 6 && (
-                                <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center">
-                                  <span className="text-white font-bold text-lg">+{post.images.length - 6}</span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-200">Không tìm thấy bài viết</h3>
+                  <p className="text-slate-500 max-w-xs mx-auto mt-2">Hãy thử đổi bộ lọc hoặc từ khóa tìm kiếm khác nhé.</p>
+                </div>
+              ) : (
+                posts.map((post) => {
+                  const initials = getInitials(post.user.fullName)
+                  const theme = getCategoryTheme(post.category)
+                  const isPinned = post.content.startsWith('📌')
+
+                  return (
+                    <div key={post.id} className="card-glass border-none shadow-xl shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-800 overflow-hidden group">
+                      {isPinned && (
+                        <div className="bg-orange-500 h-1 w-full" />
                       )}
+
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden">
+                                {post.user.avatarUrl ? (
+                                  <img src={post.user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">{initials}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-slate-800 dark:text-slate-100 leading-none">{post.user.fullName}</h3>
+                                {post.user.contracts?.[0]?.room?.name && (
+                                  <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 font-medium">
+                                    {post.user.contracts[0].room.name}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
+                                <Clock size={12} />
+                                <span>{formatRelativeTime(post.createdAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${theme.bg}`}>
+                            {theme.label}
+                          </span>
+                        </div>
+
+                        <p className="text-slate-700 dark:text-slate-300 text-[15px] leading-relaxed mb-4 whitespace-pre-wrap">
+                          {isPinned ? post.content.replace(/^📌\s*/, '') : post.content}
+                        </p>
+
+                        {post.images && post.images.length > 0 && (
+                          <div className={`grid gap-2 mb-4 rounded-xl overflow-hidden ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'
+                            }`}>
+                            {post.images.slice(0, 4).map((img, idx) => (
+                              <div key={idx} className={`relative group/img overflow-hidden bg-slate-100 dark:bg-slate-700 ${post.images.length === 3 && idx === 0 ? 'row-span-2 aspect-[3/4]' : 'aspect-square'
+                                }`}>
+                                <img
+                                  src={img}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110 cursor-zoom-in"
+                                  alt=""
+                                />
+                                {idx === 3 && post.images.length > 4 && (
+                                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                                    <span className="text-white font-bold text-xl">+{post.images.length - 4}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                          <div className="flex items-center gap-1">
+                            <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 transition-all font-medium text-xs">
+                              <ThumbsUp size={16} />
+                              <span>{postLikes[post.id] || 0}</span>
+                            </button>
+                            <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all font-medium text-xs">
+                              <MessageCircle size={16} />
+                              <span>{post.comments || 0}</span>
+                            </button>
+                          </div>
+                          <button className="p-2 text-slate-400 hover:text-blue-600 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                            <Share2 size={18} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex items-center justify-between pt-4 border-t border-primary">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleLike(post.id)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors justify-center text-sm ${likedPosts.has(post.id)
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
-                          : 'hover:bg-tertiary text-secondary'
-                          }`}
-                      >
-                        <ThumbsUp size={14} className={likedPosts.has(post.id) ? 'fill-current' : ''} />
-                        <span>{postLikes[post.id] || post.likes || 0} lượt thích</span>
-                      </button>
-                      <button
-                        onClick={() => handleComment(post.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm justify-center transition-colors"
-                      >
-                        <MessageCircle size={14} />
-                        <span>{post.comments || 0} bình luận</span>
-                      </button>
-                      <button
-                        onClick={() => handleShare(post.id)}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-tertiary text-secondary text-sm font-medium transition-colors"
-                      >
-                        <Share2 size={16} />
-                        <span>Chia sẻ</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-            {filteredPosts.length === 0 && (
-              <div className="card col-span-full">
-                <div className="text-center py-12">
-                  <p className="text-tertiary">Không có bài viết nào</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )
+                  )
+                })
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {activeTab === 'myposts' && (
         <div className="space-y-4">
           {myPosts.length === 0 ? (
-            <div className="card p-12 text-center">
-              <FileText size={48} className="mx-auto text-tertiary mb-3" />
-              <p className="text-lg font-semibold text-primary mb-2">Bạn chưa có bài viết nào</p>
-              <p className="text-tertiary mb-4">Hãy đăng bài viết đầu tiên của bạn!</p>
+            <div className="card text-center py-20">
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="text-blue-500" size={32} />
+              </div>
+              <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200">Bắt đầu câu chuyện</h3>
+              <p className="text-slate-500 max-w-xs mx-auto mt-2 mb-6">Bạn chưa đăng bài viết nào. Hãy chia sẻ bất cứ điều gì với hàng xóm nhé.</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="btn btn-primary"
+              >
+                Đăng bài ngay
+              </button>
             </div>
           ) : (
-            myPosts.map((post: Post) => {
-              const initials = getInitials(post.user.fullName)
-              const isPinnedPost = post.content.startsWith('📌')
+            myPosts.map((post) => {
+              const theme = getCategoryTheme(post.category)
               return (
-                <div key={post.id} className="card p-4 hover:shadow-lg transition-shadow">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm">{initials}</span>
+                <div key={post.id} className="card-glass border-none bg-white dark:bg-slate-800 p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`p-2.5 rounded-xl ${theme.bg}`}>
+                      <Filter size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-primary text-sm">{post.user.fullName}</span>
-                        {post.user.contracts?.[0]?.room?.name && (
-                          <span className="badge badge-ghost text-xs bg-tertiary">
-                            {post.user.contracts[0].room.name}
-                          </span>
-                        )}
-                        <span className={`badge ${post.status === 'PUBLIC' ? 'badge-success' :
-                          post.status === 'PENDING' ? 'badge-warning' : 'badge-error'
-                          } text-xs`}>
-                          {post.status === 'PUBLIC' ? 'Đã duyệt' :
-                            post.status === 'PENDING' ? 'Chờ duyệt' : 'Từ chối'}
-                        </span>
-                        {isPinnedPost && (
-                          <span className="badge badge-warning text-xs">📌</span>
-                        )}
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{theme.label}</span>
+                        <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${post.status === 'PUBLIC'
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/30'
+                            : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30'
+                          }`}>
+                          {post.status === 'PUBLIC' ? 'Đã duyệt' : 'Đang chờ'}
+                        </div>
                       </div>
-                      <p className="text-sm text-primary line-clamp-2 mb-2">
-                        {isPinnedPost ? post.content.replace(/^📌\s*/, '') : post.content}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-tertiary">
-                        <Clock size={12} />
-                        <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+                      <p className="text-slate-800 dark:text-slate-200 font-medium line-clamp-2 mb-2">{post.content}</p>
+                      <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                        <span className="flex items-center gap-1"><Clock size={10} /> {formatRelativeTime(post.createdAt)}</span>
                         <span>•</span>
-                        <span>{post.likes || 0} likes</span>
+                        <span>{post.likes || 0} thích</span>
                         <span>•</span>
                         <span>{post.comments || 0} bình luận</span>
                       </div>
@@ -594,6 +448,92 @@ export default function CommunityPage() {
               )
             })
           )}
+        </div>
+      )}
+
+      {/* Mobile Floating Action Button */}
+      <button
+        onClick={() => setShowCreateModal(true)}
+        className="fixed bottom-24 right-6 sm:hidden w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl flex items-center justify-center z-50 animate-bounce group"
+      >
+        <Plus size={28} className="transition-transform group-hover:rotate-90" />
+      </button>
+
+      {/* Create Post Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
+          <div className="relative bg-white dark:bg-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-500">
+            <div className="flex items-center justify-between p-4 border-b border-primary">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Đăng bài viết mới</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-400"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4 max-h-[80vh] overflow-y-auto no-scrollbar">
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {CATEGORIES.slice(1).map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setNewPostCategory(cat.id as any)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${newPostCategory === cat.id
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                      }`}
+                  >
+                    <cat.icon size={14} />
+                    <span className="text-xs font-bold">{cat.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+                placeholder="Hàng xóm ơi, hôm nay có chuyện gì vui thế?"
+                className="w-full min-h-[150px] p-4 bg-slate-50 dark:bg-slate-900/50 border-none rounded-2xl text-[15px] focus:ring-0 resize-none text-slate-800 dark:text-slate-200"
+              />
+
+              {selectedImages.length > 0 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {selectedImages.map((url, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                      <img src={url} className="w-full h-full object-cover" alt="" />
+                      <button
+                        onClick={() => setSelectedImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-blue-600 hover:text-blue-700 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                    <ImageIcon size={20} />
+                  </div>
+                  <span className="text-sm font-bold">Thêm ảnh</span>
+                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageSelect} />
+                </label>
+
+                <button
+                  onClick={handleCreatePost}
+                  disabled={!newPostContent.trim() || posting || uploadingImages}
+                  className="btn btn-primary px-8 rounded-xl h-12 flex items-center gap-2"
+                >
+                  {posting ? <LoadingSpinner size={16} /> : <Send size={18} />}
+                  <span>{posting ? 'Đang đăng...' : 'Đăng ngay'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

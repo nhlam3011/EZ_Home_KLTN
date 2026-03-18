@@ -85,9 +85,9 @@
 .dark {
   /* Dark Mode Colors - Brighter & Modern */
   --bg-primary: #1e293b;
-  --bg-secondary: #1e293b;
+  --bg-secondary: #0f172a;
   --bg-tertiary: #334155;
-  --bg-glass: rgba(30, 41, 59, 0.95);
+  --bg-glass: rgba(15, 23, 42, 0.95);
 
   --text-primary: #f8fafc;
   --text-secondary: #e2e8f0;
@@ -152,6 +152,16 @@
 }
 
 @theme inline {
+  --color-primary: var(--bg-primary);
+  --color-secondary: var(--bg-secondary);
+  --color-tertiary: var(--bg-tertiary);
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent-blue: var(--accent-blue);
+
   --color-background: var(--bg-secondary);
   --color-foreground: var(--text-primary);
   --font-sans: var(--font-inter);
@@ -250,13 +260,13 @@ body {
 }
 
 .dark .card {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-color: var(--border-primary);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
 .dark .card:hover {
-  background: rgba(37, 48, 66, 0.821);
+  background: #253041;
   border-color: var(--border-secondary);
 }
 

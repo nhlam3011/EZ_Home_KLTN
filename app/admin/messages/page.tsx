@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { MessageSquare, Send, Search, ArrowLeft, Image as ImageIcon, X, Trash2, Building2, Menu, Phone, Video } from 'lucide-react'
+import { MessageSquare, Send, Search, ArrowLeft, Image as ImageIcon, X, Trash2, Building2, Menu, Phone, Video, Smile } from 'lucide-react'
 import Link from 'next/link'
 import Loading from '@/components/Loading'
 import { pusherClient } from '@/lib/pusher-client'
@@ -63,6 +63,9 @@ export default function AdminMessagesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [isMeTyping, setIsMeTyping] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const emojiPickerRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -132,8 +135,15 @@ export default function AdminMessagesPage() {
       }
     }
 
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false)
+      }
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
+    document.addEventListener('mousedown', handleClickOutside)
 
     return () => {
       if (debounceTimeout) {
@@ -141,6 +151,7 @@ export default function AdminMessagesPage() {
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [user, selectedTenant, messagesByTenant])
 
@@ -463,6 +474,76 @@ export default function AdminMessagesPage() {
   const handleRemoveImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index))
   }
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const files: File[] = []
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile()
+        if (file) files.push(file)
+      }
+    }
+
+    if (files.length > 0) {
+      setUploadingImages(true)
+      try {
+        const uploadPromises = files.map(async (file) => {
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error('File size must be less than 5MB')
+          }
+
+          const formData = new FormData()
+          formData.append('file', file)
+
+          const response = await fetch('/api/messages/upload', {
+            method: 'POST',
+            body: formData
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.error || 'Failed to upload image')
+          }
+
+          const data = await response.json()
+          return data.url
+        })
+
+        const uploadedUrls = await Promise.all(uploadPromises)
+        setSelectedImages(prev => [...prev, ...uploadedUrls])
+      } catch (error: any) {
+        alert(error.message || 'Có lỗi xảy ra khi tải ảnh lên')
+      } finally {
+        setUploadingImages(false)
+      }
+    }
+  }
+
+  const insertEmoji = (emoji: string) => {
+    if (textareaRef.current) {
+      const start = textareaRef.current.selectionStart
+      const end = textareaRef.current.selectionEnd
+      const text = newMessage
+      const before = text.substring(0, start)
+      const after = text.substring(end)
+      setNewMessage(before + emoji + after)
+
+      // Reset cursor position after state update
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus()
+          textareaRef.current.setSelectionRange(start + emoji.length, start + emoji.length)
+        }
+      }, 0)
+    } else {
+      setNewMessage(prev => prev + emoji)
+    }
+    setShowEmojiPicker(false)
+  }
+
+  const emojis = ['😊', '😂', '🥰', '😍', '😒', '😭', '👍', '❤️', '🔥', '✨', '✔️', '❌', '🏠', '🔑', '💰', '📅']
 
   const handleDeleteHistory = () => {
     if (!selectedTenant || !user) return
@@ -947,51 +1028,50 @@ export default function AdminMessagesPage() {
                         )}
 
                         <div className={`flex flex-col max-w-[85%] sm:max-w-[70%] ${isAdmin ? 'items-end' : 'items-start'}`}>
-                          <div
-                            className={`message-bubble relative transition-all duration-200 shadow-sm ${isAdmin ? 'bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'}`}
-                            style={{
-                              padding: message.images?.length > 0 ? '4px' : '10px 14px',
-                              borderRadius: isAdmin
-                                ? (isFirstInGroup && isLastInGroup ? '20px 20px 4px 20px' :
-                                  isFirstInGroup ? '20px 20px 4px 20px' :
-                                    isLastInGroup ? '20px 4px 20px 20px' : '20px 4px 4px 20px')
-                                : (isFirstInGroup && isLastInGroup ? '20px 20px 20px 4px' :
-                                  isFirstInGroup ? '20px 20px 20px 4px' :
-                                    isLastInGroup ? '4px 20px 20px 20px' : '4px 20px 20px 4px'),
-                            }}
-                          >
-                            {message.images && message.images.length > 0 && (
-                              <div className={`grid gap-1 overflow-hidden ${message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`} style={{ borderRadius: '16px' }}>
-                                {message.images.map((img, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={img}
-                                    alt=""
-                                    className="cursor-zoom-in hover:brightness-110 transition-all w-full h-auto max-h-72 object-cover rounded-lg"
-                                    onClick={() => setViewingImage(img)}
-                                  />
-                                ))}
-                              </div>
-                            )}
+                          {message.images && message.images.length > 0 && (
+                            <div className={`grid gap-1 mb-1 overflow-hidden ${message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`} style={{ borderRadius: '16px' }}>
+                              {message.images.map((img, idx) => (
+                                <img
+                                  key={idx}
+                                  src={img}
+                                  alt=""
+                                  className="cursor-zoom-in hover:brightness-110 transition-all w-full h-auto max-h-72 object-cover rounded-xl shadow-sm"
+                                  onClick={() => setViewingImage(img)}
+                                />
+                              ))}
+                            </div>
+                          )}
 
-                            {message.content && (
-                              <p className={`text-[15px] leading-snug whitespace-pre-wrap break-words ${message.images?.length > 0 ? 'px-3 py-2' : ''}`}>
+                          {message.content && (
+                            <div
+                              className={`message-bubble relative transition-all duration-200 shadow-sm ${isAdmin ? 'bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]'}`}
+                              style={{
+                                padding: '10px 14px',
+                                borderRadius: isAdmin
+                                  ? (isFirstInGroup && isLastInGroup ? '20px 20px 4px 20px' :
+                                    isFirstInGroup ? '20px 20px 4px 20px' :
+                                      isLastInGroup ? '20px 4px 20px 20px' : '20px 4px 4px 20px')
+                                  : (isFirstInGroup && isLastInGroup ? '20px 20px 20px 4px' :
+                                    isFirstInGroup ? '20px 20px 20px 4px' :
+                                      isLastInGroup ? '4px 20px 20px 20px' : '4px 20px 20px 4px'),
+                              }}
+                            >
+                              <p className="text-[15px] leading-snug whitespace-pre-wrap break-words">
                                 {message.content}
                               </p>
-                            )}
-                          </div>
-
-                          {isLastInGroup && (
-                            <div className={`mt-1 flex items-center gap-1 px-1 transition-opacity duration-300 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
-                              <span className="text-[10px] font-medium text-[var(--text-tertiary)]/70">
-                                {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                              {isAdmin && message.isRead && (
-                                <span className="text-[10px] font-bold text-[var(--accent-blue)] ml-1">Đã xem</span>
-                              )}
                             </div>
                           )}
                         </div>
+                        {isLastInGroup && (
+                          <div className={`mt-1 flex items-center gap-1 px-1 transition-opacity duration-300 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
+                            <span className="text-[10px] font-medium text-[var(--text-tertiary)]/70">
+                              {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {isAdmin && message.isRead && (
+                              <span className="text-[10px] font-bold text-[var(--accent-blue)] ml-1">Đã xem</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )
@@ -1062,11 +1142,40 @@ export default function AdminMessagesPage() {
                   >
                     <ImageIcon size={22} fill="currentColor" fillOpacity={0.1} />
                   </button>
+
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="w-[50px] h-[50px] rounded-full flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--accent-blue)] transition-all shadow-sm hover:scale-105 active:scale-95"
+                      title="Emoji"
+                    >
+                      <Smile size={22} fill="currentColor" fillOpacity={0.1} />
+                    </button>
+
+                    {showEmojiPicker && (
+                      <div
+                        ref={emojiPickerRef}
+                        className="absolute bottom-16 left-0 p-3 bg-[var(--bg-primary)] rounded-2xl shadow-2xl border border-[var(--border-primary)] grid grid-cols-4 gap-2 z-[60] animate-scaleIn min-w-[180px]"
+                      >
+                        {emojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => insertEmoji(emoji)}
+                            className="text-2xl hover:bg-[var(--bg-tertiary)] p-2 rounded-xl transition-all active:scale-90"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex-1 h-[50px] relative bg-[var(--bg-tertiary)] rounded-[24px] overflow-hidden border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center">
                   <textarea
+                    ref={textareaRef}
                     value={newMessage}
+                    onPaste={handlePaste}
                     onChange={(e) => {
                       setNewMessage(e.target.value)
                       handleTyping(true)
@@ -1140,40 +1249,42 @@ export default function AdminMessagesPage() {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
-          onClick={() => setShowDeleteModal(false)}
-        >
+      {
+        showDeleteModal && (
           <div
-            className="bg-[var(--bg-primary)] rounded-[32px] max-w-sm w-full p-8 shadow-2xl animate-scaleIn border border-[var(--border-primary)]"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+            onClick={() => setShowDeleteModal(false)}
           >
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-6 mx-auto">
-              <Trash2 size={32} className="text-red-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3 text-center tracking-tight">Xóa trò chuyện?</h2>
-            <p className="text-[var(--text-secondary)] mb-8 text-center text-[14px]">
-              Tất cả nội dung của cuộc trò chuyện này sẽ được dọn sạch. Bạn không thể hoàn tác hành động này.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={confirmDeleteHistory}
-                disabled={deleting}
-                className="w-full py-4 rounded-2xl bg-red-500 text-white text-[15px] font-bold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 active:scale-95 disabled:opacity-50"
-              >
-                {deleting ? 'Đang dọn dẹp...' : 'Xác nhận xóa'}
-              </button>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="w-full py-4 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[15px] font-bold transition-all hover:bg-[var(--border-primary)]"
-              >
-                Giữ lại cuộc trò chuyện
-              </button>
+            <div
+              className="bg-[var(--bg-primary)] rounded-[32px] max-w-sm w-full p-8 shadow-2xl animate-scaleIn border border-[var(--border-primary)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-6 mx-auto">
+                <Trash2 size={32} className="text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-3 text-center tracking-tight">Xóa trò chuyện?</h2>
+              <p className="text-[var(--text-secondary)] mb-8 text-center text-[14px]">
+                Tất cả nội dung của cuộc trò chuyện này sẽ được dọn sạch. Bạn không thể hoàn tác hành động này.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={confirmDeleteHistory}
+                  disabled={deleting}
+                  className="w-full py-4 rounded-2xl bg-red-500 text-white text-[15px] font-bold transition-all shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 active:scale-95 disabled:opacity-50"
+                >
+                  {deleting ? 'Đang dọn dẹp...' : 'Xác nhận xóa'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="w-full py-4 rounded-2xl bg-[var(--bg-tertiary)] text-[var(--text-primary)] text-[15px] font-bold transition-all hover:bg-[var(--border-primary)]"
+                >
+                  Giữ lại cuộc trò chuyện
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
@@ -1214,6 +1325,6 @@ export default function AdminMessagesPage() {
           padding-bottom: max(1rem, env(safe-area-inset-bottom));
         }
       `}</style>
-    </div>
+    </div >
   )
 }

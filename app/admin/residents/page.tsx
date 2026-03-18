@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
-import { Plus, Download, Search, Eye, Edit, Users, Building2, Calendar, Wallet, Phone, Mail, MapPin, LogOut, X, CheckCircle } from 'lucide-react'
+import { Plus, Download, Search, Eye, Edit, Users, Building2, Calendar, Wallet, Phone, Mail, MapPin, LogOut, X, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, Home } from 'lucide-react'
 import Loading from '@/components/Loading'
 
 interface Resident {
@@ -78,6 +78,8 @@ export default function ResidentsPage() {
   const [showCheckoutModal, setShowCheckoutModal] = useState(false)
   const [checkoutData, setCheckoutData] = useState<{ id: number; name: string } | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [showFloorDropdown, setShowFloorDropdown] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   useEffect(() => {
     fetchResidents()
@@ -230,21 +232,21 @@ export default function ResidentsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý Cư dân & Hợp đồng</h1>
           <p className="text-secondary mt-1 text-sm sm:text-base">Quản lý thông tin cư dân và hợp đồng thuê phòng</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-          <button
-            onClick={handleExport}
-            className="btn btn-secondary btn-sm sm:btn-md"
-          >
-            <Download size={18} strokeWidth={2} />
-            <span>Export</span>
-          </button>
+        <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">
           <Link
             href="/admin/residents/new"
-            className="btn btn-primary btn-sm sm:btn-md"
+            className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
           >
             <Plus size={18} />
-            <span>Check-in Mới</span>
+            <span className="font-bold">Check-in Mới</span>
           </Link>
+          <button
+            onClick={handleExport}
+            className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-2 lg:order-none"
+          >
+            <Download size={18} strokeWidth={2} />
+            <span className="font-bold">Export</span>
+          </button>
         </div>
       </div>
 
@@ -297,50 +299,112 @@ export default function ResidentsPage() {
       </div>
 
       {/* Search and Filters */}
-      <div className="card p-3 sm:p-4">
+      <div className="card p-3 sm:p-4 mb-6 !overflow-visible relative z-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TẦNG:</label>
-            <select
-              value={floorFilter}
+          <div className="relative w-full">
+            <button
+              onClick={() => setShowFloorDropdown(!showFloorDropdown)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showFloorDropdown
+                ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                }`}
+            >
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500">
+                <Building2 size={14} />
+              </div>
+              <div className="text-left pr-1 flex-1">
+                <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                  TẦNG: {floorFilter === 'all' ? 'TẤT CẢ' : `TẦNG ${floorFilter}`}
+                </p>
+              </div>
+              <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showFloorDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showFloorDropdown && (
+              <>
+                <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowFloorDropdown(false)} />
+                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left max-h-[300px] overflow-y-auto no-scrollbar">
+                  <button
+                    onClick={() => { setFloorFilter('all'); setShowFloorDropdown(false); setCurrentPage(1); }}
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${floorFilter === 'all' ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                  >
+                    TẤT CẢ CÁC TẦNG
+                  </button>
+                  {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
+                    <button
+                      key={floor}
+                      onClick={() => { setFloorFilter(floor.toString()); setShowFloorDropdown(false); setCurrentPage(1); }}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all mt-1 whitespace-nowrap ${floorFilter === floor.toString() ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                    >
+                      TẦNG {floor}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="relative w-full">
+            <button
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showStatusDropdown
+                ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                }`}
+            >
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                statusFilter === 'active' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                  'bg-gray-50 dark:bg-gray-900/20 text-gray-500'
+                }`}>
+                {statusFilter === 'all' && <Users size={14} />}
+                {statusFilter === 'active' && <CheckCircle size={14} />}
+                {statusFilter === 'inactive' && <LogOut size={14} />}
+              </div>
+              <div className="text-left pr-1 flex-1">
+                <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                  TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' : statusFilter === 'active' ? 'ĐANG Ở' : 'ĐÃ RỜI ĐI'}
+                </p>
+              </div>
+              <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showStatusDropdown && (
+              <>
+                <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                  {[
+                    { id: 'all', label: 'TẤT CẢ CƯ DÂN', icon: <Users size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                    { id: 'active', label: 'ĐANG Ở', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                    { id: 'inactive', label: 'ĐÃ DỜI ĐI', icon: <LogOut size={16} />, color: 'text-gray-500', bg: 'bg-gray-50/50 dark:bg-gray-900/10' }
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false); setCurrentPage(1); }}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                    >
+                      <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                        {item.icon}
+                      </div>
+                      <span className="uppercase">{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+            <input
+              type="text"
+              placeholder="Tìm tên, số điện thoại, phòng..."
+              value={search}
               onChange={(e) => {
-                setFloorFilter(e.target.value)
+                setSearch(e.target.value)
                 setCurrentPage(1)
               }}
-              className="select flex-1"
-            >
-              <option value="all">Tất cả</option>
-              {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
-                <option key={floor} value={floor}>Tầng {floor}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value)
-                setCurrentPage(1)
-              }}
-              className="select flex-1"
-            >
-              <option value="all">Tất cả</option>
-              <option value="ACTIVE">Đang thuê</option>
-              <option value="INACTIVE">Đã chuyển đi</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Tìm kiếm..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input input-with-icon w-full pr-4 py-2 text-sm"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
-            </div>
+              className="input input-with-icon w-full pl-10 h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700"
+            />
           </div>
         </div>
       </div>
@@ -451,7 +515,7 @@ export default function ResidentsPage() {
                         <td className="flex justify-center px-3 sm:px-4 py-3 sm:py-4 mt-[6px]">
                           {contract ? (
                             <div>
-                              <Badge color={depositStatus.color} className="rounded font-semibold inline-flex items-center justify-center">
+                              <Badge color={depositStatus.color} className="rounded font-semibold inline-flex items-center justify-center py-1 min-h-[24px]">
                                 {depositStatus.label}
                               </Badge>
                               {contract.deposit > 0 && (

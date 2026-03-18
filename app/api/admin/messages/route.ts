@@ -5,6 +5,7 @@ import { sendMessageReceivedEmail } from '@/lib/email'
 import { pusherServer, CHANNELS, EVENTS } from '@/lib/pusher'
 
 // GET /api/admin/messages - Lấy danh sách tin nhắn
+// OPTIMIZED: Fixed N+1 query problem and reduced database calls
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -51,186 +52,169 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Đếm tổng số tin nhắn
-    const totalMessages = await prisma.message.count({ where })
-
-    // Lấy tin nhắn với pagination
-    const messages = await prisma.message.findMany({
-      where,
-      include: {
-        sender: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            role: true
+    // OPTIMIZATION: Execute count and main message query in parallel
+    const [totalMessages, messages] = await Promise.all([
+      prisma.message.count({ where }),
+      prisma.message.findMany({
+        where,
+        include: {
+          sender: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              role: true
+            }
+          },
+          receiver: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              role: true
+            }
           }
         },
-        receiver: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            role: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit
-    })
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      })
+    ])
 
-    // Lấy danh sách tenants đã có tin nhắn với admin (distinct)
-    const tenantMessageData = await prisma.message.groupBy({
-      by: ['senderId', 'receiverId'],
+    // OPTIMIZATION: Get last message for each tenant using a simple approach
+    // Get all messages ordered by createdAt desc, then deduplicate by partner
+    const allConversationMessages = await prisma.message.findMany({
       where: {
         OR: [
           { senderId: adminUser.id },
           { receiverId: adminUser.id }
         ]
       },
-      _max: {
-        createdAt: true
-      }
-    })
-
-    // Lấy unique tenant IDs và thời gian tin nhắn mới nhất cho mỗi tenant
-    const latestMessageMap = new Map<number, Date>()
-    tenantMessageData.forEach(msg => {
-      const partnerId = msg.senderId === adminUser.id ? msg.receiverId : msg.senderId
-      const currentMax = latestMessageMap.get(partnerId)
-      const msgMax = msg._max.createdAt
-
-      if (msgMax && (!currentMax || msgMax > currentMax)) {
-        latestMessageMap.set(partnerId, msgMax)
-      }
-    })
-
-    const tenantIds = Array.from(latestMessageMap.keys())
-
-    // Lấy thông tin tenants cùng với phòng và số tin nhắn chưa đọc
-    const tenantsWithUnread = await prisma.user.findMany({
-      where: {
-        id: { in: tenantIds },
-        role: 'TENANT',
-        isActive: true
+      include: {
+        sender: {
+          select: { id: true, role: true }
+        }
       },
-      select: {
-        id: true,
-        fullName: true,
-        avatarUrl: true,
-        phone: true,
-        contracts: {
-          where: { status: 'ACTIVE' },
-          include: {
-            room: {
-              select: {
-                id: true,
-                name: true,
-                floor: true
-              }
-            }
-          },
-          take: 1,
-          orderBy: { startDate: 'desc' }
-        },
-        _count: {
-          select: {
-            sentMessages: {
-              where: {
-                receiverId: adminUser.id,
-                isRead: false
-              }
-            }
-          }
-        }
+      orderBy: { createdAt: 'desc' },
+      take: 500 // Limit to recent messages for performance
+    })
+
+    // Build a map of partner ID to last message (first occurrence = latest due to desc order)
+    const lastMessageMap = new Map<number, {
+      content: string
+      createdAt: Date
+      images: string
+      senderRole: string
+    }>()
+
+    allConversationMessages.forEach(msg => {
+      const partnerId = msg.senderId === adminUser.id ? msg.receiverId : msg.senderId
+      // Only keep the first (latest) message for each partner
+      if (!lastMessageMap.has(partnerId)) {
+        lastMessageMap.set(partnerId, {
+          content: msg.content,
+          createdAt: msg.createdAt,
+          images: Array.isArray(msg.images) ? JSON.stringify(msg.images) : '[]',
+          senderRole: msg.sender.role
+        })
       }
     })
 
-    // Lấy tin nhắn cuối cùng cho mỗi tenant để hiển thị ở sidebar
-    const tenantsWithLastMessage = await Promise.all(tenantsWithUnread.map(async (tenant) => {
-      const lastMessage = await prisma.message.findFirst({
+    const tenantIdsWithMessages = Array.from(lastMessageMap.keys())
+
+    // OPTIMIZATION: Get all tenants in a single query with combined data
+    // Fetch tenants that have messages AND tenants without messages in one go
+    const [tenantsWithUnread, allTenantsNoMsg] = await Promise.all([
+      // Tenants with messages (get unread count)
+      prisma.user.findMany({
         where: {
-          OR: [
-            { senderId: adminUser.id, receiverId: tenant.id },
-            { senderId: tenant.id, receiverId: adminUser.id }
-          ]
+          id: { in: tenantIdsWithMessages },
+          role: 'TENANT',
+          isActive: true
         },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          sender: {
-            select: { role: true }
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+          phone: true,
+          contracts: {
+            where: { status: 'ACTIVE' },
+            include: {
+              room: {
+                select: {
+                  id: true,
+                  name: true,
+                  floor: true
+                }
+              }
+            },
+            take: 1,
+            orderBy: { startDate: 'desc' }
+          },
+          _count: {
+            select: {
+              sentMessages: {
+                where: {
+                  receiverId: adminUser.id,
+                  isRead: false
+                }
+              }
+            }
           }
         }
+      }),
+      // Tenants without any messages
+      prisma.user.findMany({
+        where: {
+          role: 'TENANT',
+          isActive: true,
+          id: { notIn: tenantIdsWithMessages }
+        },
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+          phone: true,
+          contracts: {
+            where: { status: 'ACTIVE' },
+            include: {
+              room: {
+                select: {
+                  id: true,
+                  name: true,
+                  floor: true
+                }
+              }
+            },
+            take: 1,
+            orderBy: { startDate: 'desc' }
+          }
+        },
+        orderBy: { fullName: 'asc' },
+        take: 50
       })
+    ])
 
+    // Format tenants WITH messages - use the map for last message data
+    const formattedTenants = tenantsWithUnread.map(tenant => {
+      const lastMsg = lastMessageMap.get(tenant.id)
       return {
-        ...tenant,
-        lastMessage: lastMessage ? {
-          content: lastMessage.content,
-          createdAt: lastMessage.createdAt,
-          images: lastMessage.images,
-          senderRole: lastMessage.sender.role
+        id: tenant.id,
+        fullName: tenant.fullName,
+        avatarUrl: tenant.avatarUrl,
+        phone: tenant.phone,
+        room: tenant.contracts[0]?.room || null,
+        unreadCount: tenant._count.sentMessages,
+        lastMessage: lastMsg ? {
+          content: lastMsg.content,
+          createdAt: lastMsg.createdAt,
+          images: JSON.parse(lastMsg.images || '[]'),
+          senderRole: lastMsg.senderRole
         } : null
       }
-    }))
-
-    // Sort tenants by last message time descending
-    tenantsWithLastMessage.sort((a, b) => {
-      const timeA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0
-      const timeB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0
-      return timeB - timeA
     })
 
-    // Format tenants cho response
-    const formattedTenants = tenantsWithLastMessage.map(tenant => ({
-      id: tenant.id,
-      fullName: tenant.fullName,
-      avatarUrl: tenant.avatarUrl,
-      phone: tenant.phone,
-      room: tenant.contracts[0]?.room || null,
-      unreadCount: tenant._count.sentMessages,
-      lastMessage: tenant.lastMessage
-    }))
-
-    // Tạo unreadCounts object
-    const unreadCounts: Record<number, number> = {}
-    formattedTenants.forEach(tenant => {
-      unreadCounts[tenant.id] = tenant.unreadCount
-    })
-
-    // Lấy tất cả tenants active cho trường hợp tenant mới chưa có tin nhắn
-    const allTenantsNoMsg = await prisma.user.findMany({
-      where: {
-        role: 'TENANT',
-        isActive: true,
-        id: { notIn: tenantIds }
-      },
-      select: {
-        id: true,
-        fullName: true,
-        avatarUrl: true,
-        phone: true,
-        contracts: {
-          where: { status: 'ACTIVE' },
-          include: {
-            room: {
-              select: {
-                id: true,
-                name: true,
-                floor: true
-              }
-            }
-          },
-          take: 1,
-          orderBy: { startDate: 'desc' }
-        }
-      },
-      orderBy: { fullName: 'asc' },
-      take: 50
-    })
-
-    // Format tenants không có tin nhắn
+    // Format tenants WITHOUT messages
     const otherTenants = allTenantsNoMsg.map(tenant => ({
       id: tenant.id,
       fullName: tenant.fullName,
@@ -241,8 +225,21 @@ export async function GET(request: NextRequest) {
       lastMessage: null
     }))
 
-    // Kết hợp cả hai danh sách - Ưu tiên tenants có tin nhắn trước
+    // Sort tenants WITH messages by last message time descending
+    formattedTenants.sort((a, b) => {
+      const timeA = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0
+      const timeB = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0
+      return timeB - timeA
+    })
+
+    // Combine both lists - prioritize tenants with messages
     const allFormattedTenants = [...formattedTenants, ...otherTenants]
+
+    // Create unreadCounts object
+    const unreadCounts: Record<number, number> = {}
+    formattedTenants.forEach(tenant => {
+      unreadCounts[tenant.id] = tenant.unreadCount
+    })
 
     return NextResponse.json({
       messages,

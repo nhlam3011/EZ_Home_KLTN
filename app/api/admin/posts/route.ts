@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status') // 'all', 'PENDING', 'PUBLIC'
     const search = searchParams.get('search')
+    const category = searchParams.get('category')
 
     const where: any = {
       // Filter out invoice notification posts (they start with "[Hóa đơn #")
@@ -19,6 +20,10 @@ export async function GET(request: NextRequest) {
 
     if (status && status !== 'all') {
       where.status = status
+    }
+
+    if (category && category !== 'ALL') {
+      where.category = category
     }
 
     if (search) {
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { content, images, status, userId } = body
+    const { content, images, status, userId, category } = body
 
     if (!content) {
       return NextResponse.json(
@@ -92,6 +97,7 @@ export async function POST(request: NextRequest) {
         userId: adminUser.id,
         content,
         images: images || [],
+        category: category || 'ANNOUNCEMENT',
         status: status || 'PUBLIC' // Admin posts are automatically public
       },
       include: {

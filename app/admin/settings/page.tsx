@@ -125,7 +125,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 animate-fadeIn pb-10">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -133,32 +133,32 @@ export default function SettingsPage() {
                     <p className="text-sm text-[var(--text-secondary)] mt-1 font-medium">Quản lý và tùy chỉnh các thiết lập của EZ-Home</p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <button
                         onClick={handleReset}
-                        className="btn-soft-blue flex items-center gap-2 text-sm font-bold h-11 px-6 rounded-2xl transition-all hover:opacity-80 active:scale-95"
+                        className="btn-soft-blue flex items-center justify-center gap-2 text-sm font-bold h-10 sm:h-11 px-4 sm:px-6 rounded-xl sm:rounded-2xl transition-all hover:opacity-80 active:scale-95 flex-1 sm:flex-none"
                     >
                         <RotateCcw size={18} />
-                        <span>Khôi phục</span>
+                        <span className="whitespace-nowrap">Khôi phục</span>
                     </button>
                     <button
                         onClick={handleExport}
-                        className="btn-soft-blue flex items-center gap-2 text-sm font-bold h-11 px-6 rounded-2xl transition-all hover:opacity-80 active:scale-95"
+                        className="btn-soft-blue flex items-center justify-center gap-2 text-sm font-bold h-10 sm:h-11 px-4 sm:px-6 rounded-xl sm:rounded-2xl transition-all hover:opacity-80 active:scale-95 flex-1 sm:flex-none"
                     >
                         <Download size={18} />
-                        <span>Export</span>
+                        <span className="whitespace-nowrap">Export</span>
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="btn-premium-blue flex items-center gap-2 text-sm font-bold h-11 px-8 rounded-2xl shadow-lg shadow-blue-500/20 transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+                        className="btn-premium-blue flex items-center justify-center gap-2 text-sm font-bold h-10 sm:h-11 px-6 sm:px-8 rounded-xl sm:rounded-2xl shadow-lg shadow-blue-500/20 transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 w-full sm:w-auto"
                     >
                         {saving ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <Save size={18} />
                         )}
-                        <span>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+                        <span className="whitespace-nowrap">{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
                     </button>
                 </div>
             </div>
@@ -174,7 +174,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                 {/* Navigation */}
                 <div className="lg:col-span-1 space-y-4">
-                    <div className="bg-[var(--bg-primary)] rounded-2xl p-2 border border-[var(--border-primary)] shadow-sm">
+                    <div className="bg-[var(--bg-primary)] rounded-2xl p-2 border border-[var(--border-primary)] shadow-sm flex lg:flex-col overflow-x-auto lg:overflow-x-visible no-scrollbar gap-1 custom-scrollbar">
                         {categories.map(cat => {
                             const Icon = cat.icon
                             const isActive = activeTab === cat.key
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                                     key={cat.key}
                                     onClick={() => setActiveTab(cat.key)}
                                     className={`
-                                        w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group
+                                        flex items-center justify-between px-4 py-2.5 lg:py-3 rounded-xl transition-all duration-200 group whitespace-nowrap lg:whitespace-normal flex-shrink-0 lg:flex-shrink
                                         ${isActive
                                             ? 'bg-[var(--accent-blue)] text-white shadow-md'
                                             : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'}
@@ -193,7 +193,7 @@ export default function SettingsPage() {
                                         <Icon size={18} className={isActive ? 'text-white' : 'text-[var(--accent-blue)]'} />
                                         <span className="text-sm font-bold">{cat.label}</span>
                                     </div>
-                                    {isActive && <ChevronRight size={14} className="opacity-50" />}
+                                    {isActive && <ChevronRight size={14} className="opacity-50 hidden lg:block" />}
                                 </button>
                             )
                         })}

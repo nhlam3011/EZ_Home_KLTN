@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Badge } from 'flowbite-react'
-import { Check, X, Clock, RefreshCw, FileText, User, Calendar, Loader2, Search, Phone, Mail, Building2, CheckCircle } from 'lucide-react'
+import { Check, X, Clock, RefreshCw, FileText, User, Calendar, Loader2, Search, Phone, Mail, Building2, CheckCircle, ChevronDown, Filter, Plus } from 'lucide-react'
 
 interface RenewalRequest {
     id: number
@@ -36,10 +36,30 @@ interface RenewalRequest {
     }
 }
 
+interface Contract {
+    id: number
+    userId: number
+    startDate: string
+    endDate: string
+    status: string
+    user: {
+        id: number
+        fullName: string
+        phone: string
+        email: string | null
+    }
+    room: {
+        id: number
+        name: string
+        floor: number
+    }
+}
+
 export default function RenewalsPage() {
     const [requests, setRequests] = useState<RenewalRequest[]>([])
     const [loading, setLoading] = useState(true)
     const [statusFilter, setStatusFilter] = useState('all')
+    const [showStatusDropdown, setShowStatusDropdown] = useState(false)
     const [search, setSearch] = useState('')
     const [processingId, setProcessingId] = useState<number | null>(null)
     const [showModal, setShowModal] = useState(false)
@@ -48,6 +68,16 @@ export default function RenewalsPage() {
     const [action, setAction] = useState<'APPROVE' | 'REJECT' | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
+
+    // State for direct contract extension
+    const [showExtendModal, setShowExtendModal] = useState(false)
+    const [contracts, setContracts] = useState<Contract[]>([])
+    const [loadingContracts, setLoadingContracts] = useState(false)
+    const [contractSearch, setContractSearch] = useState('')
+    const [selectedContract, setSelectedContract] = useState<Contract | null>(null)
+    const [extendNote, setExtendNote] = useState('')
+    const [extendingContract, setExtendingContract] = useState(false)
+    const [showContractDropdown, setShowContractDropdown] = useState(false)
 
     const fetchRequests = useCallback(async () => {
         try {
@@ -143,7 +173,7 @@ export default function RenewalsPage() {
         }
         const badge = statusMap[status] || { label: status, color: 'gray' }
         return (
-            <Badge color={badge.color} className="whitespace-nowrap rounded font-medium inline-flex">
+            <Badge color={badge.color} className="whitespace-nowrap rounded font-medium inline-flex justify-center py-1.5 min-h-[28px]">
                 {badge.label}
             </Badge>
         )
@@ -153,6 +183,86 @@ export default function RenewalsPage() {
     const approvedCount = requests.filter(r => r.status === 'APPROVED').length
     const rejectedCount = requests.filter(r => r.status === 'REJECTED').length
 
+    // Fetch contracts for extension
+    const fetchContracts = useCallback(async () => {
+        try {
+            setLoadingContracts(true)
+            const url = contractSearch
+                ? `/api/admin/contracts?search=${encodeURIComponent(contractSearch)}`
+                : '/api/admin/contracts'
+
+            const response = await fetch(url)
+            if (response.ok) {
+                const data = await response.json()
+                setContracts(data.contracts || [])
+            }
+        } catch (error) {
+            console.error('Error fetching contracts:', error)
+        } finally {
+            setLoadingContracts(false)
+        }
+    }, [contractSearch])
+
+    useEffect(() => {
+        if (showExtendModal) {
+            fetchContracts()
+        }
+    }, [showExtendModal, fetchContracts])
+
+    const filteredContracts = contracts.filter(c => {
+        if (!contractSearch) return true
+        const searchLower = contractSearch.toLowerCase()
+        return (
+            c.user.fullName.toLowerCase().includes(searchLower) ||
+            c.user.phone.includes(contractSearch) ||
+            c.room.name.toLowerCase().includes(searchLower)
+        )
+    })
+
+    const handleExtendContract = async () => {
+        if (!selectedContract) {
+            alert('Vui lòng chọn hợp đồng')
+            return
+        }
+
+        const newEndDate = (document.getElementById('newEndDate') as HTMLInputElement)?.value
+        if (!newEndDate) {
+            alert('Vui lòng chọn ngày kết thúc mới')
+            return
+        }
+
+        setExtendingContract(true)
+        try {
+            const response = await fetch('/api/admin/contracts/renewals', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contractId: selectedContract.id,
+                    newEndDate,
+                    adminNote: extendNote
+                })
+            })
+
+            if (response.ok) {
+                alert('Gia hạn hợp đồng thành công!')
+                setShowExtendModal(false)
+                setSelectedContract(null)
+                setExtendNote('')
+                fetchRequests()
+            } else {
+                const error = await response.json()
+                alert(error.error || 'Có lỗi xảy ra')
+            }
+        } catch (error) {
+            console.error('Error extending contract:', error)
+            alert('Có lỗi xảy ra')
+        } finally {
+            setExtendingContract(false)
+        }
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -161,33 +271,81 @@ export default function RenewalsPage() {
                     <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý gia hạn hợp đồng</h1>
                     <p className="text-secondary mt-1 text-sm sm:text-base">Xem và duyệt yêu cầu gia hạn hợp đồng thuê</p>
                 </div>
+                <button
+                    onClick={() => setShowExtendModal(true)}
+                    className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
+                >
+                    <Plus size={20} />
+                    <span className="hidden sm:inline">Gia hạn hợp đồng</span>
+                </button>
             </div>
 
-            {/* Filters */}
-            <div className="card p-3 sm:p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-3">
-                        <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                            className="select flex-1"
+            {/* Search and Filters */}
+            <div className="card p-3 sm:p-4 !overflow-visible relative z-20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div className="relative w-full">
+                        <button
+                            onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showStatusDropdown
+                                ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                                : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                                }`}
                         >
-                            <option value="all">Tất cả</option>
-                            <option value="PENDING">Chờ duyệt</option>
-                            <option value="APPROVED">Đã duyệt</option>
-                            <option value="REJECTED">Từ chối</option>
-                        </select>
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                                statusFilter === 'PENDING' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' :
+                                    statusFilter === 'APPROVED' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                                        'bg-red-50 dark:bg-red-900/20 text-red-500'
+                                }`}>
+                                {statusFilter === 'all' && <Filter size={14} />}
+                                {statusFilter === 'PENDING' && <Clock size={14} />}
+                                {statusFilter === 'APPROVED' && <CheckCircle size={14} />}
+                                {statusFilter === 'REJECTED' && <X size={14} />}
+                            </div>
+                            <div className="text-left pr-1 flex-1">
+                                <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                                    TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' :
+                                        statusFilter === 'PENDING' ? 'CHỜ DUYỆT' :
+                                            statusFilter === 'APPROVED' ? 'ĐÃ DUYỆT' : 'TỪ CHỐI'}
+                                </p>
+                            </div>
+                            <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showStatusDropdown && (
+                            <>
+                                <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                                    {[
+                                        { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <Filter size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                                        { id: 'PENDING', label: 'CHỜ DUYỆT', icon: <Clock size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
+                                        { id: 'APPROVED', label: 'ĐÃ DUYỆT', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                                        { id: 'REJECTED', label: 'TỪ CHỐI', icon: <X size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
+                                    ].map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false); setCurrentPage(1); }}
+                                            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                                        >
+                                            <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                                                {item.icon}
+                                            </div>
+                                            <span className="uppercase">{item.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
+
                     <div className="sm:col-span-1 lg:col-span-2 relative">
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm theo tên, số điện thoại hoặc phòng..."
-                        value={search}
-                        onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                        className="input input-with-icon w-full pr-4 py-2 text-sm"
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm cư dân, phòng hoặc số điện thoại..."
+                            value={search}
+                            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                            className="input input-with-icon w-full pl-10 pr-4 py-2 text-sm h-11"
+                        />
                     </div>
                 </div>
             </div>
@@ -475,23 +633,212 @@ export default function RenewalsPage() {
                         <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
                             <button
                                 onClick={() => setShowModal(false)}
-                                className="btn btn-secondary"
+                                className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2"
                             >
                                 Hủy
                             </button>
                             <button
                                 onClick={confirmProcess}
-                                className={`btn ${action === 'APPROVE' ? 'btn-success' : 'btn-error'}`}
+                                className={`btn h-11 px-6 rounded-2xl flex items-center justify-center gap-2 ${action === 'APPROVE' ? 'btn-success shadow-lg shadow-green-500/20' : 'btn-danger'}`}
                             >
                                 {processingId ? (
                                     <>
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <Loader2 size={20} className="animate-spin" />
                                         Đang xử lý...
                                     </>
                                 ) : (
                                     <>
-                                        {action === 'APPROVE' ? <Check size={16} /> : <X size={16} />}
+                                        {action === 'APPROVE' ? <Check size={20} /> : <X size={20} />}
                                         {action === 'APPROVE' ? 'Duyệt' : 'Từ chối'}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Direct Contract Extension Modal */}
+            {showExtendModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                    <RefreshCw size={20} className="text-blue-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                        Gia hạn hợp đồng
+                                    </h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        Gia hạn hợp đồng thuê cho cư dân
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setShowExtendModal(false); setSelectedContract(null); setExtendNote(''); }}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                            >
+                                <X size={20} className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-4">
+                            {/* Contract Selection */}
+                            <div className="relative">
+                                <label className="block text-sm font-medium text-secondary mb-2">
+                                    Chọn hợp đồng <span className="text-red-500">*</span>
+                                </label>
+                                <button
+                                    onClick={() => setShowContractDropdown(!showContractDropdown)}
+                                    className={`flex items-center justify-between w-full px-4 py-3 border rounded-lg bg-white dark:bg-gray-700 transition-all ${showContractDropdown ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-primary'}`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        {selectedContract ? (
+                                            <>
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                                                    <User size={18} className="text-white" />
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="font-medium text-primary">{selectedContract.user.fullName}</p>
+                                                    <p className="text-sm text-tertiary">{selectedContract.room.name} • {selectedContract.user.phone}</p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <span className="text-tertiary">Tìm kiếm hợp đồng...</span>
+                                        )}
+                                    </div>
+                                    <ChevronDown size={18} className={`transition-transform ${showContractDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {showContractDropdown && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={() => setShowContractDropdown(false)} />
+                                        <div className="absolute top-full left-0 mt-2 w-full bg-white dark:bg-gray-700 rounded-lg shadow-xl border border-primary z-50 max-h-60 overflow-y-auto">
+                                            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
+                                                <div className="relative">
+                                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Tìm kiếm cư dân, phòng..."
+                                                        value={contractSearch}
+                                                        onChange={(e) => setContractSearch(e.target.value)}
+                                                        className="w-full pl-9 pr-4 py-2 border border-primary rounded-lg bg-white dark:bg-gray-600 text-primary dark:text-white"
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                            </div>
+                                            {loadingContracts ? (
+                                                <div className="p-4 text-center text-tertiary">
+                                                    <Loader2 size={20} className="animate-spin mx-auto" />
+                                                </div>
+                                            ) : filteredContracts.length === 0 ? (
+                                                <div className="p-4 text-center text-tertiary">Không tìm thấy hợp đồng</div>
+                                            ) : (
+                                                filteredContracts.map((contract) => (
+                                                    <button
+                                                        key={contract.id}
+                                                        onClick={() => { setSelectedContract(contract); setShowContractDropdown(false); setContractSearch(''); }}
+                                                        className={`flex items-center gap-3 w-full p-3 hover:bg-tertiary transition-colors ${selectedContract?.id === contract.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                                                    >
+                                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                                                            <User size={18} className="text-white" />
+                                                        </div>
+                                                        <div className="text-left flex-1">
+                                                            <p className="font-medium text-primary">{contract.user.fullName}</p>
+                                                            <p className="text-sm text-tertiary">{contract.room.name} • {contract.user.phone}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-tertiary">Hết hạn:</p>
+                                                            <p className={`text-sm font-medium ${new Date(contract.endDate) < new Date() ? 'text-red-500' : 'text-secondary'}`}>
+                                                                {formatDate(contract.endDate)}
+                                                            </p>
+                                                        </div>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Selected Contract Info */}
+                            {selectedContract && (
+                                <div className="p-4 bg-tertiary rounded-lg">
+                                    <h3 className="font-semibold text-primary mb-3">Thông tin hợp đồng hiện tại</h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="flex items-center gap-2">
+                                            <Building2 size={16} className="text-tertiary" />
+                                            <span className="text-sm text-secondary">Phòng: {selectedContract.room.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar size={16} className="text-tertiary" />
+                                            <span className="text-sm text-secondary">Ngày ký: {formatDate(selectedContract.startDate)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 col-span-2">
+                                            <Clock size={16} className={new Date(selectedContract.endDate) < new Date() ? 'text-red-500' : 'text-tertiary'} />
+                                            <span className={`text-sm ${new Date(selectedContract.endDate) < new Date() ? 'text-red-500 font-medium' : 'text-secondary'}`}>
+                                                Ngày kết thúc hiện tại: {formatDate(selectedContract.endDate)}
+                                                {new Date(selectedContract.endDate) < new Date() && ' (Đã hết hạn)'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* New End Date */}
+                            <div>
+                                <label className="block text-sm font-medium text-secondary mb-2">
+                                    Ngày kết thúc mới <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    id="newEndDate"
+                                    type="date"
+                                    className="w-full px-4 py-3 border border-primary rounded-lg bg-white dark:bg-gray-700 text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    min={new Date().toISOString().split('T')[0]}
+                                />
+                            </div>
+
+                            {/* Admin Note */}
+                            <div>
+                                <label className="block text-sm font-medium text-secondary mb-2">
+                                    Ghi chú
+                                </label>
+                                <textarea
+                                    value={extendNote}
+                                    onChange={(e) => setExtendNote(e.target.value)}
+                                    className="w-full px-4 border-primary py-3 border rounded-lg bg-white dark:bg-gray-700 text-primary dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows={3}
+                                    placeholder="Nhập ghi chú (không bắt buộc)..."
+                                />
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                            <button
+                                onClick={() => { setShowExtendModal(false); setSelectedContract(null); setExtendNote(''); }}
+                                className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleExtendContract}
+                                disabled={!selectedContract || extendingContract}
+                                className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                            >
+                                {extendingContract ? (
+                                    <>
+                                        <Loader2 size={20} className="animate-spin" />
+                                        Đang xử lý...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check size={20} />
+                                        Gia hạn hợp đồng
                                     </>
                                 )}
                             </button>

@@ -31,39 +31,6 @@ export async function GET(
       )
     }
 
-    // Verify tenant exists with room information
-    const tenant = await prisma.user.findUnique({
-      where: { id: tenantId },
-      select: {
-        id: true,
-        fullName: true,
-        avatarUrl: true,
-        phone: true,
-        role: true,
-        contracts: {
-          where: { status: 'ACTIVE' },
-          include: {
-            room: {
-              select: {
-                id: true,
-                name: true,
-                floor: true
-              }
-            }
-          },
-          take: 1,
-          orderBy: { startDate: 'desc' }
-        }
-      }
-    })
-
-    if (!tenant || tenant.role !== 'TENANT') {
-      return NextResponse.json(
-        { error: 'Tenant not found' },
-        { status: 404 }
-      )
-    }
-
     // Tối ưu: Chỉ lấy tin nhắn mới nếu có lastMessageId
     const whereClause: any = {
       OR: [
@@ -77,51 +44,88 @@ export async function GET(
       whereClause.id = { gt: parseInt(lastMessageId) }
     }
 
-    // Lấy tin nhắn giữa admin và tenant
-    const messages = await prisma.message.findMany({
-      where: whereClause,
-      include: {
-        sender: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            role: true
-          }
-        },
-        receiver: {
-          select: {
-            id: true,
-            fullName: true,
-            avatarUrl: true,
-            role: true
+    // OPTIMIZATION: Execute tenant check and message queries in parallel
+    const [tenant, messages] = await Promise.all([
+      // Verify tenant exists with room information
+      prisma.user.findUnique({
+        where: { id: tenantId },
+        select: {
+          id: true,
+          fullName: true,
+          avatarUrl: true,
+          phone: true,
+          role: true,
+          contracts: {
+            where: { status: 'ACTIVE' },
+            include: {
+              room: {
+                select: {
+                  id: true,
+                  name: true,
+                  floor: true
+                }
+              }
+            },
+            take: 1,
+            orderBy: { startDate: 'desc' }
           }
         }
-      },
-      orderBy: { createdAt: 'asc' },
-      take: lastMessageId ? 50 : 100 // Giới hạn nếu chỉ lấy tin mới
-    })
+      }),
+      // Get messages
+      prisma.message.findMany({
+        where: whereClause,
+        include: {
+          sender: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              role: true
+            }
+          },
+          receiver: {
+            select: {
+              id: true,
+              fullName: true,
+              avatarUrl: true,
+              role: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'asc' },
+        take: lastMessageId ? 50 : 100 // Giới hạn nếu chỉ lấy tin mới
+      })
+    ])
 
-    // Đánh dấu tin nhắn từ tenant là đã đọc
-    await prisma.message.updateMany({
-      where: {
-        senderId: tenantId,
-        receiverId: adminUser.id,
-        isRead: false
-      },
-      data: {
-        isRead: true
-      }
-    })
+    if (!tenant || tenant.role !== 'TENANT') {
+      return NextResponse.json(
+        { error: 'Tenant not found' },
+        { status: 404 }
+      )
+    }
 
-    // Đếm số tin nhắn chưa đọc
-    const unreadCount = await prisma.message.count({
-      where: {
-        senderId: tenantId,
-        receiverId: adminUser.id,
-        isRead: false
-      }
-    })
+    // Execute mark as read and count in parallel
+    const [_, unreadCount] = await Promise.all([
+      // Đánh dấu tin nhắn từ tenant là đã đọc
+      prisma.message.updateMany({
+        where: {
+          senderId: tenantId,
+          receiverId: adminUser.id,
+          isRead: false
+        },
+        data: {
+          isRead: true
+        }
+      }),
+      // Đếm số tin nhắn chưa đọc
+      prisma.message.count({
+        where: {
+          senderId: tenantId,
+          receiverId: adminUser.id,
+          isRead: false
+        }
+      })
+    ])
 
     return NextResponse.json({
       messages,

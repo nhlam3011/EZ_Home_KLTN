@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
-import { Plus, Download, Search, Eye, Printer, MessageSquare, CheckCircle, AlertTriangle, FileText, Zap, Edit, Trash2, Upload, MoreVertical, X } from 'lucide-react'
+import { Plus, Download, Search, Eye, Printer, MessageSquare, CheckCircle, AlertTriangle, FileText, Zap, Edit, Trash2, Upload, MoreVertical, X, Calendar, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import Loading from '@/components/Loading'
 
 interface Invoice {
@@ -50,8 +50,21 @@ export default function InvoicesPage() {
   const [selectedInvoiceDetail, setSelectedInvoiceDetail] = useState<any>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
-  const [confirmAction, setConfirmAction] = useState<{ type: 'paid' | 'delete'; id: number } | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'paid' | 'delete' | 'bulk-paid'; id?: number; ids?: number[] } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [selectedInvoices, setSelectedInvoices] = useState<number[]>([])
+  const [showInvoices, setShowInvoices] = useState(false)
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+
+  // Parse month and year from filter string or use defaults
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
+  // Sync monthFilter with state
+  useEffect(() => {
+    setMonthFilter(`${selectedMonth}/${selectedYear}`)
+  }, [selectedMonth, selectedYear])
 
   useEffect(() => {
     fetchInvoices()
@@ -92,11 +105,48 @@ export default function InvoicesPage() {
     setShowConfirmModal(true)
   }
 
+  const handleBulkMarkAsPaid = () => {
+    if (selectedInvoices.length === 0) {
+      alert('Vui lòng chọn ít nhất một hóa đơn để thanh toán')
+      return
+    }
+    setConfirmAction({ type: 'bulk-paid', ids: selectedInvoices })
+    setShowConfirmModal(true)
+  }
+
   const confirmMarkAsPaid = async () => {
-    if (!confirmAction || confirmAction.type !== 'paid') return
+    if (!confirmAction) return
 
     setActionLoading(true)
     try {
+      // Xử lý thanh toán hàng loạt
+      if (confirmAction.type === 'bulk-paid' && confirmAction.ids) {
+        const response = await fetch('/api/invoices/bulk-pay', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ invoiceIds: confirmAction.ids })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          await fetchInvoices()
+          setSelectedInvoices([])
+          alert(`Đã thanh toán ${data.updatedCount} hóa đơn!\nTổng tiền: ${formatCurrency(data.totalAmount)}`)
+        } else {
+          const errorData = await response.json()
+          alert(errorData.error || 'Có lỗi xảy ra khi thanh toán hóa đơn')
+        }
+        setActionLoading(false)
+        setShowConfirmModal(false)
+        setConfirmAction(null)
+        return
+      }
+
+      // Xử lý thanh toán đơn lẻ
+      if (!confirmAction.id || confirmAction.type !== 'paid') return
+
       const response = await fetch(`/api/invoices/${confirmAction.id}`, {
         method: 'PUT',
         headers: {
@@ -391,80 +441,200 @@ export default function InvoicesPage() {
       </div>
 
       {/* Content */}
-      <div>
+      <div className="relative z-20"> {/* Moved z-20 here */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-primary">Quản lý Hóa đơn</h2>
+          <div className="text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">Quản lý Hóa đơn</h1>
             <p className="text-xs sm:text-sm text-secondary mt-1">Danh sách hóa đơn và thanh toán</p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="btn btn-secondary btn-sm sm:btn-md"
-            >
-              <Upload size={18} strokeWidth={2} />
-              <span>Import</span>
-            </button>
-            <button
-              onClick={handleExport}
-              className="btn btn-secondary btn-sm sm:btn-md"
-            >
-              <Download size={18} strokeWidth={2} />
-              <span>Export</span>
-            </button>
+          <div className="flex flex-col xs:flex-row gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3 justify-center sm:justify-end">
             <Link
               href="/admin/invoices/new"
-              className="btn btn-primary btn-sm sm:btn-md"
+              className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none"
             >
               <Plus size={18} />
-              <span>Tạo hóa đơn</span>
+              <span className="font-bold">Tạo hóa đơn</span>
             </Link>
+
+            {selectedInvoices.length > 0 && (
+              <button
+                onClick={handleBulkMarkAsPaid}
+                className="btn btn-success h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-2 lg:order-none animate-scaleIn shadow-lg shadow-green-500/20"
+              >
+                <CheckCircle size={18} strokeWidth={2.5} />
+                <span className="font-bold whitespace-nowrap">Pay ({selectedInvoices.length})</span>
+              </button>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 order-3 lg:flex lg:gap-3 lg:order-none col-span-1 xs:col-span-2 lg:col-span-1">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="btn btn-secondary h-11 px-4 rounded-2xl flex items-center justify-center gap-2 group hover:bg-white dark:hover:bg-gray-700 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-600"
+                title="Nhập dữ liệu Excel"
+              >
+                <Upload size={18} strokeWidth={2} className="group-hover:translate-y-[-2px] transition-transform" />
+                <span className="font-bold">Import</span>
+              </button>
+              <button
+                onClick={handleExport}
+                className="btn btn-secondary h-11 px-4 rounded-2xl flex items-center justify-center gap-2 group hover:bg-white dark:hover:bg-gray-700 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-600"
+                title="Xuất dữ liệu"
+              >
+                <Download size={18} strokeWidth={2} className="group-hover:translate-y-[2px] transition-transform" />
+                <span className="font-bold">Export</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="card p-3 sm:p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">THÁNG:</label>
-            <select
-              value={monthFilter}
-              onChange={(e) => setMonthFilter(e.target.value)}
-              className="select flex-1"
-            >
-              <option value="all">Tất cả</option>
-              {generateMonthOptions().map(option => (
-                <option key={option} value={option}>
-                  Tháng {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-3">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="select flex-1"
-            >
-              <option value="all">Tất cả</option>
-              <option value="UNPAID">Chưa thanh toán</option>
-              <option value="PAID">Đã thanh toán</option>
-              <option value="OVERDUE">Quá hạn</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-1">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Tìm kiếm..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input input-with-icon w-full pr-4 py-2 text-sm"
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+      <div className="card p-3 sm:p-4 !overflow-visible relative z-20">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Modern Inline Period Picker */}
+            <div className="relative w-full sm:w-auto">
+              <button
+                onClick={() => setShowMonthPicker(!showMonthPicker)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showMonthPicker
+                  ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                  : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  }`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${showMonthPicker ? 'bg-blue-100 dark:bg-blue-900/40 text-[var(--accent-blue)]' : 'bg-blue-50 dark:bg-blue-900/30 text-[var(--accent-blue)]'
+                  }`}>
+                  <Calendar size={14} />
+                </div>
+                <div className="text-left pr-1 flex-1">
+                  <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}</p>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 ${showMonthPicker ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showMonthPicker && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 transition-opacity"
+                    onClick={() => setShowMonthPicker(false)}
+                  />
+                  <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-3 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                    <div className="flex items-center justify-between mb-3 bg-tertiary/30 p-1.5 rounded-xl">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedYear(y => y - 1)
+                        }}
+                        className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="text-sm font-bold text-primary uppercase">NĂM {selectedYear}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedYear(y => y + 1)
+                        }}
+                        className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => {
+                            setSelectedMonth(m)
+                            setShowMonthPicker(false)
+                          }}
+                          className={`py-2 rounded-xl text-xs font-bold transition-all ${selectedMonth === m
+                            ? 'bg-[var(--accent-blue)] text-white shadow-inner scale-95'
+                            : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-secondary border border-transparent hover:border-blue-100 dark:hover:border-blue-800'
+                            }`}
+                        >
+                          T{m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
+
+            <div className="relative w-full sm:w-auto">
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showStatusDropdown
+                  ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                  : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  }`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                  statusFilter === 'PAID' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                    statusFilter === 'UNPAID' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-500' :
+                      'bg-red-50 dark:bg-red-900/20 text-red-500'
+                  }`}>
+                  {statusFilter === 'all' && <FileText size={14} />}
+                  {statusFilter === 'PAID' && <CheckCircle size={14} />}
+                  {statusFilter === 'UNPAID' && <Zap size={14} />}
+                  {statusFilter === 'OVERDUE' && <AlertTriangle size={14} />}
+                </div>
+                <div className="text-left pr-1 flex-1">
+                  <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                    TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' :
+                      statusFilter === 'PAID' ? 'ĐÃ THANH TOÁN' :
+                        statusFilter === 'UNPAID' ? 'CHƯA THANH TOÁN' : 'QUÁ HẠN'}
+                  </p>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showStatusDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 transition-opacity"
+                    onClick={() => setShowStatusDropdown(false)}
+                  />
+                  <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                    {[
+                      { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <FileText size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                      { id: 'PAID', label: 'ĐÃ THANH TOÁN', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                      { id: 'UNPAID', label: 'CHƯA THANH TOÁN', icon: <Zap size={16} />, color: 'text-orange-500', bg: 'bg-orange-50/50 dark:bg-orange-900/10' },
+                      { id: 'OVERDUE', label: 'QUÁ HẠN', icon: <AlertTriangle size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setStatusFilter(item.id)
+                          setShowStatusDropdown(false)
+                        }}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id
+                          ? 'bg-[var(--accent-blue)] text-white shadow-md'
+                          : 'hover:bg-tertiary text-secondary'
+                          }`}
+                      >
+                        <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                          {item.icon}
+                        </div>
+                        <span className="uppercase">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="relative flex-1 lg:max-w-md w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+            <input
+              type="text"
+              placeholder="Tìm hóa đơn, phòng, tên..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+            />
           </div>
         </div>
       </div>
@@ -480,6 +650,24 @@ export default function InvoicesPage() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-tertiary border-b border-primary">
                 <tr>
+                  <th className="px-3 sm:px-4 py-2 sm:py-3 text-left align-middle">
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
+                        checked={selectedInvoices.length > 0 && paginatedInvoices.every(inv => selectedInvoices.includes(inv.id))}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            const allIds = paginatedInvoices.map(inv => inv.id)
+                            setSelectedInvoices([...new Set([...selectedInvoices, ...allIds])])
+                          } else {
+                            const unselectedIds = paginatedInvoices.map(inv => inv.id)
+                            setSelectedInvoices(selectedInvoices.filter(id => !unselectedIds.includes(id)))
+                          }
+                        }}
+                      />
+                    </label>
+                  </th>
                   <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle min-w-[100px]">
                     MÃ HD
                   </th>
@@ -521,7 +709,7 @@ export default function InvoicesPage() {
               <tbody className="divide-y divide-primary">
                 {paginatedInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-4 py-12 text-center">
+                    <td colSpan={13} className="px-4 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <FileText className="w-12 h-12 text-tertiary" />
                         <p className="text-sm text-tertiary font-medium">Không có hóa đơn nào</p>
@@ -536,6 +724,22 @@ export default function InvoicesPage() {
 
                     return (
                       <tr key={invoice.id} className="hover:bg-tertiary transition-colors">
+                        <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
+                          <label className="inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
+                              checked={selectedInvoices.includes(invoice.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedInvoices([...selectedInvoices, invoice.id])
+                                } else {
+                                  setSelectedInvoices(selectedInvoices.filter(id => id !== invoice.id))
+                                }
+                              }}
+                            />
+                          </label>
+                        </td>
                         <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                           <span className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">
                             #INV-{invoice.id.toString().padStart(3, '0')}
@@ -627,7 +831,7 @@ export default function InvoicesPage() {
                         </td>
                         <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle">
                           <div className="flex justify-center flex-shrink-0">
-                            <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium">
+                            <Badge color={statusBadge.color} className="whitespace-nowrap rounded font-medium justify-center py-1 min-h-[24px]">
                               {statusBadge.label}
                             </Badge>
                           </div>
@@ -1250,12 +1454,14 @@ export default function InvoicesPage() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold mb-4">
-              {confirmAction?.type === 'paid' ? 'Xác nhận thanh toán' : 'Xác nhận xóa hóa đơn'}
+              {confirmAction?.type === 'bulk-paid' ? 'Xác nhận thanh toán hàng loạt' : confirmAction?.type === 'paid' ? 'Xác nhận thanh toán' : 'Xác nhận xóa hóa đơn'}
             </h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              {confirmAction?.type === 'paid'
-                ? 'Bạn có chắc chắn muốn đánh dấu hóa đơn này là đã thanh toán?'
-                : 'Bạn có chắc chắn muốn xóa hóa đơn này? Hành động này không thể hoàn tác.'}
+              {confirmAction?.type === 'bulk-paid'
+                ? `Bạn có chắc chắn muốn thanh toán ${confirmAction.ids?.length || 0} hóa đơn đã chọn?`
+                : confirmAction?.type === 'paid'
+                  ? 'Bạn có chắc chắn muốn đánh dấu hóa đơn này là đã thanh toán?'
+                  : 'Bạn có chắc chắn muốn xóa hóa đơn này? Hành động này không thể hoàn tác.'}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -1266,14 +1472,14 @@ export default function InvoicesPage() {
                 Hủy
               </button>
               <button
-                onClick={confirmAction?.type === 'paid' ? confirmMarkAsPaid : confirmDeleteInvoice}
-                className={`px-4 py-2 rounded-lg text-white transition-colors ${confirmAction?.type === 'paid'
+                onClick={confirmAction?.type === 'paid' || confirmAction?.type === 'bulk-paid' ? confirmMarkAsPaid : confirmDeleteInvoice}
+                className={`px-4 py-2 rounded-lg text-white transition-colors ${confirmAction?.type === 'paid' || confirmAction?.type === 'bulk-paid'
                   ? 'bg-green-600 hover:bg-green-700'
                   : 'bg-red-600 hover:bg-red-700'
                   }`}
                 disabled={actionLoading}
               >
-                {actionLoading ? 'Đang xử lý...' : confirmAction?.type === 'paid' ? 'Xác nhận' : 'Xóa'}
+                {actionLoading ? 'Đang xử lý...' : confirmAction?.type === 'paid' || confirmAction?.type === 'bulk-paid' ? 'Xác nhận thanh toán' : 'Xóa'}
               </button>
             </div>
           </div>
