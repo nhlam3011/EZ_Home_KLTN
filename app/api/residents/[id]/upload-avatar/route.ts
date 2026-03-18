@@ -34,10 +34,10 @@ export async function POST(
       )
     }
 
-    // Validate file size (max 2MB for base64 storage)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validate file size (max 10MB for base64 storage)
+    if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size must be less than 2MB for database storage' },
+        { error: 'File size must be less than 10MB for database storage' },
         { status: 400 }
       )
     }
