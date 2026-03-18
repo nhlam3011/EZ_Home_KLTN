@@ -209,18 +209,18 @@ export default function EditResidentPage() {
       } else {
         const errorMsg = data.error || 'Có lỗi xảy ra khi tải lên hồ sơ'
         let details = ''
-        
+
         if (data.code === 'PRISMA_CLIENT_NOT_GENERATED') {
-          details = '\n\n⚠️ VUI LÒNG LÀM THEO CÁC BƯỚC SAU:\n' + 
-                   '1. Mở Terminal/Command Prompt\n' +
-                   '2. Chạy lệnh: npx prisma generate\n' +
-                   '3. Chạy lệnh: npx prisma db push\n' +
-                   '4. Restart dev server (Ctrl+C rồi npm run dev)\n' +
-                   '5. Thử upload lại'
+          details = '\n\n⚠️ VUI LÒNG LÀM THEO CÁC BƯỚC SAU:\n' +
+            '1. Mở Terminal/Command Prompt\n' +
+            '2. Chạy lệnh: npx prisma generate\n' +
+            '3. Chạy lệnh: npx prisma db push\n' +
+            '4. Restart dev server (Ctrl+C rồi npm run dev)\n' +
+            '5. Thử upload lại'
         } else if (data.details) {
           details = '\n\nChi tiết: ' + data.details
         }
-        
+
         alert(errorMsg + details)
         console.error('Upload error:', data)
       }
@@ -311,7 +311,7 @@ export default function EditResidentPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-primary">Sửa thông tin Cư dân</h1>
           <p className="text-xs sm:text-sm text-secondary mt-1">Cập nhật thông tin cá nhân và hồ sơ đính kèm</p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
           <Link
             href={`/admin/residents/${residentId}`}
             className="btn btn-secondary btn-md"
@@ -356,8 +356,8 @@ export default function EditResidentPage() {
               <div className="flex-shrink-0">
                 <div className="w-24 h-24 rounded-full overflow-hidden shadow-md border-2 border-tertiary">
                   {resident.avatarUrl ? (
-                    <img 
-                      src={resident.avatarUrl} 
+                    <img
+                      src={resident.avatarUrl}
                       alt={resident.fullName}
                       className="w-full h-full object-cover"
                     />
@@ -558,7 +558,7 @@ export default function EditResidentPage() {
           <div className="card p-4 sm:p-6">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-primary">Hồ sơ đính kèm</h3>
-              <button 
+              <button
                 onClick={() => setShowUploadDoc(!showUploadDoc)}
                 className="p-1.5 sm:p-2 hover:bg-tertiary rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
                 title="Tải lên hồ sơ"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { syncPaidInvoiceWithSubsequent } from '@/lib/invoices'
 
 // PUT - Thanh toán nhiều hoá đơn cùng lúc (tiền mặt)
 export async function PUT(request: NextRequest) {
@@ -41,6 +42,9 @@ export async function PUT(request: NextRequest) {
                 paidAt: new Date()
             }
         })
+
+        // Sync with subsequent invoices to remove these from their overdue amounts
+        await syncPaidInvoiceWithSubsequent(existingInvoices.map(inv => inv.id))
 
         // Lấy thông tin chi tiết các hoá đơn đã cập nhật
         const updatedInvoices = await prisma.invoice.findMany({

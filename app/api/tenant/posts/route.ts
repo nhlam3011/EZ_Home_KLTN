@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')
     const userId = searchParams.get('userId')
     const status = searchParams.get('status')
+    const search = searchParams.get('search')
 
     const where: any = {}
 
@@ -31,6 +32,13 @@ export async function GET(request: NextRequest) {
       content: {
         startsWith: '[Hóa đơn #'
       }
+    }
+
+    if (search) {
+      where.OR = [
+        { content: { contains: search, mode: 'insensitive' } },
+        { user: { fullName: { contains: search, mode: 'insensitive' } } }
+      ]
     }
 
     const posts = await prisma.post.findMany({

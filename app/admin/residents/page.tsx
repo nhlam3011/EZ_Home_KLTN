@@ -228,9 +228,9 @@ export default function ResidentsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý Cư dân & Hợp đồng</h1>
-          <p className="text-secondary mt-1 text-sm sm:text-base">Quản lý thông tin cư dân và hợp đồng thuê phòng</p>
+        <div className="text-center sm:text-left w-full">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">QUẢN LÝ CƯ DÂN</h1>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Quản lý thông tin cư dân và hợp đồng thuê phòng</p>
         </div>
         <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">
           <Link
@@ -242,10 +242,12 @@ export default function ResidentsPage() {
           </Link>
           <button
             onClick={handleExport}
-            className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-2 lg:order-none"
+            className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 group hover:bg-white dark:hover:bg-gray-700 transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-600 shadow-sm"
           >
-            <Download size={18} strokeWidth={2} />
-            <span className="font-bold">Export</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+              <Download size={18} className="text-[var(--accent-blue)]" />
+            </div>
+            <span className="font-bold text-xs uppercase tracking-tight text-secondary group-hover:text-[var(--accent-blue)] transition-colors">Export</span>
           </button>
         </div>
       </div>
@@ -256,7 +258,7 @@ export default function ResidentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TỔNG CƯ DÂN</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{stats.total}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{stats.total}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
               <Users className="text-white" size={20} />
@@ -267,7 +269,7 @@ export default function ResidentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">ĐANG THUÊ</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{stats.active}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{stats.active}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
               <Building2 className="text-white" size={20} />
@@ -278,7 +280,7 @@ export default function ResidentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">ĐÃ CHUYỂN ĐI</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{stats.inactive}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{stats.inactive}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
               <Users className="text-white" size={20} />
@@ -289,7 +291,7 @@ export default function ResidentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TỔNG TIỀN CỌC</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{formatCurrency(stats.totalDeposit)}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{formatCurrency(stats.totalDeposit)}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
               <Wallet className="text-white" size={20} />

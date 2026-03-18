@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,36 +20,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 2MB for base64 storage)
+    if (file.size > 2 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size must be less than 5MB' },
+        { error: 'File size must be less than 2MB for database storage' },
         { status: 400 }
       )
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'messages')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    // Generate unique filename
-    const timestamp = Date.now()
-    const fileExtension = file.name.split('.').pop()
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
-    const fileName = `message_${timestamp}_${sanitizedFileName}`
-    const filePath = join(uploadsDir, fileName)
-
-    // Save file
+    // Convert file to base64
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+    const base64 = buffer.toString('base64')
 
-    // Generate URL
-    const fileUrl = `/uploads/messages/${fileName}`
+    // Get mime type
+    const mimeType = file.type
 
-    return NextResponse.json({ url: fileUrl }, { status: 200 })
+    // Create data URL
+    const dataUrl = `data:${mimeType};base64,${base64}`
+
+    return NextResponse.json({
+      url: dataUrl,
+      isBase64: true
+    }, { status: 200 })
   } catch (error) {
     console.error('Error uploading image:', error)
     return NextResponse.json(

@@ -162,7 +162,7 @@ export default function RoomsPage() {
   }
 
   const formatLargeCurrency = (amount: number) => {
-    const millions = amount / 1000000
+    const millions = amount
     return `${millions.toFixed(0)}tr`
   }
 
@@ -265,9 +265,9 @@ export default function RoomsPage() {
     <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-center sm:text-left">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">Danh sách phòng</h1>
-          <p className="text-secondary mt-1 text-sm sm:text-base">Quản lý trạng thái và thông tin cư dân</p>
+        <div className="text-center sm:text-left w-full">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">QUẢN LÝ PHÒNG</h1>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Quản lý trạng thái và thông tin cư dân</p>
         </div>
         <div className="flex flex-col xs:flex-row gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3 justify-center sm:justify-end">
           <Link
@@ -402,7 +402,7 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TỔNG SỐ PHÒNG</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{stats.total}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{stats.total}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
               <Building2 className="text-white" size={20} />
@@ -413,7 +413,7 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">ĐANG THUÊ</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{stats.rented}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{stats.rented}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
               <Users className="text-white" size={20} />
@@ -424,7 +424,7 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">PHÒNG TRỐNG</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">{stats.vacant}</p>
+              <p className="text-xl sm:text-xl font-bold text-primary">{stats.vacant}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
               <Building2 className="text-white" size={20} />
@@ -435,8 +435,8 @@ export default function RoomsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">DOANH THU THÁNG</p>
-              <p className="text-xl sm:text-2xl font-bold text-primary">
-                {formatLargeCurrency(stats.revenue)}
+              <p className="text-xl sm:text-xl font-bold text-primary">
+                {formatCurrency(stats.revenue)}
               </p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">

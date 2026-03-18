@@ -48,8 +48,8 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-primary">Thông báo</h1>
+      <div className="text-center sm:text-left">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">THÔNG BÁO</h1>
         <p className="text-secondary mt-1">Xem các thông báo hệ thống</p>
       </div>
 

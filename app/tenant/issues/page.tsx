@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Search, Eye, Star } from 'lucide-react'
+import { Plus, Search, Eye, Star, ChevronDown, CheckCircle, Wrench, AlertTriangle, Ban } from 'lucide-react'
 import Link from 'next/link'
 import Loading from '@/components/Loading'
 
@@ -22,6 +22,7 @@ export default function IssuesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false)
   const itemsPerPage = 4
 
   useEffect(() => {
@@ -112,12 +113,12 @@ export default function IssuesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Quản lý sự cố</h1>
-          <p className="text-sm sm:text-base text-secondary mt-1">Theo dõi và báo cáo sự cố trong căn hộ</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">SỰ CỐ & BÁO CÁO</h1>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Theo dõi và báo cáo sự cố trong căn hộ</p>
         </div>
         <Link
           href="/tenant/issues/new"
-          className="btn btn-primary btn-sm sm:btn-md w-full sm:w-auto flex items-center justify-center gap-2"
+          className="btn btn-primary h-11 px-6 rounded-2xl w-full sm:w-auto flex items-center justify-center gap-2"
         >
           <Plus size={18} />
           <span>Gửi báo cáo mới</span>
@@ -125,33 +126,78 @@ export default function IssuesPage() {
       </div>
 
       {/* Search and Filter */}
-      <div className="card p-3 sm:p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">TRẠNG THÁI:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="select flex-1"
-            >
-              <option value="all">Tất cả</option>
-              <option value="PENDING">Chờ xử lý</option>
-              <option value="PROCESSING">Đang sửa chữa</option>
-              <option value="DONE">Hoàn thành</option>
-              <option value="CANCELLED">Đã hủy</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
-              <input
-                type="text"
-                placeholder="Tìm kiếm theo tiêu đề..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input input-with-icon w-full pl-9 pr-4 py-2 text-sm"
-              />
+      <div className="card p-3 sm:p-4 !overflow-visible relative z-20">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Status Filter */}
+            <div className="relative w-full sm:w-auto">
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showStatusDropdown
+                  ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                  : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  }`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                  statusFilter === 'PENDING' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' :
+                    statusFilter === 'PROCESSING' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                      statusFilter === 'DONE' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                        'bg-gray-50 dark:bg-gray-900/20 text-gray-500'
+                  }`}>
+                  {statusFilter === 'all' && <Wrench size={14} />}
+                  {statusFilter === 'PENDING' && <AlertTriangle size={14} />}
+                  {statusFilter === 'PROCESSING' && <Wrench size={14} />}
+                  {statusFilter === 'DONE' && <CheckCircle size={14} />}
+                  {statusFilter === 'CANCELLED' && <Ban size={14} />}
+                </div>
+                <div className="text-left pr-1 flex-1">
+                  <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                    TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' :
+                      statusFilter === 'PENDING' ? 'CHỜ XỬ LÝ' :
+                        statusFilter === 'PROCESSING' ? 'ĐANG SỬA' :
+                          statusFilter === 'DONE' ? 'HOÀN THÀNH' : 'ĐÃ HỦY'}
+                  </p>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showStatusDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                    {[
+                      { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                      { id: 'PENDING', label: 'CHỜ XỬ LÝ', icon: <AlertTriangle size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
+                      { id: 'PROCESSING', label: 'ĐANG SỬA CHỮA', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                      { id: 'DONE', label: 'HOÀN THÀNH', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                      { id: 'CANCELLED', label: 'ĐÃ HỦY', icon: <Ban size={16} />, color: 'text-gray-500', bg: 'bg-gray-50/50 dark:bg-gray-900/10' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false) }}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                      >
+                        <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                          {item.icon}
+                        </div>
+                        <span className="uppercase">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+          </div>
+
+          <div className="relative flex-1 lg:max-w-md w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+            <input
+              type="text"
+              placeholder="Tìm kiếm theo tiêu đề..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-primary focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm pl-10"
+            />
           </div>
         </div>
       </div>

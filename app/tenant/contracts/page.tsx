@@ -268,8 +268,8 @@ export default function TenantContractsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-primary">Hợp đồng của tôi</h1>
-        <p className="text-secondary mt-1">Quản lý và xem chi tiết các hợp đồng thuê phòng</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">HỢP ĐỒNG CỦA TÔI</h1>
+        <p className="text-secondary mt-1 text-xs sm:text-sm">Quản lý và xem chi tiết các hợp đồng thuê phòng</p>
       </div>
 
       {contracts.length === 0 ? (

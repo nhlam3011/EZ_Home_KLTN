@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
 
 export async function POST(
   request: NextRequest,
@@ -11,7 +8,7 @@ export async function POST(
   try {
     const resolvedParams = await Promise.resolve(params)
     const userId = parseInt(resolvedParams.id)
-    
+
     if (isNaN(userId)) {
       return NextResponse.json(
         { error: 'Invalid user ID' },
@@ -37,10 +34,10 @@ export async function POST(
       )
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 2MB for base64 storage)
+    if (file.size > 2 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size must be less than 5MB' },
+        { error: 'File size must be less than 2MB for database storage' },
         { status: 400 }
       )
     }
@@ -57,35 +54,27 @@ export async function POST(
       )
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'avatars')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    // Generate unique filename
-    const timestamp = Date.now()
-    const fileExtension = file.name.split('.').pop()
-    const fileName = `avatar_${userId}_${timestamp}.${fileExtension}`
-    const filePath = join(uploadsDir, fileName)
-
-    // Save file
+    // Convert file to base64
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+    const base64 = buffer.toString('base64')
 
-    // Generate URL
-    const fileUrl = `/uploads/avatars/${fileName}`
+    // Get mime type
+    const mimeType = file.type
+
+    // Create data URL
+    const avatarUrl = `data:${mimeType};base64,${base64}`
 
     // Update user avatar
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { avatarUrl: fileUrl }
+      data: { avatarUrl }
     })
 
     return NextResponse.json({
       success: true,
-      avatarUrl: updatedUser.avatarUrl
+      avatarUrl: updatedUser.avatarUrl,
+      isBase64: true
     })
   } catch (error) {
     console.error('Error uploading avatar:', error)

@@ -3,16 +3,16 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  ArrowLeft, 
-  Edit, 
-  RefreshCw, 
-  FileText, 
-  Plus, 
+import {
+  ArrowLeft,
+  Edit,
+  RefreshCw,
+  FileText,
+  Plus,
   Eye,
-  Phone, 
-  Mail, 
-  MapPin, 
+  Phone,
+  Mail,
+  MapPin,
   Calendar,
   CreditCard,
   Building2,
@@ -317,9 +317,9 @@ export default function ResidentDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">Chi tiết Cư dân</h1>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 items-center">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary text-center sm:text-left">Chi tiết Cư dân</h1>
+        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
           <label className="btn btn-secondary btn-md cursor-pointer">
             <input
               type="file"
@@ -378,8 +378,8 @@ export default function ResidentDetailPage() {
           <div className="flex-shrink-0 mx-auto sm:mx-0">
             <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-tertiary">
               {resident.avatarUrl ? (
-                <img 
-                  src={resident.avatarUrl} 
+                <img
+                  src={resident.avatarUrl}
                   alt={resident.fullName}
                   className="w-full h-full object-cover"
                 />
@@ -730,7 +730,7 @@ export default function ResidentDetailPage() {
                 </button>
               </div>
               <p className="text-secondary mb-6">
-                {confirmAction.type === 'reset' 
+                {confirmAction.type === 'reset'
                   ? `Bạn có chắc chắn muốn reset mật khẩu cho ${resident?.fullName}?`
                   : `Bạn có chắc chắn muốn XÓA VĨNH VIỄN cư dân ${resident?.fullName}? Hành động này không thể hoàn tác!`
                 }

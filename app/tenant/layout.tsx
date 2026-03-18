@@ -15,8 +15,11 @@ import {
   MessageSquare,
   Menu,
   X,
-  Building2,
-  FileCheck
+  FileCheck,
+  ChevronRight,
+  Calendar,
+  Clock as ClockIcon,
+  Building2
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
@@ -43,6 +46,7 @@ export default function TenantLayout({
   const [user, setUser] = useState<any>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
@@ -94,6 +98,52 @@ export default function TenantLayout({
       pusherClient.unsubscribe(CHANNELS.TENANT_MESSAGES)
     }
   }, [router])
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Generate Breadcrumbs
+  const getBreadcrumbs = () => {
+    const titleMap: Record<string, string> = {
+      '/tenant': 'Tổng quan',
+      '/tenant/rooms': 'Phòng của tôi',
+      '/tenant/contracts': 'Hợp đồng',
+      '/tenant/invoices': 'Hóa đơn',
+      '/tenant/services': 'Dịch vụ',
+      '/tenant/issues': 'Báo hỏng',
+      '/tenant/community': 'Cộng đồng',
+      '/tenant/messages': 'Tin nhắn',
+      '/tenant/notifications': 'Thông báo',
+    }
+
+    const paths = pathname.split('/').filter(p => p)
+    const breadcrumbs = []
+    let currentPath = ''
+
+    for (let i = 0; i < paths.length; i++) {
+      currentPath += `/${paths[i]}`
+      const label = titleMap[currentPath] || paths[i]
+      breadcrumbs.push({ label, href: currentPath, isLast: i === paths.length - 1 })
+    }
+
+    return breadcrumbs
+  }
+
+  const formatHeaderDate = () => {
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
+    const dayName = days[currentTime.getDay()]
+    const date = currentTime.getDate().toString().padStart(2, '0')
+    const month = (currentTime.getMonth() + 1).toString().padStart(2, '0')
+    const year = currentTime.getFullYear()
+    const hours = currentTime.getHours().toString().padStart(2, '0')
+    const minutes = currentTime.getMinutes().toString().padStart(2, '0')
+    return `${dayName}, ${date}/${month}/${year} • ${hours}:${minutes}`
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('user')
@@ -426,12 +476,38 @@ export default function TenantLayout({
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              {getPageTitle()}
-            </h2>
+
+            {/* Breadcrumbs */}
+            <nav className="hidden sm:flex items-center gap-2 overflow-hidden">
+              <Link
+                href="/tenant"
+                className="text-[11px] font-bold uppercase tracking-wider text-tertiary hover:text-primary transition-colors whitespace-nowrap"
+              >
+                TENANT
+              </Link>
+              {getBreadcrumbs().map((crumb, idx) => (
+                <div key={crumb.href} className="flex items-center gap-2 min-w-0">
+                  <ChevronRight size={12} className="text-tertiary shrink-0" />
+                  <Link
+                    href={crumb.href}
+                    className={`text-[11px] font-bold uppercase tracking-wider transition-colors truncate ${crumb.isLast ? 'text-primary' : 'text-tertiary hover:text-primary'
+                      }`}
+                  >
+                    {crumb.label}
+                  </Link>
+                </div>
+              ))}
+            </nav>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Header Date */}
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-tertiary/50 border border-primary mr-2 shadow-sm">
+              <ClockIcon size={14} className="text-tertiary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-secondary whitespace-nowrap">
+                {formatHeaderDate()}
+              </span>
+            </div>
             <DarkModeToggle />
             <Link
               href="/tenant/notifications"

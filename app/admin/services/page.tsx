@@ -608,8 +608,8 @@ export default function ServicesPage() {
   return (
     <div className="space-y-6 px-2 sm:px-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý dịch vụ</h1>
+        <div className="min-w-0 text-center sm:text-left w-full">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase line-clamp-1">QUẢN LÝ DỊCH VỤ</h1>
           <p className="text-secondary mt-1 text-sm sm:text-base">Đồng bộ cấu hình dịch vụ, điều phối đơn đăng ký và kiểm soát.</p>
         </div>
         <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">

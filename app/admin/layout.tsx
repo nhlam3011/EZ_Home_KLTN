@@ -18,7 +18,9 @@ import {
   X,
   Users as CommunityIcon,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  ChevronRight,
+  Calendar
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
@@ -29,7 +31,6 @@ const menuItems = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   { href: '/admin/rooms', label: 'Quản lý Phòng', icon: Building2 },
   { href: '/admin/residents', label: 'Cư dân', icon: Users },
-  { href: '/admin/invoices', label: 'Hóa đơn', icon: FileText },
   { href: '/admin/finance', label: 'Tài chính', icon: FileText },
   { href: '/admin/renewals', label: 'Gia hạn HĐ', icon: RefreshCw, badge: true },
   { href: '/admin/maintenance', label: 'Bảo trì & Sự cố', icon: Wrench, badge: true },
@@ -57,6 +58,7 @@ export default function AdminLayout({
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0)
   const [user, setUser] = useState<any>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
 
   // Map pathname to page title
   const getPageTitle = () => {
@@ -89,6 +91,56 @@ export default function AdminLayout({
 
     return ''
   }
+
+  // Generate Breadcrumbs
+  const getBreadcrumbs = () => {
+    const titleMap: Record<string, string> = {
+      '/admin': 'Tổng quan',
+      '/admin/rooms': 'Quản lý Phòng',
+      '/admin/residents': 'Cư dân',
+      '/admin/finance': 'Tài chính',
+      '/admin/invoices': 'Hóa đơn',
+      '/admin/renewals': 'Gia hạn HĐ',
+      '/admin/maintenance': 'Bảo trì & Sự cố',
+      '/admin/community': 'Cộng đồng',
+      '/admin/messages': 'Tin nhắn',
+      '/admin/notifications': 'Thông báo',
+      '/admin/forecast': 'Dự đoán AI',
+      '/admin/services': 'Cấu hình Dịch vụ',
+      '/admin/settings': 'Cài đặt',
+    }
+
+    const paths = pathname.split('/').filter(p => p)
+    const breadcrumbs = []
+    let currentPath = ''
+
+    for (let i = 0; i < paths.length; i++) {
+      currentPath += `/${paths[i]}`
+      const label = titleMap[currentPath] || paths[i]
+      breadcrumbs.push({ label, href: currentPath, isLast: i === paths.length - 1 })
+    }
+
+    return breadcrumbs
+  }
+
+  const formatHeaderDate = () => {
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy']
+    const dayName = days[currentTime.getDay()]
+    const date = currentTime.getDate().toString().padStart(2, '0')
+    const month = (currentTime.getMonth() + 1).toString().padStart(2, '0')
+    const year = currentTime.getFullYear()
+    const hours = currentTime.getHours().toString().padStart(2, '0')
+    const minutes = currentTime.getMinutes().toString().padStart(2, '0')
+    return `${dayName}, ${date}/${month}/${year} • ${hours}:${minutes}`
+  }
+
+  // Update time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
@@ -463,12 +515,38 @@ export default function AdminLayout({
             >
               <Menu size={20} />
             </button>
-            <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-              {getPageTitle()}
-            </h2>
+
+            {/* Breadcrumbs */}
+            <nav className="hidden sm:flex items-center gap-2 overflow-hidden">
+              <Link
+                href="/admin"
+                className="text-[11px] font-bold uppercase tracking-wider text-tertiary hover:text-primary transition-colors whitespace-nowrap"
+              >
+                ADMIN
+              </Link>
+              {getBreadcrumbs().map((crumb, idx) => (
+                <div key={crumb.href} className="flex items-center gap-2 min-w-0">
+                  <ChevronRight size={12} className="text-tertiary shrink-0" />
+                  <Link
+                    href={crumb.href}
+                    className={`text-[11px] font-bold uppercase tracking-wider transition-colors truncate ${crumb.isLast ? 'text-primary' : 'text-tertiary hover:text-primary'
+                      }`}
+                  >
+                    {crumb.label}
+                  </Link>
+                </div>
+              ))}
+            </nav>
           </div>
 
           <div className="flex items-center gap-3 px-6">
+            {/* Header Date */}
+            <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-tertiary/50 border border-primary mr-2 shadow-sm">
+              <Calendar size={14} className="text-tertiary" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-secondary whitespace-nowrap">
+                {formatHeaderDate()}
+              </span>
+            </div>
             <DarkModeToggle />
             <Link
               href="/admin/notifications"

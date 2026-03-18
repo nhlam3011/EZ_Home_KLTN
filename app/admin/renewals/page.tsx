@@ -267,9 +267,9 @@ export default function RenewalsPage() {
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">Quản lý gia hạn hợp đồng</h1>
-                    <p className="text-secondary mt-1 text-sm sm:text-base">Xem và duyệt yêu cầu gia hạn hợp đồng thuê</p>
+                <div className="min-w-0 text-center sm:text-left w-full">
+                    <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase line-clamp-1">GIA HẠN HỢP ĐỒNG</h1>
+                    <p className="text-xs sm:text-sm text-secondary mt-1">Xem và duyệt yêu cầu gia hạn hợp đồng thuê</p>
                 </div>
                 <button
                     onClick={() => setShowExtendModal(true)}

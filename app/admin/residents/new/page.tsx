@@ -182,7 +182,7 @@ export default function NewResidentPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
           <Link
             href="/admin/residents"
             className="btn btn-secondary btn-sm sm:btn-md"

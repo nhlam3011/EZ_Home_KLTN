@@ -92,7 +92,7 @@ export default function EditRoomPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!roomId) {
       alert('ID phòng không hợp lệ')
       return
@@ -209,7 +209,7 @@ export default function EditRoomPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 items-center sm:items-start">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/rooms"
@@ -217,12 +217,12 @@ export default function EditRoomPage() {
           >
             <ArrowLeft size={20} />
           </Link>
-          <div>
+          <div className="text-center sm:text-left">
             <h1 className="text-xl sm:text-2xl font-bold text-primary">Chỉnh sửa phòng</h1>
             <p className="text-secondary mt-1 text-sm sm:text-base">Cập nhật thông tin chi tiết của phòng {room.name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
           <Link
             href="/admin/rooms"
             className="btn btn-secondary btn-sm sm:btn-md"
@@ -549,15 +549,15 @@ export default function EditRoomPage() {
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {[' Điều hòa', ' Nóng lạnh', ' Tủ lạnh', ' Giường tủ', ' Máy giặt chung'].map(amenity => (
-                      <label 
-                        key={amenity} 
+                      <label
+                        key={amenity}
                         className={`flex items-center gap-2 p-2 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group ${formData.amenities.includes(amenity) ? 'bg-tertiary border-blue-500' : ''}`}
                       >
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           checked={formData.amenities.includes(amenity)}
                           onChange={(e) => handleAmenityChange(amenity, e.target.checked)}
-                          className="w-4 h-4 flex-shrink-0" 
+                          className="w-4 h-4 flex-shrink-0"
                         />
                         <span className="text-xs font-medium text-primary group-hover:text-blue-600 transition-colors select-none">
                           {amenity}

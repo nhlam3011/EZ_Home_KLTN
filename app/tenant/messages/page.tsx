@@ -444,10 +444,6 @@ export default function MessagesPage() {
                 <h1 className="text-[17px] font-bold text-[var(--text-primary)] leading-tight truncate group-hover:underline decoration-blue-500/30 underline-offset-2">
                   Ban Quản Lý
                 </h1>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <p className="text-[11px] font-medium text-[var(--text-tertiary)] hidden sm:block">Đang trực tuyến</p>
-                </div>
               </div>
             </div>
           </div>

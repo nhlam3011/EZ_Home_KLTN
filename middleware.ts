@@ -22,6 +22,19 @@ export async function middleware(request: any) {
         const response = await fetch(`${origin}/api/system/check-maintenance`, {
             cache: 'no-store'
         })
+
+        // Check if response is OK and is JSON before parsing
+        if (!response.ok) {
+            console.error('Maintenance check API returned non-OK status:', response.status)
+            return NextResponse.next()
+        }
+
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+            console.error('Maintenance check API returned non-JSON response:', contentType)
+            return NextResponse.next()
+        }
+
         const data = await response.json()
 
         if (data && data.enabled) {

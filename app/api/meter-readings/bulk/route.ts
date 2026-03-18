@@ -112,8 +112,7 @@ export async function POST(request: NextRequest) {
         occupants: true,
         invoices: {
           where: {
-            status: { in: ['UNPAID', 'OVERDUE'] },
-            paymentDueDate: { lt: new Date() }
+            status: { in: ['UNPAID', 'OVERDUE'] }
           }
         }
       }
@@ -231,8 +230,10 @@ export async function POST(request: NextRequest) {
           const amountService = 0
           const totalAmount = amountRoom + amountElec + amountWater + amountCommonService + amountService
 
-          // Calculate overdue
-          const overdueInvoices = activeContract.invoices || []
+          // Calculate overdue - chỉ lấy các hóa đơn của các kỳ TRƯỚC
+          const overdueInvoices = (activeContract.invoices || []).filter(inv =>
+            inv.year < yearNum || (inv.year === yearNum && inv.month < monthNum)
+          )
           const overdueAmount = overdueInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
           const overdueInvoicesInfo = overdueInvoices.map(inv => ({
             id: inv.id,

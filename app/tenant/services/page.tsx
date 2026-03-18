@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, ShoppingCart, Clock, CheckCircle, XCircle, AlertCircle, Plus, Minus, X, Loader2 } from 'lucide-react'
+import { Search, ShoppingCart, Clock, CheckCircle, XCircle, AlertCircle, Plus, Minus, X, Loader2, ChevronDown, LayoutGrid, Sparkles, Shirt, Wrench, PackageCheck } from 'lucide-react'
 
 interface Service {
   id: number
@@ -40,6 +40,7 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [orderNote, setOrderNote] = useState('')
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
 
   useEffect(() => {
     fetchServices()
@@ -211,16 +212,16 @@ export default function ServicesPage() {
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">Dịch vụ</h1>
-        <p className="text-sm sm:text-base text-secondary mt-1">Đặt các dịch vụ tiện ích cho căn hộ của bạn</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase line-clamp-1">DỊCH VỤ</h1>
+        <p className="text-xs sm:text-sm text-secondary mt-1">Đặt các dịch vụ tiện ích cho căn hộ của bạn</p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-primary">
-        <div className="flex items-center gap-3 sm:gap-6 overflow-x-auto">
+      <div className="border-b border-primary relative z-30">
+        <div className="flex items-center gap-4 sm:gap-8 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('services')}
-            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'services'
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'services'
               ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-secondary hover:text-primary'
               }`}
@@ -229,14 +230,14 @@ export default function ServicesPage() {
           </button>
           <button
             onClick={() => setActiveTab('orders')}
-            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors border-b-2 relative whitespace-nowrap ${activeTab === 'orders'
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 relative whitespace-nowrap ${activeTab === 'orders'
               ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-secondary hover:text-primary'
               }`}
           >
             Đơn hàng của tôi
             {orders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold">
+              <span className="absolute top-1 sm:top-2 -right-3 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold">
                 {orders.filter(o => o.status === 'PENDING' || o.status === 'PROCESSING').length}
               </span>
             )}
@@ -248,33 +249,75 @@ export default function ServicesPage() {
       {activeTab === 'services' && (
         <>
           {/* Search and Filters */}
-          <div className="card p-3 sm:p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs sm:text-sm text-secondary whitespace-nowrap font-medium w-auto">DANH MỤC:</label>
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="select flex-1"
-                >
-                  <option value="all">Tất cả</option>
-                  <option value="Vệ sinh">Vệ sinh</option>
-                  <option value="Giặt ủi">Giặt ủi</option>
-                  <option value="Sửa chữa">Sửa chữa</option>
-                  <option value="Tiện ích">Tiện ích</option>
-                </select>
-              </div>
-              <div className="sm:col-span-2 lg:col-span-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm dịch vụ (Vệ sinh, sửa chữa, giặt ủi...)"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="input input-with-icon w-full pl-9 sm:pl-12 pr-4 py-2 text-sm"
-                  />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+          <div className="card p-3 sm:p-4 !overflow-visible relative z-20">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                {/* Category Filter */}
+                <div className="relative w-full sm:w-auto">
+                  <button
+                    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showCategoryDropdown
+                      ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                      : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                      }`}
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${categoryFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                      categoryFilter === 'Vệ sinh' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' :
+                        categoryFilter === 'Giặt ủi' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500' :
+                          categoryFilter === 'Sửa chữa' ? 'bg-red-50 dark:bg-red-900/20 text-red-500' :
+                            'bg-green-50 dark:bg-green-900/20 text-green-500'
+                      }`}>
+                      {categoryFilter === 'all' && <LayoutGrid size={14} />}
+                      {categoryFilter === 'Vệ sinh' && <Sparkles size={14} />}
+                      {categoryFilter === 'Giặt ủi' && <Shirt size={14} />}
+                      {categoryFilter === 'Sửa chữa' && <Wrench size={14} />}
+                      {categoryFilter === 'Tiện ích' && <PackageCheck size={14} />}
+                    </div>
+                    <div className="text-left pr-1 flex-1">
+                      <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
+                        DANH MỤC: {categoryFilter === 'all' ? 'TẤT CẢ' : categoryFilter.toUpperCase()}
+                      </p>
+                    </div>
+                    <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showCategoryDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowCategoryDropdown(false)} />
+                      <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                        {[
+                          { id: 'all', label: 'TẤT CẢ DANH MỤC', icon: <LayoutGrid size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                          { id: 'Vệ sinh', label: 'VỆ SINH', icon: <Sparkles size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
+                          { id: 'Giặt ủi', label: 'GIẶT ỦI', icon: <Shirt size={16} />, color: 'text-indigo-500', bg: 'bg-indigo-50/50 dark:bg-indigo-900/10' },
+                          { id: 'Sửa chữa', label: 'SỬA CHỮA', icon: <Wrench size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' },
+                          { id: 'Tiện ích', label: 'TIỆN ÍCH', icon: <PackageCheck size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' }
+                        ].map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => { setCategoryFilter(item.id); setShowCategoryDropdown(false) }}
+                            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${categoryFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
+                          >
+                            <div className={`p-1.5 rounded-lg ${categoryFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                              {item.icon}
+                            </div>
+                            <span className="uppercase">{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
+              </div>
+
+              <div className="relative flex-1 lg:max-w-md w-full">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm dịch vụ..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-primary focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm pl-10"
+                />
               </div>
             </div>
           </div>
@@ -328,7 +371,7 @@ export default function ServicesPage() {
                       </div>
                       <button
                         onClick={() => handleOpenOrderModal(service)}
-                        className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 text-sm font-semibold transition-all shadow-md hover:shadow-lg"
+                        className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:from-blue-700 hover:to-indigo-700 flex items-center justify-center gap-2 text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98]"
                       >
                         <ShoppingCart size={18} />
                         <span>{isFree ? 'Đặt chỗ' : 'Đặt ngay'}</span>

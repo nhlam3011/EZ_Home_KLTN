@@ -53,15 +53,15 @@ export default function TenantRoomsPage() {
         return
       }
       const parsedUser = JSON.parse(userData)
-      
+
       // Get user info with userId
       const userRes = await fetch(`/api/tenant/me?userId=${parsedUser.id}`)
       const user = await userRes.json()
-      
+
       if (user.contracts && user.contracts.length > 0) {
         const contract = user.contracts[0]
         const roomId = contract.roomId
-        
+
         // Fetch room details
         const response = await fetch(`/api/rooms/${roomId}`)
         const data = await response.json()
@@ -137,8 +137,8 @@ export default function TenantRoomsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-primary">Phòng của tôi</h1>
-          <p className="text-secondary mt-1">Thông tin phòng bạn đang thuê</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">PHÒNG CỦA TÔI</h1>
+          <p className="text-secondary mt-1 text-xs sm:text-sm">Thông tin phòng bạn đang thuê</p>
         </div>
         <div className="card text-center py-12">
           <Building2 size={48} className="text-tertiary mx-auto mb-4" />
@@ -150,7 +150,7 @@ export default function TenantRoomsPage() {
   }
 
   const activeContract = room.contracts.find(c => c.status === 'ACTIVE') || room.contracts[0]
-  const currentOccupants = activeContract 
+  const currentOccupants = activeContract
     ? 1 + (activeContract.occupants?.length || 0)
     : 0
 
@@ -158,8 +158,8 @@ export default function TenantRoomsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-primary">Phòng của tôi</h1>
-        <p className="text-secondary mt-1">Thông tin chi tiết về phòng bạn đang thuê</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">PHÒNG CỦA TÔI</h1>
+        <p className="text-secondary mt-1 text-xs sm:text-sm">Thông tin chi tiết về phòng bạn đang thuê</p>
       </div>
 
       {/* Room Overview Card */}

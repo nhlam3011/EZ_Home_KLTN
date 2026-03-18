@@ -183,8 +183,8 @@ export default function TenantDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-primary">Tổng quan</h1>
-        <p className="text-sm sm:text-base text-secondary mt-1">Quản lý thông tin và thanh toán của bạn</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">TỔNG QUAN</h1>
+        <p className="text-xs sm:text-sm text-secondary mt-1">Quản lý thông tin và thanh toán của bạn</p>
       </div>
 
       {/* Key Cards */}

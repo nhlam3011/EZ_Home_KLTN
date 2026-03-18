@@ -142,7 +142,7 @@ export default function NewInvoicePage() {
             <p className="text-secondary mt-1 text-sm sm:text-base">Tạo hóa đơn thanh toán cho cư dân</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
           <Link
             href="/admin/invoices"
             className="btn btn-secondary btn-sm sm:btn-md"

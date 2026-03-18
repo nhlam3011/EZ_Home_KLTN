@@ -111,16 +111,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Find overdue invoices for this contract to add to current invoice
-    const now = new Date()
     const overdueInvoices = await prisma.invoice.findMany({
       where: {
         contractId: parseInt(contractId),
         status: {
           in: ['UNPAID', 'OVERDUE']
         },
-        paymentDueDate: {
-          lt: now // Payment due date has passed
-        }
+        OR: [
+          { year: { lt: parseInt(year) } },
+          { year: parseInt(year), month: { lt: parseInt(month) } }
+        ]
       }
     })
 

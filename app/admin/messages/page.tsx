@@ -932,10 +932,6 @@ export default function AdminMessagesPage() {
                     <h1 className="text-[17px] font-bold text-[var(--text-primary)] leading-tight truncate">
                       {selectedTenant?.fullName}
                     </h1>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                      <p className="text-[11px] font-medium text-[var(--text-tertiary)] hidden sm:block">Đang trực tuyến</p>
-                    </div>
                   </div>
                   {selectedTenant?.room && (
                     <p className="text-[12px] text-[var(--text-tertiary)] truncate">
@@ -1061,17 +1057,19 @@ export default function AdminMessagesPage() {
                               </p>
                             </div>
                           )}
+
+                          {/* Time and Read Status below message */}
+                          {isLastInGroup && (
+                            <div className={`mt-1 flex items-center gap-1 px-1 transition-opacity duration-300 ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                              <span className="text-[10px] font-medium text-[var(--text-tertiary)]/70">
+                                {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {isAdmin && message.isRead && (
+                                <span className="text-[10px] font-bold text-[var(--accent-blue)]">Đã xem</span>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {isLastInGroup && (
-                          <div className={`mt-1 flex items-center gap-1 px-1 transition-opacity duration-300 ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <span className="text-[10px] font-medium text-[var(--text-tertiary)]/70">
-                              {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            {isAdmin && message.isRead && (
-                              <span className="text-[10px] font-bold text-[var(--accent-blue)] ml-1">Đã xem</span>
-                            )}
-                          </div>
-                        )}
                       </div>
                     </div>
                   )

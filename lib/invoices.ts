@@ -64,3 +64,65 @@ export async function markOverdueInvoicesAsPaid(invoiceId: number): Promise<void
         console.log('No overdue invoices to mark as PAID')
     }
 }
+
+/**
+ * When previous invoices are paid, update any subsequent invoices that might have
+ * included these invoices in their overdue amount.
+ */
+export async function syncPaidInvoiceWithSubsequent(paidInvoiceIds: number | number[]): Promise<void> {
+    const ids = Array.isArray(paidInvoiceIds) ? paidInvoiceIds : [paidInvoiceIds]
+
+    if (ids.length === 0) return
+
+    // Find the invoices being paid to get their contract IDs
+    const paidInvoices = await prisma.invoice.findMany({
+        where: { id: { in: ids } }
+    })
+
+    const contractIds = [...new Set(paidInvoices.map(inv => inv.contractId))]
+
+    if (contractIds.length === 0) return
+
+    // Find all UNPAID or OVERDUE invoices for these contracts that are NOT the ones being paid
+    const subsequentInvoices = await prisma.invoice.findMany({
+        where: {
+            contractId: { in: contractIds },
+            status: { in: ['UNPAID', 'OVERDUE'] },
+            id: { notIn: ids }
+        }
+    })
+
+    for (const inv of subsequentInvoices) {
+        let overdueInvoicesData: any[] = []
+        try {
+            overdueInvoicesData = JSON.parse(inv.overdueInvoices || '[]')
+        } catch (e) {
+            continue
+        }
+
+        // Check if ANY of the newly paid invoices are in the overdue list of this invoice
+        const matchingItems = overdueInvoicesData.filter((item: any) => ids.includes(item.id))
+
+        if (matchingItems.length > 0) {
+            // Remove the paid invoices from the list
+            const updatedOverdueList = overdueInvoicesData.filter((item: any) => !ids.includes(item.id))
+
+            // Recalculate overdueAmount
+            const newOverdueAmount = updatedOverdueList.reduce((sum: number, item: any) => sum + Number(item.amount), 0)
+
+            // Recalculate totalAmount
+            const totalBeforeOverdue = Number(inv.totalAmount) - Number(inv.overdueAmount)
+            const newTotalAmount = totalBeforeOverdue + newOverdueAmount
+
+            await prisma.invoice.update({
+                where: { id: inv.id },
+                data: {
+                    overdueAmount: newOverdueAmount,
+                    overdueInvoices: JSON.stringify(updatedOverdueList),
+                    totalAmount: newTotalAmount
+                }
+            })
+        }
+    }
+}
+

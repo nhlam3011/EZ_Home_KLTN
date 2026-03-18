@@ -281,8 +281,8 @@ export default function MaintenancePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="min-w-0 text-center sm:text-left">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">BẢO TRÌ & SỰ CỐ</h1>
-          <p className="text-secondary mt-1 text-sm sm:text-base">Theo dõi và xử lý các yêu cầu bảo trì căn hộ.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate uppercase">BẢO TRÌ & SỰ CỐ</h1>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Theo dõi và xử lý các yêu cầu bảo trì căn hộ.</p>
         </div>
         <div className="flex gap-2 justify-center sm:justify-end">
           <button type="button" onClick={() => setViewMode('table')} className={`btn btn-sm px-4 rounded-xl font-bold ${viewMode === 'table' ? 'btn-primary' : 'btn-secondary text-primary'}`}>
@@ -670,12 +670,12 @@ export default function MaintenancePage() {
               {/* Footer */}
               <div className="p-6 sm:p-8 border-t border-primary bg-tertiary flex items-center gap-3">
                 {selectedIssue.status === 'PENDING' && (
-                  <button onClick={() => handleOpenCancelModal(selectedIssue.id)} className="btn btn-secondary flex-1">Hủy yêu cầu</button>
+                  <button onClick={() => handleOpenCancelModal(selectedIssue.id)} className="btn btn-secondary flex-1 h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider">Hủy yêu cầu</button>
                 )}
                 {selectedIssue.status === 'DONE' && contract && (
-                  <button onClick={handleOpenInvoiceModal} className="btn btn-success flex-1">Tạo hóa đơn</button>
+                  <button onClick={handleOpenInvoiceModal} className="btn btn-success flex-1 h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider">Tạo hóa đơn</button>
                 )}
-                <button onClick={handleUpdateIssue} className="btn btn-primary flex-[2]">Lưu thay đổi</button>
+                <button onClick={handleUpdateIssue} className="btn btn-primary flex-1 h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider shadow-md hover:shadow-lg transition-all">Lưu thay đổi</button>
               </div>
             </div>
           </div>
@@ -713,8 +713,8 @@ export default function MaintenancePage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 pt-2">
-                  <button onClick={handleCreateInvoice} className="btn btn-primary w-full">Xác nhận tạo</button>
-                  <button onClick={() => setShowInvoiceModal(false)} className="btn btn-secondary w-full">Hủy thao tác</button>
+                  <button onClick={handleCreateInvoice} className="btn btn-primary w-full h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider shadow-md hover:shadow-lg transition-all">Xác nhận tạo</button>
+                  <button onClick={() => setShowInvoiceModal(false)} className="btn btn-secondary w-full h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider">Hủy thao tác</button>
                 </div>
               </div>
             </div>
@@ -734,9 +734,9 @@ export default function MaintenancePage() {
                   <h2 className="text-xl font-bold text-primary">Lý do hủy yêu cầu?</h2>
                 </div>
                 <textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="input w-full min-h-[120px] resize-none" placeholder="Vui lòng cho cư dân biết lý do..." />
-                <div className="flex flex-col gap-2">
-                  <button onClick={handleCancelIssue} className="btn bg-red-500 hover:bg-red-600 text-white w-full">Xác nhận hủy</button>
-                  <button onClick={() => setShowCancelModal(false)} className="btn btn-secondary w-full">Trở lại</button>
+                <div className="flex flex-col gap-2 pt-3">
+                  <button onClick={handleCancelIssue} className="btn btn-danger w-full h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider shadow-md hover:shadow-lg transition-all">Xác nhận hủy</button>
+                  <button onClick={() => setShowCancelModal(false)} className="btn btn-secondary w-full h-11 rounded-xl uppercase font-bold text-[11px] tracking-wider">Trở lại</button>
                 </div>
               </div>
             </div>

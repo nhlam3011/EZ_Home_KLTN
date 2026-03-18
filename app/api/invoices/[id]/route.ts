@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { markOverdueInvoicesAsPaid } from '@/lib/invoices'
+import { markOverdueInvoicesAsPaid, syncPaidInvoiceWithSubsequent } from '@/lib/invoices'
 
 export async function GET(
   request: NextRequest,
@@ -68,6 +68,8 @@ export async function PUT(
 
       // Mark overdue invoices as PAID when this invoice is marked as PAID
       await markOverdueInvoicesAsPaid(parseInt(resolvedParams.id))
+      // ALSO sync with subsequent invoices in case this is an OLD invoice being paid late
+      await syncPaidInvoiceWithSubsequent(parseInt(resolvedParams.id))
     } else if (paidAt) {
       updateData.paidAt = new Date(paidAt)
     }

@@ -141,10 +141,10 @@ export default function ForecastPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-primary">Dự đoán AI</h1>
-          <p className="text-secondary mt-1">Dự đoán doanh thu và rủi ro trống phòng</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="text-center sm:text-left w-full">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">DỰ ĐOÁN AI</h1>
+          <p className="text-secondary mt-1 text-xs sm:text-sm">Dự đoán doanh thu và rủi ro trống phòng</p>
         </div>
         <button
           onClick={() => setShowMethodology(!showMethodology)}
