@@ -22,25 +22,34 @@ export async function GET() {
       })
     }
 
-    // Parallel fetch revenue history and active contracts
-    const [historyResults, activeContracts] = await Promise.all([
-      Promise.all(historyMonths.map(h => prisma.invoice.aggregate({
-        where: { status: 'PAID', month: h.month, year: h.year },
+    // Parallel fetch revenue history, active contracts, and total rooms
+    const [historyResultsRaw, activeContracts, totalRooms] = await Promise.all([
+      prisma.invoice.groupBy({
+        by: ['month', 'year'],
+        where: {
+          status: 'PAID',
+          OR: historyMonths.map(h => ({ month: h.month, year: h.year }))
+        },
         _sum: { totalAmount: true }
-      }))),
+      }),
       prisma.contract.findMany({
         where: { status: 'ACTIVE' },
         include: {
           room: true,
           user: { select: { fullName: true, phone: true } }
         }
-      })
+      }),
+      prisma.room.count()
     ])
 
-    const revenueHistory = historyMonths.map((h, i) => ({
-      ...h,
-      revenue: Number(historyResults[i]._sum.totalAmount || 0)
-    }))
+    // Map history results back to the ordered historyMonths array
+    const revenueHistory = historyMonths.map(h => {
+      const match = historyResultsRaw.find(r => r.month === h.month && r.year === h.year)
+      return {
+        ...h,
+        revenue: Number(match?._sum?.totalAmount || 0)
+      }
+    })
 
     // Calculate Trend using Linear Regression
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0
@@ -164,7 +173,6 @@ export async function GET() {
       .reduce((sum, r) => sum + r.monthlyRent, 0)
 
     // Thống kê tổng quan
-    const totalRooms = await prisma.room.count()
     const rentedRooms = activeContracts.length
     const highRiskCount = vacancyRisks.filter(r => r.riskLevel === 'HIGH').length
     const mediumRiskCount = vacancyRisks.filter(r => r.riskLevel === 'MEDIUM').length

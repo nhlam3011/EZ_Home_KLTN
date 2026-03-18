@@ -20,7 +20,9 @@ import {
   MessageSquare,
   RefreshCw,
   ChevronRight,
-  Calendar
+  Calendar,
+  Clock as ClockIcon,
+  Bot
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
@@ -37,6 +39,7 @@ const menuItems = [
   { href: '/admin/community', label: 'Cộng đồng', icon: CommunityIcon, badge: true },
   { href: '/admin/messages', label: 'Tin nhắn', icon: MessageSquare },
   { href: '/admin/forecast', label: 'Dự đoán AI', icon: TrendingUp },
+  { href: '/admin/ai-assistant', label: 'Trợ lý AI', icon: Bot },
 ]
 
 const systemItems = [
@@ -75,6 +78,7 @@ export default function AdminLayout({
       '/admin/forecast': 'Dự đoán AI',
       '/admin/services': 'Cấu hình Dịch vụ',
       '/admin/settings': 'Cài đặt',
+      '/admin/ai-assistant': 'Trợ lý AI',
     }
 
     // Check exact match first
@@ -314,6 +318,7 @@ export default function AdminLayout({
             <div className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon
+                const isAiItem = item.href === '/admin/ai-assistant'
                 const isActive = item.href === '/admin'
                   ? pathname === '/admin'
                   : pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -361,10 +366,14 @@ export default function AdminLayout({
                     {/* Icon */}
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
-                      style={{
-                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
-                        color: isActive ? '#ffffff' : 'var(--text-secondary)'
-                      }}
+                      style={
+                        isAiItem && !isActive
+                          ? { background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#ffffff' }
+                          : {
+                              backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
+                              color: isActive ? '#ffffff' : 'var(--text-secondary)'
+                            }
+                      }
                     >
                       <Icon size={18} />
                     </div>
@@ -373,6 +382,16 @@ export default function AdminLayout({
                     <span className="flex-1 text-sm font-semibold">
                       {item.label}
                     </span>
+
+                    {/* AI Badge */}
+                    {isAiItem && !isActive && (
+                      <span
+                        className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
+                        style={{ background: 'linear-gradient(135deg, #6366f120, #a855f720)', color: '#8b5cf6' }}
+                      >
+                        AI
+                      </span>
+                    )}
 
                     {/* Badge */}
                     {showBadge && (
@@ -497,14 +516,14 @@ export default function AdminLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header - Seamless with sidebar */}
         <header
-          className="h-16 flex items-center justify-between sticky top-0 z-30"
+          className="h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm"
           style={{
             backgroundColor: 'var(--bg-primary)',
             borderBottom: '1px solid var(--border-primary)',
             borderLeft: '1px solid var(--border-primary)'
           }}
         >
-          <div className="flex items-center gap-4 px-6 flex-1">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg transition-colors"
@@ -539,10 +558,10 @@ export default function AdminLayout({
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 px-6">
+          <div className="flex items-center gap-3">
             {/* Header Date */}
             <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-tertiary/50 border border-primary mr-2 shadow-sm">
-              <Calendar size={14} className="text-tertiary" />
+              <ClockIcon size={14} className="text-tertiary" />
               <span className="text-[10px] font-black uppercase tracking-widest text-secondary whitespace-nowrap">
                 {formatHeaderDate()}
               </span>
@@ -571,7 +590,7 @@ export default function AdminLayout({
 
         {/* Page Content */}
         <main
-          className={`flex-1 overflow-y-auto ${pathname === '/admin/messages' || pathname === '/admin/notifications' ? '' : 'p-6'}`}
+          className={`flex-1 overflow-y-auto ${pathname === '/admin/messages' || pathname === '/admin/notifications' || pathname === '/admin/ai-assistant' ? '' : 'p-6'}`}
           style={{ backgroundColor: 'var(--bg-secondary)' }}
         >
           {children}

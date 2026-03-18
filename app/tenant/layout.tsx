@@ -19,7 +19,8 @@ import {
   ChevronRight,
   Calendar,
   Clock as ClockIcon,
-  Building2
+  Building2,
+  Bot
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
@@ -34,6 +35,7 @@ const menuItems = [
   { href: '/tenant/services', label: 'Dịch vụ', icon: Grid3x3 },
   { href: '/tenant/issues', label: 'Báo hỏng', icon: Wrench },
   { href: '/tenant/community', label: 'Cộng đồng', icon: Users },
+  { href: '/tenant/ai-assistant', label: 'Trợ lý AI', icon: Bot },
 ]
 
 export default function TenantLayout({
@@ -119,6 +121,7 @@ export default function TenantLayout({
       '/tenant/community': 'Cộng đồng',
       '/tenant/messages': 'Tin nhắn',
       '/tenant/notifications': 'Thông báo',
+      '/tenant/ai-assistant': 'Trợ lý AI',
     }
 
     const paths = pathname.split('/').filter(p => p)
@@ -163,6 +166,7 @@ export default function TenantLayout({
       '/tenant/messages': 'Tin nhắn',
       '/tenant/notifications': 'Thông báo',
       '/tenant/settings': 'Cài đặt',
+      '/tenant/ai-assistant': 'Trợ lý AI',
     }
 
     if (titleMap[pathname]) {
@@ -260,6 +264,7 @@ export default function TenantLayout({
             <div className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon
+                const isAiItem = item.href === '/tenant/ai-assistant'
                 const isActive = item.href === '/tenant'
                   ? pathname === '/tenant'
                   : pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -294,16 +299,23 @@ export default function TenantLayout({
                     )}
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200"
-                      style={{
-                        backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
-                        color: isActive ? '#ffffff' : 'var(--text-secondary)'
-                      }}
+                      style={
+                        isAiItem && !isActive
+                          ? { background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#ffffff' }
+                          : {
+                              backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
+                              color: isActive ? '#ffffff' : 'var(--text-secondary)'
+                            }
+                      }
                     >
                       <Icon size={18} />
                     </div>
                     <span className="flex-1 text-sm font-semibold">
                       {item.label}
                     </span>
+                    {isAiItem && !isActive && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style={{ background: 'linear-gradient(135deg, #6366f120, #a855f720)', color: '#8b5cf6' }}>AI</span>
+                    )}
                   </Link>
                 )
               })}
@@ -532,7 +544,7 @@ export default function TenantLayout({
 
         {/* Page Content */}
         <main
-          className={`flex-1 overflow-y-auto ${pathname === '/tenant/messages' ? '' : 'p-6'}`}
+          className={`flex-1 overflow-y-auto ${pathname === '/tenant/messages' || pathname === '/tenant/ai-assistant' ? '' : 'p-6'}`}
           style={{ backgroundColor: 'var(--bg-secondary)' }}
         >
           {children}

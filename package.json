@@ -10,6 +10,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@payos/node": "^1.0.10",
     "@prisma/client": "^5.10.2",
     "@types/nodemailer": "^7.0.5",
