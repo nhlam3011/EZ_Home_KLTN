@@ -16,7 +16,8 @@ import {
   Mail,
   MessageSquare,
   AlertTriangle,
-  FileText
+  FileText,
+  Megaphone
 } from 'lucide-react'
 
 interface UserData {
@@ -27,6 +28,55 @@ interface UserData {
 }
 
 type TabType = 'password' | 'notifications'
+
+interface EmailSettings {
+  email_notify_invoice: string
+  email_notify_issue: string
+  email_notify_message: string
+  email_notify_general: string
+}
+
+const defaultEmailSettings: EmailSettings = {
+  email_notify_invoice: 'true',
+  email_notify_issue: 'true',
+  email_notify_message: 'true',
+  email_notify_general: 'true',
+}
+
+const emailSettingItems = [
+  {
+    key: 'email_notify_invoice',
+    label: 'Hóa đơn mới',
+    description: 'Nhận email khi có hóa đơn mới từ quản lý',
+    icon: FileText,
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    key: 'email_notify_issue',
+    label: 'Cập nhật sự cố',
+    description: 'Nhận email khi có cập nhật về sự cố/bảo trì',
+    icon: AlertTriangle,
+    iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+  },
+  {
+    key: 'email_notify_message',
+    label: 'Tin nhắn mới',
+    description: 'Nhận email khi có tin nhắn mới từ quản lý',
+    icon: MessageSquare,
+    iconBg: 'bg-violet-100 dark:bg-violet-900/30',
+    iconColor: 'text-violet-600 dark:text-violet-400',
+  },
+  {
+    key: 'email_notify_general',
+    label: 'Thông báo chung',
+    description: 'Nhận email thông báo chung từ hệ thống',
+    icon: Megaphone,
+    iconBg: 'bg-cyan-100 dark:bg-cyan-900/30',
+    iconColor: 'text-cyan-600 dark:text-cyan-400',
+  },
+]
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -47,13 +97,10 @@ export default function SettingsPage() {
     confirm: false
   })
 
-  // Notification settings
-  const [notificationSettings, setNotificationSettings] = useState({
-    invoice: true,
-    message: true,
-    issue: true,
-    email: true
-  })
+  // Email notification settings
+  const [emailSettings, setEmailSettings] = useState<EmailSettings>(defaultEmailSettings)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [savingEmailKey, setSavingEmailKey] = useState<string | null>(null)
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState<string>('')
@@ -61,6 +108,12 @@ export default function SettingsPage() {
   useEffect(() => {
     fetchUserData()
   }, [])
+
+  useEffect(() => {
+    if (user && activeTab === 'notifications') {
+      fetchEmailSettings()
+    }
+  }, [user, activeTab])
 
   const fetchUserData = async () => {
     try {
@@ -81,6 +134,44 @@ export default function SettingsPage() {
       console.error('Error fetching user data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchEmailSettings = async () => {
+    if (!user) return
+    setEmailLoading(true)
+    try {
+      const response = await fetch(`/api/tenant/settings?userId=${user.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setEmailSettings(prev => ({ ...prev, ...data }))
+      }
+    } catch (error) {
+      console.error('Error fetching email settings:', error)
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const toggleEmailSetting = async (key: string) => {
+    if (!user) return
+    const currentValue = (emailSettings as any)[key]
+    const newValue = currentValue === 'true' ? 'false' : 'true'
+
+    setSavingEmailKey(key)
+    try {
+      const response = await fetch('/api/tenant/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, key, value: newValue })
+      })
+      if (response.ok) {
+        setEmailSettings(prev => ({ ...prev, [key]: newValue }))
+      }
+    } catch (error) {
+      console.error('Error saving email setting:', error)
+    } finally {
+      setSavingEmailKey(null)
     }
   }
 
@@ -159,13 +250,6 @@ export default function SettingsPage() {
     }
   }
 
-  const handleNotificationToggle = (key: keyof typeof notificationSettings) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -182,7 +266,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-2">
@@ -192,7 +276,7 @@ export default function SettingsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-primary">Cài đặt</h1>
         </div>
         <p className="text-sm sm:text-base text-secondary mt-1">
-          Quản lý mật khẩu và tùy chọn thông báo
+          Quản lý mật khẩu và tùy chọn thông báo email
         </p>
       </div>
 
@@ -233,7 +317,7 @@ export default function SettingsPage() {
               }`}
           >
             <Bell size={18} />
-            <span>Thông báo</span>
+            <span>Thông báo email</span>
           </button>
         </div>
       </div>
@@ -271,7 +355,6 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-secondary"
-                  aria-label="Toggle password visibility"
                 >
                   {showPasswords.current ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -301,7 +384,6 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-secondary"
-                  aria-label="Toggle password visibility"
                 >
                   {showPasswords.new ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -334,7 +416,6 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-secondary"
-                  aria-label="Toggle password visibility"
                 >
                   {showPasswords.confirm ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -376,124 +457,68 @@ export default function SettingsPage() {
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                <Bell size={20} className="text-blue-600 dark:text-blue-400" />
+                <Mail size={20} className="text-blue-600 dark:text-blue-400" />
               </div>
-              <h2 className="text-lg font-bold text-primary">Cài đặt thông báo</h2>
+              <h2 className="text-lg font-bold text-primary">Cài đặt thông báo email</h2>
             </div>
             <p className="text-sm text-secondary mt-2">
-              Quản lý các thông báo bạn muốn nhận từ hệ thống
+              Chọn loại email thông báo bạn muốn nhận từ hệ thống
             </p>
           </div>
 
-          <div className="space-y-5">
-            {/* Invoice Notification */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <FileText size={18} className="text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-primary mb-0.5">Thông báo hóa đơn</h4>
-                  <p className="text-xs text-secondary">
-                    Nhận thông báo khi có hóa đơn mới hoặc hóa đơn sắp đến hạn thanh toán
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input
-                  type="checkbox"
-                  checked={notificationSettings.invoice}
-                  onChange={() => handleNotificationToggle('invoice')}
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
-                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.invoice ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-              </label>
+          {emailLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="animate-spin text-blue-500" size={32} />
             </div>
+          ) : (
+            <div className="space-y-4">
+              {emailSettingItems.map((item) => {
+                const Icon = item.icon
+                const isEnabled = (emailSettings as any)[item.key] === 'true'
+                const isSaving = savingEmailKey === item.key
 
-            {/* Message Notification */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <MessageSquare size={18} className="text-green-600 dark:text-green-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-primary mb-0.5">Thông báo tin nhắn</h4>
-                  <p className="text-xs text-secondary">
-                    Nhận thông báo khi có tin nhắn mới từ quản lý tòa nhà
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input
-                  type="checkbox"
-                  checked={notificationSettings.message}
-                  onChange={() => handleNotificationToggle('message')}
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
-                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.message ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-              </label>
+                return (
+                  <div key={item.key} className="flex items-center justify-between py-3 group">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center`}>
+                        <Icon size={18} className={item.iconColor} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-bold text-primary">{item.label}</h4>
+                        <p className="text-xs text-tertiary mt-0.5">{item.description}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleEmailSetting(item.key)}
+                      disabled={isSaving}
+                      className={`relative w-12 h-7 rounded-full transition-all duration-300 flex-shrink-0 ml-4 ${
+                        isEnabled
+                          ? 'bg-blue-500 shadow-md shadow-blue-500/30'
+                          : 'bg-gray-300 dark:bg-gray-600'
+                      }`}
+                    >
+                      {isSaving ? (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 size={14} className="animate-spin text-white" />
+                        </div>
+                      ) : (
+                        <div
+                          className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-sm transition-all duration-300 ${
+                            isEnabled ? 'left-[22px]' : 'left-0.5'
+                          }`}
+                        />
+                      )}
+                    </button>
+                  </div>
+                )
+              })}
             </div>
-
-            {/* Issue Notification */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                  <AlertTriangle size={18} className="text-orange-600 dark:text-orange-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-primary mb-0.5">Thông báo sự cố</h4>
-                  <p className="text-xs text-secondary">
-                    Nhận thông báo khi trạng thái sự cố bảo trì được cập nhật
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input
-                  type="checkbox"
-                  checked={notificationSettings.issue}
-                  onChange={() => handleNotificationToggle('issue')}
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
-                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.issue ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-              </label>
-            </div>
-
-            {/* Email Notification */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                  <Mail size={18} className="text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-primary mb-0.5">Thông báo email</h4>
-                  <p className="text-xs text-secondary">
-                    Nhận thông báo quan trọng qua email
-                  </p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 ml-4">
-                <input
-                  type="checkbox"
-                  checked={notificationSettings.email}
-                  onChange={() => handleNotificationToggle('email')}
-                  className="sr-only peer"
-                />
-                <div className="relative w-11 h-6 bg-gray-300 dark:bg-gray-600 rounded-full peer peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 transition-colors duration-200">
-                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform duration-200 ${notificationSettings.email ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </div>
-              </label>
-            </div>
-          </div>
+          )}
 
           <div className="mt-6 pt-4 border-t border-primary/10">
             <p className="text-xs text-tertiary">
-              Các cài đặt sẽ được lưu tự động khi bạn thay đổi
+              Các cài đặt được lưu tự động khi bạn bật/tắt
             </p>
           </div>
         </div>

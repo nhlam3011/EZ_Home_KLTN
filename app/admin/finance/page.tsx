@@ -491,7 +491,7 @@ export default function FinancePage() {
                               <span>ĐIỆN MỚI</span>
                             </div>
                           </th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase hidden md:table-cell">TIÊU THỤ</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
                             <div className="flex items-center gap-1 sm:gap-2">
                               <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
@@ -504,7 +504,7 @@ export default function FinancePage() {
                               <span>NƯỚC MỚI</span>
                             </div>
                           </th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase hidden md:table-cell">TIÊU THỤ</th>
+                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
                           <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
                         </tr>
                       </thead>
@@ -589,7 +589,7 @@ export default function FinancePage() {
                                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.elecOld}</p>
                                   )}
                                 </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   {elecConsumption !== null ? (
                                     <span className={`text-xs sm:text-sm font-medium ${elecConsumption < 0
                                       ? 'text-red-600 dark:text-red-400'
@@ -633,7 +633,7 @@ export default function FinancePage() {
                                     <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.waterOld}</p>
                                   )}
                                 </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 hidden md:table-cell">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3">
                                   {waterConsumption !== null ? (
                                     <span className={`text-xs sm:text-sm font-medium ${waterConsumption < 0
                                       ? 'text-red-600 dark:text-red-400'

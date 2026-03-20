@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendInvoiceCreatedEmail } from '@/lib/email'
 
 // POST - Lưu nhiều chỉ số điện nước cùng lúc
 export async function POST(request: NextRequest) {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       }),
       prisma.room.findMany({
         where: {
-          id: { in: readings.map(r => parseInt(r.roomId)) }
+          id: { in: readings.map((r: any) => parseInt(r.roomId)) }
         },
         include: {
           contracts: {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
     // Get existing meter readings for current month
     const existingReadings = await prisma.meterReading.findMany({
       where: {
-        roomId: { in: readings.map(r => parseInt(r.roomId)) },
+        roomId: { in: readings.map((r: any) => parseInt(r.roomId)) },
         month: monthNum,
         year: yearNum
       }
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     // Get contracts for all rooms
     const contracts = await prisma.contract.findMany({
       where: {
-        roomId: { in: readings.map(r => parseInt(r.roomId)) },
+        roomId: { in: readings.map((r: any) => parseInt(r.roomId)) },
         status: 'ACTIVE'
       },
       include: {
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     const nextMonthReadings = await prisma.meterReading.findMany({
       where: {
-        roomId: { in: readings.map(r => parseInt(r.roomId)) },
+        roomId: { in: readings.map((r: any) => parseInt(r.roomId)) },
         month: nextMonth,
         year: nextYear
       }
@@ -153,7 +154,8 @@ export async function POST(request: NextRequest) {
     const invoicesToCreate: any[] = []
     const invoicesToUpdate: any[] = []
     const invoiceIdsToMarkPaid: number[] = []
-    const errors = []
+    const newInvoiceContractIds: number[] = []
+    const errors: any[] = []
 
     for (const reading of readings) {
       const { roomId, elecNew, waterNew } = reading
@@ -247,8 +249,6 @@ export async function POST(request: NextRequest) {
           paymentDueDate.setDate(paymentDueDate.getDate() + 10)
 
           if (existingInvoice) {
-            // Chỉ cập nhật status nếu hoá đơn chưa được thanh toán
-            // Nếu đã paid thì giữ nguyên status cũ
             const newStatus = existingInvoice.status === 'PAID' ? 'PAID' : 'UNPAID'
             invoicesToUpdate.push({
               where: { id: existingInvoice.id },
@@ -262,7 +262,6 @@ export async function POST(request: NextRequest) {
                 totalAmount: totalAmount + overdueAmount,
                 paymentDueDate,
                 status: newStatus,
-                // Giữ nguyên paidAt nếu đã thanh toán
                 ...(existingInvoice.status === 'PAID' && { paidAt: existingInvoice.paidAt })
               }
             })
@@ -282,6 +281,7 @@ export async function POST(request: NextRequest) {
               paymentDueDate,
               status: 'UNPAID'
             })
+            newInvoiceContractIds.push(activeContract.id)
             if (overdueInvoices.length > 0) {
               invoiceIdsToMarkPaid.push(...overdueInvoices.map(inv => inv.id))
             }
@@ -300,32 +300,21 @@ export async function POST(request: NextRequest) {
 
     // Execute batch operations in transaction
     await prisma.$transaction(async (tx) => {
-      // Batch create meter readings
       if (meterReadingsToCreate.length > 0) {
         await tx.meterReading.createMany({ data: meterReadingsToCreate, skipDuplicates: true })
       }
-
-      // Batch update meter readings
       for (const update of meterReadingsToUpdate) {
         await tx.meterReading.update(update)
       }
-
-      // Batch update next month readings
       for (const update of meterReadingsToUpdateNext) {
         await tx.meterReading.update(update)
       }
-
-      // Batch create invoices
       if (invoicesToCreate.length > 0) {
         await tx.invoice.createMany({ data: invoicesToCreate })
       }
-
-      // Batch update invoices
       for (const update of invoicesToUpdate) {
         await tx.invoice.update(update)
       }
-
-      // Mark overdue invoices as paid
       if (invoiceIdsToMarkPaid.length > 0) {
         await tx.invoice.updateMany({
           where: { id: { in: invoiceIdsToMarkPaid } },
@@ -333,9 +322,51 @@ export async function POST(request: NextRequest) {
         })
       }
     }, {
-      maxWait: 10000, // 10s để lấy connection
-      timeout: 30000, // 30s để thực thi transaction
+      maxWait: 10000,
+      timeout: 30000,
     })
+
+    // Send email notifications for newly created invoices (after transaction succeeds)
+    if (newInvoiceContractIds.length > 0) {
+      try {
+        const newInvoices = await prisma.invoice.findMany({
+          where: {
+            contractId: { in: newInvoiceContractIds },
+            month: monthNum,
+            year: yearNum,
+          },
+          include: {
+            contract: {
+              include: {
+                user: { select: { id: true, email: true, fullName: true } },
+                room: { select: { name: true } }
+              }
+            }
+          }
+        })
+
+        const period = `Tháng ${monthNum}/${yearNum}`
+        const emailPromises = newInvoices
+          .filter(inv => inv.contract.user.email)
+          .map(inv =>
+            sendInvoiceCreatedEmail(
+              inv.contract.user.email!,
+              inv.id,
+              Number(inv.totalAmount),
+              period,
+              inv.contract.user.fullName,
+              inv.contract.user.id
+            ).catch(err => console.error(`Failed to send email for invoice #${inv.id}:`, err))
+          )
+
+        Promise.allSettled(emailPromises).then(results => {
+          const sent = results.filter(r => r.status === 'fulfilled' && (r as any).value === true).length
+          console.log(`Email notifications sent: ${sent}/${emailPromises.length}`)
+        })
+      } catch (emailError) {
+        console.error('Error sending invoice email notifications:', emailError)
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -343,7 +374,7 @@ export async function POST(request: NextRequest) {
       invoicesCreated: invoicesToCreate.length,
       errors: errors.length > 0 ? errors : undefined,
       message: errors.length > 0
-        ? `Đã lưa ${meterReadingsToCreate.length + meterReadingsToUpdate.length} phòng, tạo ${invoicesToCreate.length} hóa đơn, ${errors.length} phòng có lỗi`
+        ? `Đã lưu ${meterReadingsToCreate.length + meterReadingsToUpdate.length} phòng, tạo ${invoicesToCreate.length} hóa đơn, ${errors.length} phòng có lỗi`
         : `Đã lưu thành công ${meterReadingsToCreate.length + meterReadingsToUpdate.length} phòng và tạo ${invoicesToCreate.length} hóa đơn`
     })
   } catch (error) {

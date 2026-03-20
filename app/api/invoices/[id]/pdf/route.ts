@@ -249,6 +249,14 @@ export async function GET(
               <td>${Number(invoice.amountService).toLocaleString('vi-VN')} ₫</td>
             </tr>
             ` : ''}
+            ${Number(invoice.overdueAmount) > 0 ? `
+            <tr>
+              <td style="color: #c2410c; font-weight: bold;">Nợ cũ (các kỳ trước)</td>
+              <td style="color: #c2410c;">${Number(invoice.overdueAmount).toLocaleString('vi-VN')} ₫</td>
+              <td style="color: #c2410c;">1</td>
+              <td style="color: #c2410c; font-weight: bold;">${Number(invoice.overdueAmount).toLocaleString('vi-VN')} ₫</td>
+            </tr>
+            ` : ''}
           </tbody>
         </table>
         

@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer'
 import { prisma } from './prisma'
 
+// Email notification types for granular settings
+export type EmailNotificationType = 'invoice' | 'issue' | 'message' | 'general' | 'complaint'
+
 // Email configuration from environment variables
 const emailConfig = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -192,19 +195,58 @@ export const emailTemplates = {
 }
 
 // Send email function
+// Check per-user email setting (for tenant)
+export async function checkUserEmailSetting(
+  userId: number,
+  notificationType: EmailNotificationType
+): Promise<boolean> {
+  try {
+    const userSetting = await prisma.settings.findUnique({
+      where: { key: `user_${userId}_email_notify_${notificationType}` }
+    })
+    // Default: enabled if no setting found
+    if (userSetting && userSetting.value === 'false') {
+      console.log(`User ${userId} has disabled email for ${notificationType}. Skipping.`)
+      return false
+    }
+    return true
+  } catch {
+    return true // Default: enabled
+  }
+}
+
 export async function sendEmail(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  notificationType?: EmailNotificationType,
+  userId?: number
 ): Promise<boolean> {
   try {
-    const setting = await prisma.settings.findUnique({
+    // Check global email notifications toggle
+    const globalSetting = await prisma.settings.findUnique({
       where: { key: 'email_notifications' }
     })
-
-    if (setting && setting.value === 'false') {
-      console.log('Email notifications are disabled in settings. Skipping.')
+    if (globalSetting && globalSetting.value === 'false') {
+      console.log('Email notifications are globally disabled. Skipping.')
       return false
+    }
+
+    // Check per-type setting (admin-level)
+    if (notificationType) {
+      const typeSetting = await prisma.settings.findUnique({
+        where: { key: `email_notify_${notificationType}` }
+      })
+      if (typeSetting && typeSetting.value === 'false') {
+        console.log(`Email type '${notificationType}' is disabled. Skipping.`)
+        return false
+      }
+    }
+
+    // Check per-user setting
+    if (userId && notificationType) {
+      const userAllowed = await checkUserEmailSetting(userId, notificationType)
+      if (!userAllowed) return false
     }
 
     const transporter = getTransporter()
@@ -235,22 +277,24 @@ export async function sendInvoiceCreatedEmail(
   invoiceId: number,
   amount: number,
   period: string,
-  tenantName: string
+  tenantName: string,
+  userId?: number
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.invoiceCreated(invoiceId, amount, period, tenantName)
-  return sendEmail(email, template.subject, template.html)
+  return sendEmail(email, template.subject, template.html, 'invoice', userId)
 }
 
 export async function sendInvoiceMessageEmail(
   email: string,
   invoiceId: number,
   message: string,
-  tenantName: string
+  tenantName: string,
+  userId?: number
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.invoiceMessage(invoiceId, message, tenantName)
-  return sendEmail(email, template.subject, template.html)
+  return sendEmail(email, template.subject, template.html, 'invoice', userId)
 }
 
 export async function sendIssueStatusUpdateEmail(
@@ -258,22 +302,24 @@ export async function sendIssueStatusUpdateEmail(
   issueTitle: string,
   status: string,
   statusLabel: string,
-  tenantName: string
+  tenantName: string,
+  userId?: number
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.issueStatusUpdate(issueTitle, status, statusLabel, tenantName)
-  return sendEmail(email, template.subject, template.html)
+  return sendEmail(email, template.subject, template.html, 'issue', userId)
 }
 
 export async function sendGeneralNotificationEmail(
   email: string,
   title: string,
   content: string,
-  tenantName: string
+  tenantName: string,
+  userId?: number
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.generalNotification(title, content, tenantName)
-  return sendEmail(email, template.subject, template.html)
+  return sendEmail(email, template.subject, template.html, 'general', userId)
 }
 
 export async function sendMessageReceivedEmail(
@@ -281,11 +327,12 @@ export async function sendMessageReceivedEmail(
   senderName: string,
   content: string,
   tenantName: string,
-  hasImages: boolean
+  hasImages: boolean,
+  userId?: number
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.messageReceived(senderName, content, tenantName, hasImages)
-  return sendEmail(email, template.subject, template.html)
+  return sendEmail(email, template.subject, template.html, 'message', userId)
 }
 
 export async function sendInvoiceComplaintEmail(
@@ -298,5 +345,5 @@ export async function sendInvoiceComplaintEmail(
 ): Promise<boolean> {
   if (!email) return false
   const template = emailTemplates.invoiceComplaint(invoiceId, tenantName, roomName, amount, complaint)
-  return sendEmail(email, template.subject, template.html)
+  return sendEmail(email, template.subject, template.html, 'complaint')
 }

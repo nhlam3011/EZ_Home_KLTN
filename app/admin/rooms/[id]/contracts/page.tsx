@@ -355,7 +355,7 @@ export default function RoomContractsPage() {
                             <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell">Dịch vụ</th>
                             <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle">Tổng</th>
                             <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle">Trạng thái</th>
-                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle hidden md:table-cell">Ngày tạo</th>
+                            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle">Ngày tạo</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-primary">
@@ -382,7 +382,7 @@ export default function RoomContractsPage() {
                               <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle">
                                 {getInvoiceStatusBadge(invoice.status)}
                               </td>
-                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle hidden md:table-cell">
+                              <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                                 <span className="text-xs sm:text-sm text-secondary whitespace-nowrap">{formatDate(invoice.createdAt)}</span>
                               </td>
                             </tr>

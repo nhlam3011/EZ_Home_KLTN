@@ -33,13 +33,13 @@ const menuItems = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
   { href: '/admin/rooms', label: 'Quản lý Phòng', icon: Building2 },
   { href: '/admin/residents', label: 'Cư dân', icon: Users },
-  { href: '/admin/finance', label: 'Tài chính', icon: FileText },
+  { href: '/admin/finance', label: 'Tài chính', icon: FileText, activePaths: ['/admin/invoices'] },
   { href: '/admin/renewals', label: 'Gia hạn HĐ', icon: RefreshCw, badge: true },
   { href: '/admin/maintenance', label: 'Bảo trì & Sự cố', icon: Wrench, badge: true },
   { href: '/admin/community', label: 'Cộng đồng', icon: CommunityIcon, badge: true },
   { href: '/admin/messages', label: 'Tin nhắn', icon: MessageSquare },
   { href: '/admin/forecast', label: 'Dự đoán AI', icon: TrendingUp },
-  { href: '/admin/ai-assistant', label: 'Trợ lý AI', icon: Bot },
+  { href: '/admin/ai-assistant', label: 'Trợ lý EZ', icon: Bot },
 ]
 
 const systemItems = [
@@ -78,7 +78,7 @@ export default function AdminLayout({
       '/admin/forecast': 'Dự đoán AI',
       '/admin/services': 'Cấu hình Dịch vụ',
       '/admin/settings': 'Cài đặt',
-      '/admin/ai-assistant': 'Trợ lý AI',
+      '/admin/ai-assistant': 'Trợ lý EZ',
     }
 
     // Check exact match first
@@ -321,7 +321,9 @@ export default function AdminLayout({
                 const isAiItem = item.href === '/admin/ai-assistant'
                 const isActive = item.href === '/admin'
                   ? pathname === '/admin'
-                  : pathname === item.href || pathname?.startsWith(item.href + '/')
+                  : pathname === item.href ||
+                  pathname?.startsWith(item.href + '/') ||
+                  (item.activePaths && item.activePaths.some(path => pathname === path || pathname?.startsWith(path + '/')))
                 const showBadge = item.badge && (
                   item.href === '/admin/maintenance' ? pendingCount > 0 :
                     item.href === '/admin/community' ? pendingPostsCount > 0 :
@@ -370,9 +372,9 @@ export default function AdminLayout({
                         isAiItem && !isActive
                           ? { background: 'linear-gradient(135deg, #6366f1, #a855f7)', color: '#ffffff' }
                           : {
-                              backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
-                              color: isActive ? '#ffffff' : 'var(--text-secondary)'
-                            }
+                            backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'var(--bg-tertiary)',
+                            color: isActive ? '#ffffff' : 'var(--text-secondary)'
+                          }
                       }
                     >
                       <Icon size={18} />
@@ -516,17 +518,17 @@ export default function AdminLayout({
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header - Seamless with sidebar */}
         <header
-          className="h-16 px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm"
+          className="h-16 px-2 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm"
           style={{
             backgroundColor: 'var(--bg-primary)',
             borderBottom: '1px solid var(--border-primary)',
             borderLeft: '1px solid var(--border-primary)'
           }}
         >
-          <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg transition-colors"
+              className="lg:hidden p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0"
               style={{ color: 'var(--text-primary)' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -535,7 +537,7 @@ export default function AdminLayout({
               <Menu size={20} />
             </button>
 
-            {/* Breadcrumbs */}
+            {/* Breadcrumbs - hidden on mobile */}
             <nav className="hidden sm:flex items-center gap-2 overflow-hidden">
               <Link
                 href="/admin"
@@ -558,26 +560,28 @@ export default function AdminLayout({
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
             {/* Header Date */}
-            <div className="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-tertiary/50 border border-primary mr-2 shadow-sm">
-              <ClockIcon size={14} className="text-tertiary" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-secondary whitespace-nowrap">
+            <div className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-tertiary/50 border border-primary shadow-sm">
+              <ClockIcon size={12} className="text-tertiary flex-shrink-0 sm:hidden" />
+              <ClockIcon size={14} className="text-tertiary flex-shrink-0 hidden sm:block" />
+              <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest text-secondary whitespace-nowrap">
                 {formatHeaderDate()}
               </span>
             </div>
             <DarkModeToggle />
             <Link
               href="/admin/notifications"
-              className="relative p-2 rounded-lg transition-colors"
+              className="relative p-1.5 sm:p-2 rounded-lg transition-colors flex-shrink-0"
               style={{ color: 'var(--text-primary)' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-              <Bell size={20} />
+              <Bell size={18} className="sm:hidden" />
+              <Bell size={20} className="hidden sm:block" />
               {unreadNotificationsCount > 0 && (
                 <span
-                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2"
+                  className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-2 h-2 rounded-full border-2"
                   style={{
                     backgroundColor: '#ef4444',
                     borderColor: 'var(--bg-primary)'

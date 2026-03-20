@@ -464,6 +464,11 @@ export default function InvoicesPage() {
                       <p className="text-sm font-semibold text-primary mt-2">
                         Tổng tiền {formatCurrency(Number(invoice.totalAmount))}
                       </p>
+                      {(invoice.overdueAmount || 0) > 0 && (
+                        <p className="text-[10px] font-medium text-orange-600 dark:text-orange-400 mt-0.5">
+                          Bao gồm nợ cũ: {formatCurrency(Number(invoice.overdueAmount))}
+                        </p>
+                      )}
                     </button>
                   )
                 })
@@ -650,7 +655,7 @@ export default function InvoicesPage() {
                           <tr className="bg-orange-50 dark:bg-orange-900/20">
                             <td className="px-3 sm:px-4 py-3">
                               <div>
-                                <p className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400">Hoá đơn quá hạn</p>
+                                <p className="text-xs sm:text-sm font-bold text-orange-600 dark:text-orange-400">Nợ cũ (các kỳ trước)</p>
                                 {selectedInvoice.overdueInvoices && (
                                   <p className="text-xs text-tertiary mt-0.5">
                                     {(() => {

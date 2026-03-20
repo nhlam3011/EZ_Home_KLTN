@@ -675,28 +675,31 @@ export default function InvoicesPage() {
                     <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase align-middle min-w-[120px]">
                       PHÒNG / TÒA
                     </th>
-                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle hidden md:table-cell min-w-[150px]">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle min-w-[150px]">
                       KHÁCH THUÊ
                     </th>
                     <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle min-w-[80px]">
                       KỲ TT
                     </th>
-                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell min-w-[120px]">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle min-w-[120px]">
                       TIỀN PHÒNG
                     </th>
-                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell min-w-[120px]">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle min-w-[120px]">
                       TIỀN ĐIỆN
                     </th>
-                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell min-w-[120px]">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle min-w-[120px]">
                       TIỀN NƯỚC
                     </th>
-                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle hidden lg:table-cell min-w-[120px]">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle min-w-[120px]">
                       DỊCH VỤ
+                    </th>
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle min-w-[120px] text-orange-600 dark:text-orange-400">
+                      NỢ CŨ
                     </th>
                     <th className="px-3 sm:px-4 py-2 sm:py-3 text-right text-xs font-semibold text-secondary uppercase align-middle min-w-[130px]">
                       TỔNG TIỀN
                     </th>
-                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle hidden md:table-cell min-w-[100px]">
+                    <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle min-w-[100px]">
                       HẠN TT
                     </th>
                     <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase align-middle min-w-[120px]">
@@ -778,6 +781,12 @@ export default function InvoicesPage() {
                                     <span className="text-tertiary">Dịch vụ:</span>
                                     <span className="text-primary">{formatCurrency(Number(invoice.amountService || 0))}</span>
                                   </div>
+                                  {(invoice.overdueAmount || 0) > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-orange-600 dark:text-orange-400">Nợ cũ:</span>
+                                      <span className="text-orange-600 dark:text-orange-400">{formatCurrency(Number(invoice.overdueAmount))}</span>
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="md:hidden mt-1">
                                   <span className={`text-xs ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-secondary'}`}>
@@ -787,7 +796,7 @@ export default function InvoicesPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle hidden md:table-cell">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle">
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                                 <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">{initials}</span>
@@ -800,24 +809,29 @@ export default function InvoicesPage() {
                               {invoice.month}/{invoice.year}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
                             <span className="text-xs sm:text-sm text-primary whitespace-nowrap">
                               {formatCurrency(Number(invoice.amountRoom || 0))}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
                             <span className="text-xs sm:text-sm text-primary whitespace-nowrap">
                               {formatCurrency(Number(invoice.amountElec || 0))}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
                             <span className="text-xs sm:text-sm text-primary whitespace-nowrap">
                               {formatCurrency(Number(invoice.amountWater || 0))}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle hidden lg:table-cell">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
                             <span className="text-xs sm:text-sm text-primary whitespace-nowrap">
                               {formatCurrency(Number(invoice.amountService || 0))}
+                            </span>
+                          </td>
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
+                            <span className="text-xs sm:text-sm font-medium text-orange-600 dark:text-orange-400 whitespace-nowrap">
+                              {formatCurrency(Number(invoice.overdueAmount || 0))}
                             </span>
                           </td>
                           <td className="px-3 sm:px-4 py-3 sm:py-4 text-right align-middle">
@@ -825,7 +839,7 @@ export default function InvoicesPage() {
                               {formatCurrency(Number(invoice.totalAmount))}
                             </span>
                           </td>
-                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle hidden md:table-cell">
+                          <td className="px-3 sm:px-4 py-3 sm:py-4 text-center align-middle">
                             <span className={`text-xs sm:text-sm whitespace-nowrap ${isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-secondary'}`}>
                               {formatDate(invoice.paymentDueDate || invoice.createdAt)}
                             </span>

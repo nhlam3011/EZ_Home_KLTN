@@ -18,16 +18,27 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get notifications from Post table where content contains [Hóa đơn, [Thông báo, etc.
+    // Get notifications for this tenant:
+    // 1. Notification gửi riêng cho tenant (hóa đơn, tin nhắn) - userId = tenant
+    // 2. Thông báo chung từ admin - user.role = ADMIN
     const notifications = await prisma.post.findMany({
       where: {
-        userId: user.id,
+        status: 'PUBLIC',
         OR: [
-          { content: { contains: '[Hóa đơn' } },
-          { content: { contains: '[Thông báo' } },
-          { content: { contains: '[Tin nhắn' } }
-        ],
-        status: 'PUBLIC'
+          // Notification riêng cho tenant này (hóa đơn, tin nhắn)
+          {
+            userId: user.id,
+            OR: [
+              { content: { contains: '[Hóa đơn' } },
+              { content: { contains: '[Tin nhắn' } }
+            ]
+          },
+          // Thông báo chung từ admin cho tất cả tenant
+          {
+            user: { role: 'ADMIN' },
+            content: { contains: '[Thông báo' }
+          }
+        ]
       },
       orderBy: {
         createdAt: 'desc'

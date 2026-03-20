@@ -5,7 +5,7 @@ import Link from 'next/link'
 import {
   Bot, Send, Sparkles, Loader2, Trash2, Mic, MicOff,
   Building2, FileText, Users, TrendingUp, AlertTriangle, Wrench,
-  BarChart3, Clock, Zap, ChevronUp, X
+  BarChart3, Clock, Zap, X, MessageSquare
 } from 'lucide-react'
 
 interface Message {
@@ -57,7 +57,7 @@ const renderTable = (tableContent: string) => {
   const dataLines = isSeparator ? lines.slice(2) : lines.slice(1)
 
   return (
-    <div className="overflow-x-auto my-4 rounded-xl border text-sm" style={{
+    <div className="overflow-x-auto my-3 rounded-xl border text-sm" style={{
       borderColor: 'var(--border-primary)',
       backgroundColor: 'var(--bg-primary)',
     }}>
@@ -99,8 +99,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
   const [userId, setUserId] = useState<number | null>(null)
-  const [showSuggestions, setShowSuggestions] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
+  const [welcomeText, setWelcomeText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<any>(null)
@@ -115,11 +114,6 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
         setUserId(user.id)
       }
     } catch { }
-
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
   useEffect(() => {
@@ -127,6 +121,32 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
   }, [messages])
 
   useEffect(() => { inputRef.current?.focus() }, [])
+
+  useEffect(() => {
+    const fullText = role === 'ADMIN' ? 'Trợ lý quản lý thông minh' : 'Trợ lý cư dân 24/7'
+    let i = 0
+    let isDeleting = false
+    let timer: NodeJS.Timeout
+
+    const type = () => {
+      const delay = isDeleting ? 30 : 50
+      setWelcomeText(fullText.substring(0, i))
+
+      if (!isDeleting && i === fullText.length) {
+        isDeleting = true
+        timer = setTimeout(type, 3000) // Wait at full text
+      } else if (isDeleting && i === 0) {
+        isDeleting = false
+        timer = setTimeout(type, 1000) // Wait at empty text
+      } else {
+        i = isDeleting ? i - 1 : i + 1
+        timer = setTimeout(type, delay)
+      }
+    }
+
+    type()
+    return () => clearTimeout(timer)
+  }, [role])
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -165,7 +185,6 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setIsLoading(true)
-    setShowSuggestions(false)
 
     try {
       const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }))
@@ -191,6 +210,34 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) }
   }
 
+  const TypewriterText = ({ content }: { content: string }) => {
+    const [displayedContent, setDisplayedContent] = useState('')
+    const [isComplete, setIsComplete] = useState(false)
+
+    useEffect(() => {
+      let i = 0
+      const fullText = content
+      const timer = setInterval(() => {
+        setDisplayedContent(fullText.substring(0, i + 1))
+        i++
+        if (i >= fullText.length) {
+          clearInterval(timer)
+          setIsComplete(true)
+        }
+      }, 10)
+      return () => clearInterval(timer)
+    }, [content])
+
+    return (
+      <div className="relative">
+        {renderContent(displayedContent)}
+        {!isComplete && (
+          <span className="inline-block w-1.5 h-4 ml-1 bg-[#8b5cf6] animate-pulse align-middle" />
+        )}
+      </div>
+    )
+  }
+
   const renderContent = (content: string) => {
     const tableMatch = parseTable(content)
     if (tableMatch) {
@@ -210,13 +257,13 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
     return (
       <div className="space-y-1">
         {lines.map((line, i) => {
-          if (line.startsWith('### ')) return <h4 key={i} className="font-bold text-sm mt-4 mb-2 text-[#8b5cf6]">{renderInline(line.slice(4))}</h4>
-          if (line.startsWith('## ')) return <h3 key={i} className="font-bold text-base mt-4 mb-2 text-[#8b5cf6]">{renderInline(line.slice(3))}</h3>
-          if (line.startsWith('# ')) return <h2 key={i} className="font-bold text-lg mt-4 mb-2 text-[#8b5cf6]">{renderInline(line.slice(2))}</h2>
+          if (line.startsWith('### ')) return <h4 key={i} className="font-bold text-sm mt-3 mb-1.5" style={{ color: '#8b5cf6' }}>{renderInline(line.slice(4))}</h4>
+          if (line.startsWith('## ')) return <h3 key={i} className="font-bold text-base mt-3 mb-1.5" style={{ color: '#8b5cf6' }}>{renderInline(line.slice(3))}</h3>
+          if (line.startsWith('# ')) return <h2 key={i} className="font-bold text-lg mt-3 mb-1.5" style={{ color: '#8b5cf6' }}>{renderInline(line.slice(2))}</h2>
 
           if (line.match(/^[\-\*\•]\s/)) {
             return (
-              <div key={i} className="flex gap-3 ml-1 py-0.5 items-start">
+              <div key={i} className="flex gap-2.5 ml-1 py-0.5 items-start">
                 <span className="shrink-0 mt-2 w-1.5 h-1.5 rounded-full bg-[#8b5cf6]" />
                 <span className="flex-1 leading-relaxed" style={{ color: 'var(--text-primary)' }}>{renderInline(line.slice(2))}</span>
               </div>
@@ -225,7 +272,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
 
           const numMatch = line.match(/^(\d+)\.\s(.*)/)
           if (numMatch) return (
-            <div key={i} className="flex gap-3 ml-1 py-0.5 items-start">
+            <div key={i} className="flex gap-2.5 ml-1 py-0.5 items-start">
               <span className="shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-bold mt-0.5"
                 style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
                 {numMatch[1]}
@@ -234,8 +281,8 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
             </div>
           )
 
-          if (line.trim() === '---' || line.trim() === '***') return <hr key={i} className="my-4" style={{ borderColor: 'var(--border-primary)' }} />
-          if (!line.trim()) return <div key={i} className="h-3" />
+          if (line.trim() === '---' || line.trim() === '***') return <hr key={i} className="my-3" style={{ borderColor: 'var(--border-primary)' }} />
+          if (!line.trim()) return <div key={i} className="h-2" />
           return <p key={i} className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>{renderInline(line)}</p>
         })}
       </div>
@@ -243,7 +290,6 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
   }
 
   const renderInline = (text: string): React.ReactNode => {
-    // Split by markdown bold, italic, code, and also path-like links (/tenant/... or /admin/...) or http(s) urls
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|(?:\/tenant\/\S+|\/admin\/\S+|https?:\/\/\S+))/g)
     return parts.map((part, i) => {
       if (!part) return null
@@ -255,213 +301,262 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
           {part.slice(1, -1)}
         </code>
       )
-      // Check for links (paths or URLs)
       if (part.startsWith('/') || part.startsWith('http')) {
-        const cleanLink = part.replace(/[.,!?;:]$/, '') // remove trailing punctuation
+        const cleanLink = part.replace(/[.,!?;:]$/, '')
         const isInternal = cleanLink.startsWith('/')
-
         if (isInternal) {
-          return (
-            <Link key={i} href={cleanLink} className="text-[#4f46e5] hover:underline font-medium inline-flex items-center gap-0.5">
-              {cleanLink}
-            </Link>
-          )
+          return <Link key={i} href={cleanLink} className="text-[#4f46e5] hover:underline font-medium">{cleanLink}</Link>
         }
-
-        return (
-          <a key={i} href={cleanLink} target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline font-medium inline-flex items-center gap-0.5">
-            {cleanLink}
-          </a>
-        )
+        return <a key={i} href={cleanLink} target="_blank" rel="noopener noreferrer" className="text-[#4f46e5] hover:underline font-medium">{cleanLink}</a>
       }
       return part
     })
   }
 
+  const hasMessages = messages.length > 0
+
   return (
     <div className="h-full flex flex-col relative overflow-hidden" style={{ maxHeight: 'calc(100vh - 64px)' }}>
-      {/* Background */}
+      {/* GenAI Background Animation */}
       <style jsx>{`
-        @keyframes float1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(15px, -10px); } }
-        @keyframes float2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-15px, 10px); } }
-        @keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-        .ai-orb-1 { animation: float1 10s ease-in-out infinite; }
-        .ai-orb-2 { animation: float2 12s ease-in-out infinite; }
-        .gradient-animate { background-size: 200% 200%; animation: gradient-shift 3s ease infinite; }
+        @keyframes orb-float-1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(30px, -20px) scale(1.05); }
+          50% { transform: translate(-10px, -35px) scale(0.95); }
+          75% { transform: translate(20px, 10px) scale(1.02); }
+        }
+        @keyframes orb-float-2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(-25px, 15px) scale(1.03); }
+          50% { transform: translate(15px, 30px) scale(0.97); }
+          75% { transform: translate(-20px, -10px) scale(1.05); }
+        }
+        @keyframes orb-float-3 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(20px, 20px) scale(1.04); }
+          66% { transform: translate(-15px, -25px) scale(0.96); }
+        }
+        @keyframes mesh-shift {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.7; }
+        }
+        @keyframes gradient-flow {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes pulse-ring {
+          0% { transform: scale(0.95); opacity: 0.5; }
+          50% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .orb-1 { animation: orb-float-1 14s ease-in-out infinite; }
+        .orb-2 { animation: orb-float-2 18s ease-in-out infinite; }
+        .orb-3 { animation: orb-float-3 12s ease-in-out infinite; }
+        .mesh-animate { animation: mesh-shift 8s ease-in-out infinite; }
+        .gradient-flow { background-size: 200% 200%; animation: gradient-flow 4s ease infinite; }
+        .pulse-ring { animation: pulse-ring 3s ease-in-out infinite; }
+        .shimmer-text {
+          background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899, #a855f7, #6366f1);
+          background-size: 200% 100%;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: shimmer 3s linear infinite;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .msg-appear { animation: msg-in 0.3s ease-out; }
+        @keyframes msg-in {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
       `}</style>
 
+      {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%)'
+        {/* Base gradient mesh */}
+        <div className="absolute inset-0 mesh-animate" style={{
+          background: 'radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.04) 0%, transparent 60%)'
         }} />
-        <div className="ai-orb-1 absolute top-[10%] right-[15%] w-60 h-60 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(99, 102, 241, 0.12), transparent 70%)' }} />
-        <div className="ai-orb-2 absolute bottom-[20%] left-[10%] w-72 h-72 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.1), transparent 70%)' }} />
+        {/* Floating orbs */}
+        <div className="orb-1 absolute top-[5%] right-[10%] w-48 sm:w-72 h-48 sm:h-72 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%)' }} />
+        <div className="orb-2 absolute bottom-[15%] left-[5%] w-56 sm:w-80 h-56 sm:h-80 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.12), transparent 70%)' }} />
+        <div className="orb-3 absolute top-[40%] left-[40%] w-40 sm:w-64 h-40 sm:h-64 rounded-full blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(236, 72, 153, 0.08), transparent 70%)' }} />
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px)',
+          backgroundSize: '60px 60px'
+        }} />
       </div>
 
-      {/* Header */}
-      <div className="shrink-0 px-4 sm:px-6 py-3 relative z-10 flex items-center justify-between"
-        style={{ borderBottom: '1px solid var(--border-primary)', backgroundColor: 'var(--bg-primary)' }}>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center gradient-animate shadow-lg"
-              style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
-              <Sparkles size={20} className="text-white" />
-            </div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 animate-pulse"
-              style={{ borderColor: 'var(--bg-primary)' }} />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-primary flex items-center gap-2">
-              Trợ lý AI
-            </h1>
-            <p className="text-xs text-secondary flex items-center gap-1.5 mt-0.5">
-              <Zap size={11} className="text-green-500" />
-              {role === 'ADMIN' ? 'Quản lý phòng trọ thông minh' : 'Hỗ trợ khách thuê 24/7'}
-            </p>
-          </div>
-        </div>
-        {messages.length > 0 && (
-          <button onClick={() => { setMessages([]); setShowSuggestions(true) }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors hover:border-red-400 hover:text-red-500"
-            style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
-            <Trash2 size={14} /> <span className="hidden sm:inline">Xóa hội thoại</span>
-          </button>
-        )}
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 relative z-10">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-full max-w-4xl mx-auto py-10">
-            {/* Hero */}
-            <div className="relative mb-6">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center gradient-animate shadow-xl"
-                style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
-                <Bot size={40} className="text-white" />
-              </div>
-              <div className="absolute inset-0 rounded-2xl opacity-30 blur-xl"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)' }} />
-            </div>
-
-            <h2 className="text-2xl font-bold text-primary mb-2">Xin chào! 👋</h2>
-            <p className="text-sm text-secondary text-center mb-8 max-w-md leading-relaxed">
-              {role === 'ADMIN'
-                ? 'Tôi có thể giúp bạn quản lý phòng, cư dân, hoá đơn, hợp đồng và phân tích dữ liệu.'
-                : 'Tôi có thể giúp bạn xem hoá đơn, hợp đồng, báo sự cố và tra cứu thông tin phòng.'}
-            </p>
-
-            {/* Suggestions Grid */}
-            <div className="w-full max-w-2xl grid grid-cols-2 sm:grid-cols-3 gap-4 justify-center">
-              {suggestions.map((s, i) => {
-                const Icon = s.icon
-                return (
-                  <button key={i} onClick={() => sendMessage(s.prompt)}
-                    className="group flex items-center gap-3 p-3.5 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm dark:shadow-none"
-                    style={{
-                      backgroundColor: 'var(--bg-tertiary)',
-                      borderColor: 'var(--border-primary)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--border-primary)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-                    }}
-                  >
-                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
-                      style={{ backgroundColor: `${s.color}15`, color: s.color }}>
-                      <Icon size={18} />
-                    </div>
-                    <span className="text-sm font-medium text-primary">{s.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {speechSupported && (
-              <div className="mt-8 flex items-center gap-2 px-4 py-2.5 rounded-full border"
-                style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-primary)' }}>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(139, 92, 246, 0.15)' }}>
-                  <Mic size={12} style={{ color: '#8b5cf6' }} />
+      {/* Messages Area / Welcome Screen */}
+      <div className="flex-1 overflow-y-auto relative z-10 no-scrollbar">
+        {!hasMessages ? (
+          /* ===== WELCOME SCREEN ===== */
+          <div className="flex flex-col items-center justify-center min-h-full px-4 sm:px-6 py-8 sm:py-12">
+            <div className="w-full max-w-lg flex flex-col items-center">
+              {/* AI Avatar */}
+              <div className="relative mb-6">
+                <div className="pulse-ring absolute inset-0 rounded-2xl" style={{
+                  background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.3))',
+                  filter: 'blur(12px)'
+                }} />
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center gradient-flow shadow-xl"
+                  style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
+                  <Bot size={32} className="text-white sm:hidden" />
+                  <Bot size={40} className="text-white hidden sm:block" />
                 </div>
-                <span className="text-xs text-secondary">Hỗ trợ nhập liệu bằng giọng nói tiếng Việt</span>
               </div>
-            )}
+
+              {/* Greeting */}
+              <h2 className="text-xl sm:text-2xl font-bold text-primary mb-1.5">Xin chào! 👋</h2>
+              <p className="shimmer-text text-sm sm:text-base font-semibold mb-1 h-6">
+                {welcomeText}
+              </p>
+              <p className="text-xs sm:text-sm text-secondary text-center mb-6 sm:mb-8 max-w-sm leading-relaxed px-2">
+                {role === 'ADMIN'
+                  ? 'Quản lý phòng, cư dân, hoá đơn, hợp đồng và phân tích dữ liệu.'
+                  : 'Xem hoá đơn, hợp đồng, báo sự cố và tra cứu thông tin phòng.'}
+              </p>
+
+              {/* Suggestion Cards */}
+              <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                {suggestions.map((s, i) => {
+                  const Icon = s.icon
+                  return (
+                    <button key={i} onClick={() => sendMessage(s.prompt)}
+                      className="group flex flex-col items-center gap-2 p-3 sm:p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.03] active:scale-95 hover:shadow-lg"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
+                        borderColor: 'var(--border-primary)',
+                        backdropFilter: 'blur(12px)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = s.color
+                        e.currentTarget.style.boxShadow = `0 4px 20px ${s.color}20`
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-primary)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    >
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                        style={{ backgroundColor: `${s.color}15`, color: s.color }}>
+                        <Icon size={20} />
+                      </div>
+                      <span className="text-xs sm:text-sm font-medium text-primary text-center">{s.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="max-w-[1200px] mx-auto space-y-6">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`flex gap-3 max-w-[88%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  {msg.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-md gradient-animate"
-                      style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
-                      <Sparkles size={14} className="text-white" />
-                    </div>
-                  )}
-                  <div className={`px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
-                    ? 'rounded-2xl rounded-br-md text-white shadow-md'
-                    : 'rounded-2xl rounded-bl-md border shadow-sm'
-                    }`}
-                    style={
-                      msg.role === 'user'
-                        ? { background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }
-                        : { backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', borderColor: 'var(--border-primary)' }
-                    }
-                  >
-                    {msg.role === 'assistant' ? renderContent(msg.content) : msg.content}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-md gradient-animate"
-                    style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
-                    <Sparkles size={14} className="text-white" />
-                  </div>
-                  <div className="px-4 py-3 rounded-2xl rounded-bl-md border shadow-sm"
-                    style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-primary)' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="flex gap-1.5">
-                        <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#6366f1', animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#8b5cf6', animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#a855f7', animationDelay: '300ms' }} />
+          /* ===== CHAT MESSAGES ===== */
+          <div className="px-3 sm:px-6 py-4 sm:py-6">
+            <div className="max-w-3xl mx-auto space-y-4 sm:space-y-5">
+              {messages.map((msg, idx) => (
+                <div key={msg.id} className={`msg-appear flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                    {/* Avatar */}
+                    {msg.role === 'assistant' && (
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-md gradient-flow"
+                        style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
+                        <Sparkles size={13} className="text-white" />
                       </div>
-                      <span className="text-sm text-secondary">Đang phân tích...</span>
+                    )}
+                    {/* Bubble */}
+                    <div className={`px-3.5 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm leading-relaxed ${msg.role === 'user'
+                      ? 'rounded-2xl rounded-br-md text-white shadow-md'
+                      : 'rounded-2xl rounded-bl-md border shadow-sm'
+                      }`}
+                      style={
+                        msg.role === 'user'
+                          ? { background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }
+                          : {
+                            backgroundColor: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
+                            color: 'var(--text-primary)',
+                            borderColor: 'var(--border-primary)',
+                            backdropFilter: 'blur(8px)'
+                          }
+                      }
+                    >
+                      {msg.role === 'assistant' ? (
+                        idx === messages.length - 1 ? (
+                          <TypewriterText content={msg.content} />
+                        ) : (
+                          renderContent(msg.content)
+                        )
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+              ))}
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="msg-appear flex justify-start">
+                  <div className="flex gap-2 sm:gap-3">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-md gradient-flow"
+                      style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed, #a855f7, #4f46e5)' }}>
+                      <Sparkles size={13} className="text-white" />
+                    </div>
+                    <div className="px-4 py-3 rounded-2xl rounded-bl-md border shadow-sm"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--bg-primary) 90%, transparent)',
+                        borderColor: 'var(--border-primary)',
+                        backdropFilter: 'blur(8px)'
+                      }}>
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#6366f1', animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#8b5cf6', animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#a855f7', animationDelay: '300ms' }} />
+                        </div>
+                        <span className="text-xs text-secondary">Đang phân tích...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Suggestions bar when has messages */}
-      {messages.length > 0 && !isLoading && (
-        <div className="shrink-0 px-4 sm:px-6 py-3 flex justify-center relative z-10"
-          style={{ borderTop: '1px solid var(--border-primary)', backgroundColor: 'var(--bg-primary)' }}>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar max-w-full py-1 px-4 scroll-smooth">
-            {suggestions.slice(0, role === 'ADMIN' ? 6 : suggestions.length).map((s, i) => (
+      {/* Quick Suggestions (when chatting) */}
+      {hasMessages && !isLoading && (
+        <div className="shrink-0 relative z-10 px-3 sm:px-6 py-2"
+          style={{ borderTop: '1px solid var(--border-primary)' }}>
+          <div className="max-w-3xl mx-auto flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+            {suggestions.map((s, i) => (
               <button key={i} onClick={() => sendMessage(s.prompt)}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] sm:text-xs font-medium whitespace-nowrap border transition-all hover:scale-105 active:scale-95 shadow-sm dark:shadow-none"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all hover:scale-105 active:scale-95"
                 style={{
                   color: 'var(--text-secondary)',
-                  backgroundColor: 'var(--bg-tertiary)',
+                  backgroundColor: 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
                   borderColor: 'var(--border-primary)',
+                  backdropFilter: 'blur(8px)',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--border-primary)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = s.color
+                  e.currentTarget.style.color = s.color
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-primary)'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
+                }}
               >
-                <s.icon size={12} className="sm:w-[13px] sm:h-[13px]" /> {s.label}
+                <s.icon size={12} /> {s.label}
               </button>
             ))}
           </div>
@@ -469,22 +564,42 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
       )}
 
       {/* Input Area */}
-      <div className="shrink-0 px-4 sm:px-6 py-4 relative z-10"
-        style={{ borderTop: '1px solid var(--border-primary)', backgroundColor: 'var(--bg-primary)' }}>
+      <div className="shrink-0 px-3 sm:px-6 py-3 sm:py-4 relative z-10"
+        style={{ borderTop: hasMessages ? 'none' : '1px solid var(--border-primary)' }}>
         <div className="max-w-3xl mx-auto">
-          <div className={`flex items-end gap-2 rounded-[28px] px-2 py-2 transition-all duration-300 ${isListening ? 'ring-2 ring-red-500/50 bg-red-50/5' : 'bg-tertiary/50 hover:bg-tertiary/80'}`}
+          {/* New chat button */}
+          {hasMessages && (
+            <div className="flex justify-center mb-2">
+              <button onClick={() => setMessages([])}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium transition-all hover:scale-105"
+                style={{
+                  color: 'var(--text-tertiary)',
+                  backgroundColor: 'color-mix(in srgb, var(--bg-tertiary) 60%, transparent)',
+                  backdropFilter: 'blur(8px)',
+                }}>
+                <Trash2 size={11} /> Cuộc hội thoại mới
+              </button>
+            </div>
+          )}
+
+          {/* Input box */}
+          <div className={`flex items-end gap-1.5 sm:gap-2 rounded-2xl px-2 sm:px-3 py-1.5 sm:py-2 transition-all duration-300 ${isListening ? 'ring-2 ring-red-400/40' : ''}`}
             style={{
-              boxShadow: isListening ? '0 0 15px rgba(239, 68, 68, 0.1)' : 'none',
-              border: '1px solid var(--border-primary)'
+              backgroundColor: 'color-mix(in srgb, var(--bg-primary) 85%, transparent)',
+              border: `1.5px solid ${isListening ? 'rgba(239, 68, 68, 0.4)' : 'var(--border-primary)'}`,
+              backdropFilter: 'blur(16px)',
+              boxShadow: isListening
+                ? '0 0 20px rgba(239, 68, 68, 0.08)'
+                : '0 2px 12px rgba(0,0,0,0.04)'
             }}>
             {speechSupported && (
               <button type="button" onClick={toggleVoice}
-                className="p-3 rounded-full shrink-0 transition-all active:scale-90"
+                className="p-2 sm:p-2.5 rounded-xl shrink-0 transition-all active:scale-90"
                 style={{
                   backgroundColor: isListening ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
                   color: isListening ? '#ef4444' : 'var(--text-tertiary)',
                 }}>
-                {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                {isListening ? <MicOff size={18} /> : <Mic size={18} />}
               </button>
             )}
 
@@ -494,20 +609,20 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={isListening
-                ? '🎙️ Đang nghe giọng nói...'
+                ? '🎙️ Đang nghe...'
                 : role === 'ADMIN'
-                  ? 'Gửi tin nhắn cho AI Assistant...'
-                  : 'Hỏi về hoá đơn, hợp đồng...'}
+                  ? 'Nhập nội dung...'
+                  : 'HNhập nội dung...'}
               rows={1}
-              className="flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm py-3 px-1 leading-relaxed resize-none scrollbar-hide"
-              style={{ color: 'var(--text-primary)', maxHeight: '160px' }}
+              className="flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm py-2 sm:py-2.5 px-1 leading-relaxed resize-none no-scrollbar"
+              style={{ color: 'var(--text-primary)', maxHeight: '120px' }}
               disabled={isLoading}
             />
 
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || isLoading}
-              className="p-3 rounded-full shrink-0 transition-all duration-200 disabled:opacity-30 active:scale-90"
+              className="p-2 sm:p-2.5 rounded-xl shrink-0 transition-all duration-200 disabled:opacity-30 active:scale-90 hover:shadow-md"
               style={{
                 background: input.trim() ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : 'transparent',
                 color: input.trim() ? 'white' : 'var(--text-tertiary)',
@@ -516,8 +631,8 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
               <Send size={18} />
             </button>
           </div>
-          <p className="text-[10px] text-tertiary text-center mt-2.5 opacity-60">
-            Nhấn Enter để gửi • Hỗ trợ tìm kiếm thông tin {role === 'ADMIN' ? 'nhà trọ' : 'phòng thuê'} của bạn
+          <p className="text-[10px] text-tertiary text-center mt-2 opacity-50">
+            Enter ↵ gửi • Shift+Enter xuống dòng
           </p>
         </div>
       </div>

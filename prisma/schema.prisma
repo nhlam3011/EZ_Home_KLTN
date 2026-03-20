@@ -110,6 +110,8 @@ model Room {
   contracts Contract[]
   meters    MeterReading[]
   issues    Issue[]
+
+  @@index([name])
 }
 
 model Asset {
@@ -123,6 +125,8 @@ model Asset {
   value        Decimal?    @db.Decimal(10, 2)
   notes        String?
   createdAt    DateTime    @default(now())
+
+  @@index([roomId])
 }
 
 model Contract {
@@ -141,6 +145,10 @@ model Contract {
   documents  Document[]
   occupants  ContractOccupant[] // Người ở trong hợp đồng (ngoài người chủ hợp đồng)
   renewalRequests ContractRenewalRequest[]
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
 }
 
 enum RenewalStatus {
@@ -163,6 +171,9 @@ model ContractRenewalRequest {
   processedAt DateTime?      // Ngày duyệt
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  @@index([contractId])
+  @@index([userId])
 }
 
 model MeterReading {
@@ -176,6 +187,8 @@ model MeterReading {
   waterOld    Float
   waterNew    Float
   recordedDate DateTime @default(now())
+
+  @@index([roomId, month, year])
 }
 
 model Invoice {
@@ -199,6 +212,10 @@ model Invoice {
   // Thông tin hoá đơn quá hạn từ tháng trước
   overdueAmount      Decimal       @default(0) @db.Decimal(10, 2) // Tổng số tiền quá hạn
   overdueInvoices    String?       @db.Text // JSON array of overdue invoice info: [{"id": 1, "month": 1, "year": 2025, "amount": 1500000}, ...]
+
+  @@index([contractId])
+  @@index([status])
+  @@index([month, year])
 }
 
 model Service {
@@ -222,6 +239,9 @@ model ServiceOrder {
   note      String?
   orderDate DateTime      @default(now())
   status    RequestStatus @default(PENDING)
+
+  @@index([userId])
+  @@index([serviceId])
 }
 
 model Issue {
@@ -236,6 +256,10 @@ model Issue {
   repairCost  Decimal?      @db.Decimal(10, 2)
   status      RequestStatus @default(PENDING)
   createdAt   DateTime      @default(now())
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
 }
 
 enum PostCategory {
@@ -254,6 +278,10 @@ model Post {
   category  PostCategory @default(DISCUSSION)
   status    String       @default("PENDING") // PENDING, PUBLIC
   createdAt DateTime     @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
 }
 
 model AiForecast {
@@ -262,6 +290,8 @@ model AiForecast {
   year             Int
   predictedRevenue Decimal  @db.Decimal(10, 2)
   createdAt        DateTime @default(now())
+
+  @@index([month, year])
 }
 
 model Document {
@@ -277,6 +307,9 @@ model Document {
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([contractId])
 }
 
 model ContractOccupant {
@@ -306,6 +339,10 @@ model Payment {
   paidAt        DateTime?     // When payment was completed
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([transactionId])
 }
 
 model Message {

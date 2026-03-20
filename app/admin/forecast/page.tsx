@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { TrendingUp, TrendingDown, AlertTriangle, Building2, DollarSign, Info, BarChart3, Sparkles, Loader2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, AlertTriangle, Building2, DollarSign, Info, BarChart3, Sparkles, Loader2, Search, Send, RefreshCw, ArrowRight } from 'lucide-react'
 import Loading from '@/components/Loading'
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
@@ -73,12 +73,50 @@ interface ForecastData {
   }
 }
 
+// Structured AI Insights Types
+interface AiInsightsData {
+  overview: {
+    currentRevenue: number
+    previousRevenue: number
+    revenueTrend: 'up' | 'down' | 'stable'
+    revenueTrendPercent: number
+    last3MonthsRevenue: number[]
+    occupancyRate: number
+  }
+  warnings: {
+    expiringContracts: Array<{
+      contractId: number
+      roomName: string
+      tenantName: string
+      endDate: string
+      daysUntilExpiry: number
+    }>
+    overdueInvoices: Array<{
+      invoiceId: number
+      roomName: string
+      tenantName: string
+      amount: number
+      overdueDays: number
+    }>
+    totalDebt: number
+  }
+  recommendations: Array<{
+    id: number
+    priority: 'high' | 'medium' | 'low'
+    title: string
+    description: string
+    actionType: 'view_list' | 'send_message' | 'renew_contract' | 'check_invoice'
+    targetCount?: number
+  }>
+}
+
 export default function ForecastPage() {
   const [data, setData] = useState<ForecastData | null>(null)
   const [loading, setLoading] = useState(true)
   const [showMethodology, setShowMethodology] = useState(false)
-  const [aiInsights, setAiInsights] = useState<string | null>(null)
+  const [aiInsights, setAiInsights] = useState<AiInsightsData | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [expandedRecs, setExpandedRecs] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchForecast()
@@ -129,7 +167,7 @@ export default function ForecastPage() {
   ]
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-4 sm:space-y-6 pb-10">
       {/* Header - Unified with other pages */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-center sm:text-left">
@@ -190,75 +228,87 @@ export default function ForecastPage() {
         </div>
       )}
 
-      {/* Revenue Forecast Summary Cards - Unified style */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card stat-card-blue">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">Doanh thu tháng tới</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">
-                {formatLargeCurrency(data.revenueForecast.forecast[0]?.predictedRevenue || 0)}
-              </p>
-              <p className="text-xs text-tertiary mt-1">Dự báo AI</p>
+      {/* Revenue Forecast Summary Cards - Refined alignment & fonts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="card stat-card-blue flex flex-col justify-between h-full min-h-[120px]">
+          <div className="flex items-center justify-between mb-3 w-full">
+            <div className="min-w-0 pr-2">
+              <p className="text-[10px] sm:text-[11px] text-secondary mb-1 font-medium uppercase tracking-wider">Doanh thu tháng tới</p>
+              <div className="flex flex-col">
+                <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
+                  {formatLargeCurrency(data.revenueForecast.forecast[0]?.predictedRevenue || 0)}
+                </span>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold ${parseFloat(data.revenueForecast.growthRate) >= 0 ? 'bg-green-100 text-green-600 dark:bg-green-900/40' : 'bg-red-100 text-red-600 dark:bg-red-900/40'}`}>
+                    {parseFloat(data.revenueForecast.growthRate) >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                    {Math.abs(parseFloat(data.revenueForecast.growthRate))}%
+                  </div>
+                  <span className="text-[10px] text-tertiary font-medium">so với tháng trước</span>
+                </div>
+              </div>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-              <DollarSign className="text-white" size={20} />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <DollarSign className="text-white" size={18} />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            {parseFloat(data.revenueForecast.growthRate) >= 0 ? (
-              <TrendingUp size={14} className="text-green-500" />
-            ) : (
-              <TrendingDown size={14} className="text-red-500" />
-            )}
-            <span className={`text-xs font-medium ${parseFloat(data.revenueForecast.growthRate) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {Math.abs(parseFloat(data.revenueForecast.growthRate))}% so với tháng trước
-            </span>
+          <div className="mt-auto border-t border-[var(--border-primary)] pt-2">
+            <p className="text-[9px] font-bold text-tertiary uppercase flex items-center gap-1 tracking-tight">
+              <Sparkles size={10} /> Dự báo AI
+            </p>
           </div>
         </div>
 
-        <div className="card stat-card-green">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">Doanh thu quý tới</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">
+        <div className="card stat-card-green flex flex-col justify-between h-full min-h-[120px]">
+          <div className="flex items-center justify-between mb-3 w-full">
+            <div className="min-w-0 pr-2">
+              <p className="text-[10px] sm:text-[11px] text-secondary mb-1 font-medium uppercase tracking-wider">Doanh thu quý tới</p>
+              <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap overflow-hidden text-ellipsis block leading-tight">
                 {formatLargeCurrency(data.revenueForecast.summary.nextQuarter)}
-              </p>
-              <p className="text-xs text-tertiary mt-1">3 tháng tới</p>
+              </span>
+              <p className="text-[10px] text-tertiary mt-2 font-medium">Dự kiến trong 3 tháng tới</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg flex items-center justify-center">
-              <BarChart3 className="text-white" size={20} />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-green-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <BarChart3 className="text-white" size={18} />
             </div>
+          </div>
+          <div className="mt-auto border-t border-[var(--border-primary)] pt-2">
+            <p className="text-[9px] font-bold text-tertiary uppercase tracking-tight">Thống kê kỳ hạn</p>
           </div>
         </div>
 
-        <div className="card stat-card-purple">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">Doanh thu 6 tháng</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">
+        <div className="card stat-card-purple flex flex-col justify-between h-full min-h-[120px]">
+          <div className="flex items-center justify-between mb-3 w-full">
+            <div className="min-w-0 pr-2">
+              <p className="text-[10px] sm:text-[11px] text-secondary mb-1 font-medium uppercase tracking-wider">Doanh thu 6 tháng</p>
+              <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap overflow-hidden text-ellipsis block leading-tight">
                 {formatLargeCurrency(data.revenueForecast.summary.nextHalfYear)}
-              </p>
-              <p className="text-xs text-tertiary mt-1">Nửa năm tới</p>
+              </span>
+              <p className="text-[10px] text-tertiary mt-2 font-medium">Dự kiến trong nửa năm tới</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-white" size={20} />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <TrendingUp className="text-white" size={18} />
             </div>
+          </div>
+          <div className="mt-auto border-t border-[var(--border-primary)] pt-2">
+            <p className="text-[9px] font-bold text-tertiary uppercase tracking-tight">Tăng trưởng dài hạn</p>
           </div>
         </div>
 
-        <div className="card stat-card-orange">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">Trung bình/tháng</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">
+        <div className="card stat-card-orange flex flex-col justify-between h-full min-h-[120px]">
+          <div className="flex items-center justify-between mb-3 w-full">
+            <div className="min-w-0 pr-2">
+              <p className="text-[10px] sm:text-[11px] text-secondary mb-1 font-medium uppercase tracking-wider">Trung bình/tháng</p>
+              <span className="text-lg sm:text-xl font-bold text-primary whitespace-nowrap overflow-hidden text-ellipsis block leading-tight">
                 {formatLargeCurrency(data.revenueForecast.avgMonthlyRevenue)}
-              </p>
-              <p className="text-xs text-tertiary mt-1">12 tháng qua</p>
+              </span>
+              <p className="text-[10px] text-tertiary mt-2 font-medium">Dựa trên dữ liệu 12 tháng qua</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-lg flex items-center justify-center">
-              <DollarSign className="text-white" size={20} />
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <DollarSign className="text-white" size={18} />
             </div>
+          </div>
+          <div className="mt-auto border-t border-[var(--border-primary)] pt-2">
+            <p className="text-[9px] font-bold text-tertiary uppercase tracking-tight">Hiệu suất trung bình</p>
           </div>
         </div>
       </div>
@@ -281,232 +331,280 @@ export default function ForecastPage() {
             <p className="font-medium">Chưa có dữ liệu</p>
           </div>
         ) : (
-          <div className="h-[320px] sm:h-[420px]">
-            <Chart
-              type="bar"
-              height="100%"
-              options={{
-                chart: {
-                  id: 'revenue-forecast',
-                  toolbar: { show: false },
-                  zoom: { enabled: false },
-                  fontFamily: 'inherit',
-                  background: 'transparent',
-                  animations: {
-                    enabled: true,
-                    speed: 900,
-                    animateGradually: { enabled: true, delay: 100 },
-                    dynamicAnimation: { enabled: true, speed: 400 }
-                  }
-                },
-                colors: ['#8b5cf6', '#06b6d4'],
-                plotOptions: {
-                  bar: {
-                    columnWidth: '55%',
-                    borderRadius: 6,
-                    borderRadiusApplication: 'end'
-                  }
-                },
-                fill: {
-                  type: ['gradient', 'gradient'],
-                  gradient: {
-                    shade: 'dark',
-                    type: 'vertical',
-                    shadeIntensity: 0.4,
-                    opacityFrom: 0.95,
-                    opacityTo: 0.6,
-                    stops: [0, 100]
-                  }
-                },
-                stroke: {
-                  show: true,
-                  width: [0, 3],
-                  curve: 'smooth',
-                  dashArray: [0, 6]
-                },
-                dataLabels: { enabled: false },
-                xaxis: {
-                  categories: chartData.map(d => d.monthName),
-                  axisBorder: { show: false },
-                  axisTicks: { show: false },
-                  labels: {
-                    style: { colors: Array(chartData.length).fill('var(--text-tertiary)'), fontSize: '11px' },
-                    rotate: -30,
-                    rotateAlways: false
-                  }
-                },
-                yaxis: {
-                  labels: {
-                    style: { colors: ['var(--text-tertiary)'], fontSize: '11px' },
-                    formatter: (val: number) => formatLargeCurrency(val)
-                  }
-                },
-                tooltip: {
-                  shared: true,
-                  intersect: false,
-                  theme: 'dark',
-                  y: { formatter: (val: number) => val ? formatLargeCurrency(val) : '—' }
-                },
-                grid: {
-                  borderColor: 'var(--border-primary)',
-                  strokeDashArray: 4,
-                  xaxis: { lines: { show: false } }
-                },
-                legend: {
-                  show: false
-                },
-                annotations: {
-                  xaxis: data.revenueForecast.history.length > 0 ? [{
-                    x: chartData[data.revenueForecast.history.length - 1]?.monthName,
-                    x2: chartData[data.revenueForecast.history.length]?.monthName,
-                    fillColor: '#06b6d4',
-                    opacity: 0.05,
-                    label: {
-                      text: '▶ Dự báo AI',
-                      style: { color: '#06b6d4', background: 'transparent', fontSize: '11px', fontWeight: 700 },
-                      position: 'top',
-                      orientation: 'horizontal'
+          <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+            <div className="min-w-[560px] sm:min-w-0 h-[340px] sm:h-[420px]">
+              <Chart
+                type="bar"
+                height="100%"
+                options={{
+                  chart: {
+                    id: 'revenue-forecast',
+                    toolbar: { show: false },
+                    zoom: { enabled: false },
+                    fontFamily: 'inherit',
+                    background: 'transparent',
+                    animations: {
+                      enabled: true,
+                      speed: 900,
+                      animateGradually: { enabled: true, delay: 100 },
+                      dynamicAnimation: { enabled: true, speed: 400 }
                     }
-                  }] : []
-                }
-              }}
-              series={[
-                {
-                  name: 'Doanh thu thực tế',
-                  type: 'bar',
-                  data: chartData.map(d => d.type === 'history' ? d.value : null)
-                },
-                {
-                  name: 'Dự báo AI',
-                  type: 'line',
-                  data: (() => {
-                    const arr: (number | null)[] = chartData.map(() => null)
-                    const lastHistIdx = data.revenueForecast.history.length - 1
-                    if (lastHistIdx >= 0) arr[lastHistIdx] = chartData[lastHistIdx].value
-                    data.revenueForecast.forecast.forEach((_, i) => {
-                      arr[data.revenueForecast.history.length + i] = chartData[data.revenueForecast.history.length + i].value
-                    })
-                    return arr
-                  })()
-                }
-              ]}
-            />
+                  },
+                  colors: ['#3b64f6', '#10b981'],
+                  plotOptions: {
+                    bar: {
+                      columnWidth: '65%',
+                      borderRadius: 4,
+                      borderRadiusApplication: 'end'
+                    }
+                  },
+                  responsive: [
+                    {
+                      breakpoint: 640,
+                      options: {
+                        plotOptions: {
+                          bar: {
+                            columnWidth: '65%'
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  fill: {
+                    type: ['gradient', 'gradient'],
+                    gradient: {
+                      shade: 'light',
+                      type: 'vertical',
+                      shadeIntensity: 0.1,
+                      opacityFrom: 1,
+                      opacityTo: 0.7,
+                      stops: [0, 100]
+                    }
+                  },
+                  stroke: {
+                    show: true,
+                    width: [0, 2],
+                    curve: 'smooth',
+                    dashArray: [0, 4]
+                  },
+                  dataLabels: { enabled: false },
+                  xaxis: {
+                    categories: chartData.map(d => d.monthName.replace(/thg\s?/i, '')),
+                    axisBorder: { show: false },
+                    axisTicks: { show: false },
+                    labels: {
+                      style: { colors: Array(chartData.length).fill('var(--text-tertiary)'), fontSize: '10px' },
+                      rotate: 0,
+                      rotateAlways: false
+                    }
+                  },
+                  yaxis: {
+                    labels: {
+                      style: { colors: ['var(--text-tertiary)'], fontSize: '10px' },
+                      formatter: (val: number) => formatLargeCurrency(val)
+                    }
+                  },
+                  tooltip: {
+                    shared: true,
+                    intersect: false,
+                    theme: 'dark',
+                    y: { formatter: (val: number) => val ? formatLargeCurrency(val) : '—' }
+                  },
+                  grid: {
+                    borderColor: 'var(--border-primary)',
+                    strokeDashArray: 4,
+                    xaxis: { lines: { show: false } }
+                  },
+                  legend: {
+                    show: false
+                  },
+                  annotations: {
+                    xaxis: data.revenueForecast.history.length > 0 ? [{
+                      x: chartData[data.revenueForecast.history.length - 1]?.monthName.replace(/thg\s?/i, ''),
+                      x2: chartData[data.revenueForecast.history.length]?.monthName.replace(/thg\s?/i, ''),
+                      fillColor: '#10b981',
+                      opacity: 0.05,
+                      label: {
+                        text: '▶ Dự báo AI',
+                        style: { color: '#10b981', background: 'transparent', fontSize: '10px', fontWeight: 600 },
+                        position: 'top',
+                        orientation: 'horizontal'
+                      }
+                    }] : []
+                  }
+                }}
+                series={[
+                  {
+                    name: 'Doanh thu thực tế',
+                    type: 'bar',
+                    data: chartData.map(d => d.type === 'history' ? d.value : null)
+                  },
+                  {
+                    name: 'Dự báo AI',
+                    type: 'line',
+                    data: (() => {
+                      const arr: (number | null)[] = chartData.map(() => null)
+                      const lastHistIdx = data.revenueForecast.history.length - 1
+                      if (lastHistIdx >= 0) arr[lastHistIdx] = chartData[lastHistIdx].value
+                      data.revenueForecast.forecast.forEach((_, i) => {
+                        arr[data.revenueForecast.history.length + i] = chartData[data.revenueForecast.history.length + i].value
+                      })
+                      return arr
+                    })()
+                  }
+                ]}
+              />
+            </div>
           </div>
         )}
-        <div className="flex items-center gap-6 mt-2 justify-center">
+        <div className="flex items-center gap-4 sm:gap-6 mt-4 justify-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-3 bg-violet-500 rounded" style={{ opacity: 0.85 }}></div>
-            <span className="text-xs text-secondary">Lịch sử thực tế</span>
+            <div className="w-4 h-4 bg-blue-500 rounded-sm shadow-sm" style={{ opacity: 0.8 }}></div>
+            <span className="text-[11px] font-bold text-secondary tracking-tight uppercase">Thực tế</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-0.5 bg-cyan-500 rounded border-t-2 border-dashed border-cyan-500"></div>
-            <span className="text-xs text-secondary">Dự báo AI</span>
+            <div className="w-4 h-0.5 bg-green-500 rounded border-t-2 border-dashed border-green-500"></div>
+            <span className="text-[11px] font-bold text-secondary tracking-tight uppercase">Dự báo AI</span>
           </div>
         </div>
       </div>
 
       {/* Vacancy Risk Section - Advanced Visualization */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Risk Summary with Radial Chart */}
-        <div className="lg:col-span-12 xl:col-span-5 flex flex-col gap-4">
-          <div className="card flex flex-col h-full">
-            <div className="flex items-center justify-between mb-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <div className="lg:col-span-12 xl:col-span-5 flex flex-col gap-6">
+          <div className="card flex flex-col h-full overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-bold text-primary">Phân tích rủi ro</h2>
-                <p className="text-xs text-tertiary">Mức độ rủi ro dựa trên dữ liệu thanh toán và hợp đồng</p>
+                <h2 className="text-xl font-bold text-primary">Phân tích rủi ro</h2>
+                <p className="text-sm text-tertiary">Dự báo theo dòng tiền và hợp đồng</p>
               </div>
-              <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center text-red-500">
+              <div className="w-11 h-11 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center text-red-500 shadow-sm border border-red-200/50 dark:border-red-800/30">
                 <AlertTriangle size={20} />
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-6 py-4">
-              <div className="w-full sm:w-1/2 h-[240px]">
-                <Chart
-                  type="radialBar"
-                  height="100%"
-                  options={{
-                    chart: {
-                      id: 'risk-summary-radial',
-                      fontFamily: 'inherit'
-                    },
-                    colors: ['#ef4444', '#f59e0b', '#10b981'],
-                    plotOptions: {
-                      radialBar: {
-                        dataLabels: {
-                          name: { fontSize: '14px', fontWeight: 600, show: true, offsetY: -5 },
-                          value: { fontSize: '16px', fontWeight: 700, show: true, offsetY: 5, formatter: (val) => `${val} phòng` },
-                          total: {
-                            show: true,
-                            label: 'TỔNG',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: 'var(--text-tertiary)',
-                            formatter: () => `${data.vacancyRisk.summary.totalAtRiskRevenue > 0 ? (data.vacancyRisk.summary.highRiskCount + data.vacancyRisk.summary.mediumRiskCount) : 0}`
+            <div className="flex flex-col gap-6 p-4 bg-tertiary/10 rounded-3xl border border-primary mb-6">
+              <div className="w-full flex justify-center items-center py-4">
+                <div className="w-[200px] h-[200px] sm:w-[240px] sm:h-[240px]">
+                  <Chart
+                    type="donut"
+                    height="100%"
+                    options={{
+                      chart: { id: 'risk-summary-donut', fontFamily: 'inherit' },
+                      colors: ['#ef4444', '#f59e0b', '#10b981'],
+                      stroke: { show: false },
+                      dataLabels: { enabled: false },
+                      plotOptions: {
+                        pie: {
+                          donut: {
+                            size: '75%',
+                            labels: {
+                              show: true,
+                              name: { show: true, fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', offsetY: -4 },
+                              value: { show: true, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', offsetY: 8, formatter: (val) => `${val}` },
+                              total: {
+                                show: true,
+                                label: 'TỔNG PHÒNG',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                color: 'var(--text-tertiary)',
+                                formatter: () => `${data.vacancyRisk.summary.totalRooms}`
+                              }
+                            }
                           }
-                        },
-                        track: { background: 'var(--border-primary)', strokeWidth: '95%' },
-                        hollow: { size: '55%' }
-                      }
-                    },
-                    labels: ['Rủi ro cao', 'Trung bình', 'An toàn'],
-                    stroke: { lineCap: 'round' },
-                    legend: { show: false }
-                  }}
-                  series={[
-                    (data.vacancyRisk.summary.highRiskCount / (data.vacancyRisk.summary.totalRooms || 1)) * 100,
-                    (data.vacancyRisk.summary.mediumRiskCount / (data.vacancyRisk.summary.totalRooms || 1)) * 100,
-                    (data.vacancyRisk.summary.lowRiskCount / (data.vacancyRisk.summary.totalRooms || 1)) * 100
-                  ]}
-                />
+                        }
+                      },
+                      labels: ['Nguy cấp', 'Cảnh báo', 'Ổn định'],
+                      legend: { show: false }
+                    }}
+                    series={[
+                      data.vacancyRisk.summary.highRiskCount,
+                      data.vacancyRisk.summary.mediumRiskCount,
+                      data.vacancyRisk.summary.lowRiskCount
+                    ]}
+                  />
+                </div>
               </div>
 
-              <div className="w-full sm:w-1/2 space-y-3">
-                <div className="p-3 bg-gradient-to-r from-red-50 to-transparent dark:from-red-950/20 rounded-xl border-l-4 border-red-500">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-red-600 uppercase tracking-wider">Nguy cấp</span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 rounded">
-                      {data.vacancyRisk.summary.highRiskCount} phòng
-                    </span>
+              {/* Risk Stat Cards List */}
+              <div className="flex flex-col gap-3">
+                {/* High Risk Card */}
+                <div className="p-4 bg-white dark:bg-slate-900/40 rounded-2xl border-2 border-red-500/20 flex items-center justify-between transition-all hover:shadow-lg hover:border-red-500/40 group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-500 text-white flex items-center justify-center shadow-lg shadow-red-500/20 group-hover:scale-110 transition-transform">
+                      <AlertTriangle size={22} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-red-600 dark:text-red-500 uppercase tracking-widest leading-none">Phòng nguy cấp</span>
+                      <p className="text-sm font-bold text-primary mt-1">{formatLargeCurrency(data.vacancyRisk.summary.highRiskRevenue)}</p>
+                    </div>
                   </div>
-                  <p className="text-base font-bold text-primary">{formatLargeCurrency(data.vacancyRisk.summary.highRiskRevenue)}</p>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-primary leading-none">{data.vacancyRisk.summary.highRiskCount}</span>
+                    <p className="text-[9px] font-bold text-tertiary uppercase mt-1">Hợp đồng</p>
+                  </div>
                 </div>
 
-                <div className="p-3 bg-gradient-to-r from-yellow-50 to-transparent dark:from-yellow-950/20 rounded-xl border-l-4 border-yellow-500">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-yellow-600 uppercase tracking-wider">Cảnh báo</span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 rounded">
-                      {data.vacancyRisk.summary.mediumRiskCount} phòng
-                    </span>
+                {/* Medium Risk Card */}
+                <div className="p-4 bg-white dark:bg-slate-900/40 rounded-2xl border-2 border-yellow-500/20 flex items-center justify-between transition-all hover:shadow-lg hover:border-yellow-500/40 group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-yellow-500 text-white flex items-center justify-center shadow-lg shadow-yellow-500/20 group-hover:scale-110 transition-transform">
+                      <Building2 size={22} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-yellow-600 dark:text-yellow-500 uppercase tracking-widest leading-none">Cần cảnh báo</span>
+                      <p className="text-sm font-bold text-primary mt-1">{formatLargeCurrency(data.vacancyRisk.summary.mediumRiskRevenue)}</p>
+                    </div>
                   </div>
-                  <p className="text-base font-bold text-primary">{formatLargeCurrency(data.vacancyRisk.summary.mediumRiskRevenue)}</p>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-primary leading-none">{data.vacancyRisk.summary.mediumRiskCount}</span>
+                    <p className="text-[9px] font-bold text-tertiary uppercase mt-1">Hợp đồng</p>
+                  </div>
                 </div>
 
-                <div className="p-3 bg-gradient-to-r from-green-50 to-transparent dark:from-green-950/20 rounded-xl border-l-4 border-green-500">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-green-600 uppercase tracking-wider">Ổn định</span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-600 rounded">
-                      {data.vacancyRisk.summary.lowRiskCount} phòng
-                    </span>
+                {/* Low Risk Card */}
+                <div className="p-4 bg-white dark:bg-slate-900/40 rounded-2xl border-2 border-green-500/20 flex items-center justify-between transition-all hover:shadow-lg hover:border-green-500/40 group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform">
+                      <TrendingUp size={22} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black text-green-600 dark:text-green-500 uppercase tracking-widest leading-none">Vùng an toàn</span>
+                      <p className="text-sm font-bold text-primary mt-1">Hoạt động ổn định</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-primary leading-none">{data.vacancyRisk.summary.lowRiskCount}</span>
+                    <p className="text-[9px] font-bold text-tertiary uppercase mt-1">Hợp đồng</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-auto pt-4 border-t border-primary">
-              <div className="flex items-center justify-between text-tertiary text-xs mb-2 italic">
-                <span>Dự báo doanh thu bị ảnh hưởng</span>
-                <span>{(data.vacancyRisk.summary.totalAtRiskRevenue / (data.revenueForecast.avgMonthlyRevenue || 1) * 100).toFixed(1)}% / tổng</span>
+            {/* Summary Footer Widget */}
+            <div className="mt-auto pt-6 border-t border-primary px-2">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold text-tertiary uppercase tracking-wider">Tổng thiệt hại dự báo</span>
+                <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg font-black">
+                  +{(data.vacancyRisk.summary.totalAtRiskRevenue / (data.revenueForecast.avgMonthlyRevenue || 1) * 100).toFixed(1)}%
+                </span>
               </div>
-              <div className="flex items-center gap-3">
-                <p className="text-xl font-bold text-primary">
+              <div className="flex items-end justify-between mb-3">
+                <p className="text-3xl font-black text-primary leading-none tracking-tighter">
                   {formatLargeCurrency(data.vacancyRisk.summary.totalAtRiskRevenue)}
                 </p>
-                <div className="flex-1 h-3 bg-tertiary rounded-full overflow-hidden shadow-inner">
-                  <div
-                    className="h-full bg-gradient-to-r from-red-500 via-yellow-400 to-green-500 rounded-full animate-pulse-slow"
-                    style={{ width: `${Math.min(100, (data.vacancyRisk.summary.totalAtRiskRevenue / (data.revenueForecast.avgMonthlyRevenue || 1)) * 100)}%` }}
-                  ></div>
+                <div className="flex items-center gap-2 text-tertiary">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Thời gian thực</span>
+                </div>
+              </div>
+              <div className="h-4 bg-tertiary/20 rounded-full overflow-hidden p-0.5 border border-primary relative group">
+                <div
+                  className="h-full bg-gradient-to-r from-red-600 via-red-500 to-yellow-400 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all duration-1000"
+                  style={{ width: `${Math.min(100, (data.vacancyRisk.summary.totalAtRiskRevenue / (data.revenueForecast.avgMonthlyRevenue || 1)) * 100)}%` }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[8px] font-black text-primary uppercase drop-shadow-sm">Mức độ rủi ro doanh thu</span>
                 </div>
               </div>
             </div>
@@ -514,18 +612,18 @@ export default function ForecastPage() {
         </div>
 
         {/* Risk Details Table Enhanced */}
-        <div className="lg:col-span-12 xl:col-span-7 card flex flex-col">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div className="lg:col-span-7 card flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
             <div>
-              <h2 className="text-lg font-bold text-primary">Hợp đồng rủi ro nhất</h2>
-              <p className="text-xs text-tertiary">Danh sách phòng cần lưu ý xử lý gia hạn hoặc thu hồi</p>
+              <h2 className="text-base sm:text-lg font-bold text-primary">Hợp đồng rủi ro nhất</h2>
+              <p className="text-[11px] sm:text-xs text-tertiary">Danh sách phòng cần lưu ý xử lý gia hạn hoặc thu hồi</p>
             </div>
             <div className="flex gap-2">
-              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-[10px] font-bold text-red-600 uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span> High
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full text-[11px] sm:text-xs font-bold text-red-600 uppercase">
+                <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]"></span> Cao
               </span>
-              <span className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[10px] font-bold text-yellow-600 uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_5px_rgba(245,158,11,0.5)]"></span> Mid
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[11px] sm:text-xs font-bold text-yellow-600 uppercase">
+                <span className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_5px_rgba(245,158,11,0.5)]"></span> T.bình
               </span>
             </div>
           </div>
@@ -561,7 +659,7 @@ export default function ForecastPage() {
                       </div>
                       <p className={`text-[11px] font-bold mt-0.5 ${risk.daysUntilExpiry <= 15 ? 'text-red-500 animate-pulse' : risk.daysUntilExpiry <= 30 ? 'text-orange-500' : 'text-tertiary'}`}>
                         {risk.daysUntilExpiry <= 0 ? (
-                          <span className="flex items-center gap-1"><AlertTriangle size={10}/> Quá hạn</span>
+                          <span className="flex items-center gap-1"><AlertTriangle size={10} /> Quá hạn</span>
                         ) : `Còn ${risk.daysUntilExpiry} ngày`}
                       </p>
                     </td>
@@ -594,34 +692,34 @@ export default function ForecastPage() {
           </div>
 
           {/* Mobile Card List View Enhanced */}
-          <div className="md:hidden space-y-4">
+          <div className="md:hidden space-y-3">
             {data.vacancyRisk.risks.slice(0, 6).map((risk) => (
-              <div key={risk.contractId} className="p-4 bg-white dark:bg-primary rounded-2xl border border-primary shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2.5 rounded-xl ${risk.riskLevel === 'HIGH' ? 'bg-red-100 text-red-600 dark:bg-red-900/30' : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30'}`}>
-                      <Building2 size={20} />
+              <div key={risk.contractId} className="p-3.5 sm:p-4 bg-white dark:bg-primary rounded-2xl border border-primary shadow-sm">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-xl flex-shrink-0 ${risk.riskLevel === 'HIGH' ? 'bg-red-100 text-red-600 dark:bg-red-900/30' : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30'}`}>
+                      <Building2 size={18} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="font-bold text-primary text-sm">{risk.roomName}</h3>
-                      <p className="text-xs text-tertiary font-medium">{risk.tenantName}</p>
+                      <p className="text-[11px] text-tertiary font-medium truncate">{risk.tenantName}</p>
                     </div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${risk.riskLevel === 'HIGH' ? 'bg-red-50 text-red-700 dark:bg-red-950/40' :
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase flex-shrink-0 ml-2 ${risk.riskLevel === 'HIGH' ? 'bg-red-50 text-red-700 dark:bg-red-950/40' :
                     risk.riskLevel === 'MEDIUM' ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-950/40' :
                       'bg-green-50 text-green-700 dark:bg-green-950/40'
                     }`}>
                     {risk.riskLevel === 'HIGH' ? 'Cao' : risk.riskLevel === 'MEDIUM' ? 'T.Bình' : 'An toàn'}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-primary mb-3">
+                <div className="grid grid-cols-2 gap-3 pb-2.5 border-b border-primary mb-2.5">
                   <div>
-                    <p className="text-[10px] text-tertiary uppercase font-bold mb-1">Hết hạn</p>
-                    <p className="text-xs font-bold text-primary">{new Date(risk.endDate).toLocaleDateString('vi-VN')}</p>
+                    <p className="text-[10px] text-tertiary uppercase font-bold mb-0.5">Hết hạn</p>
+                    <p className="text-[11px] sm:text-xs font-bold text-primary">{new Date(risk.endDate).toLocaleDateString('vi-VN')}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-tertiary uppercase font-bold mb-1">Rủi ro</p>
-                    <p className="text-xs font-bold text-primary">{risk.riskScore}%</p>
+                    <p className="text-[10px] text-tertiary uppercase font-bold mb-0.5">Rủi ro</p>
+                    <p className="text-[11px] sm:text-xs font-bold text-primary">{risk.riskScore}%</p>
                   </div>
                 </div>
                 <div className="w-full h-1.5 bg-tertiary rounded-full overflow-hidden">
@@ -644,21 +742,17 @@ export default function ForecastPage() {
         </div>
       </div>
 
-      {/* AI Insights Section - Premium AI Interface */}
-      <div className="card relative overflow-hidden border border-indigo-500/20 group hover:border-indigo-500/40 transition-all duration-500">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors duration-700"></div>
-        <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-purple-500/10 blur-[100px] pointer-events-none"></div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 animate-pulse-slow">
-              <Sparkles size={28} />
+      {/* AI Insights Section - Improved Card-Based UI */}
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+              <Sparkles size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent dark:from-indigo-400 dark:to-purple-400">
-                Cố vấn Chiến lược AI
-              </h2>
-              <p className="text-xs text-tertiary font-medium">Khám phá cơ hội và tối ưu hóa lợi nhuận</p>
+              <h2 className="text-lg font-bold text-primary">Trợ lý AI</h2>
+              <p className="text-xs text-tertiary">Phân tích thông minh & đề xuất hành động</p>
             </div>
           </div>
           <button
@@ -669,72 +763,242 @@ export default function ForecastPage() {
                 const res = await fetch('/api/admin/forecast/ai-insights', { method: 'POST' })
                 const result = await res.json()
                 if (!res.ok) throw new Error(result.error)
-                setAiInsights(result.insights)
+                setAiInsights(result)
               } catch (err: any) {
-                setAiInsights(`Lỗi: ${err.message}`)
+                console.error('AI Insights error:', err)
               } finally {
                 setAiLoading(false)
               }
             }}
             disabled={aiLoading}
-            className="btn btn-primary h-12 px-6 rounded-2xl flex items-center gap-3 shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20 transition-all active:scale-95"
+            className="btn btn-primary h-11 px-5 rounded-xl flex items-center gap-2"
           >
             {aiLoading ? (
-              <><Loader2 size={18} className="animate-spin" /> Đang tổng hợp dữ liệu...</>
+              <><Loader2 size={16} className="animate-spin" /> Đang phân tích...</>
             ) : (
-              <><Sparkles size={18} /> Phân tích ngay</>
+              <><Sparkles size={16} /> Phân tích AI</>
             )}
           </button>
         </div>
 
-        {aiInsights ? (
-          <div className="p-6 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/30 text-base leading-relaxed text-primary relative">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500 rounded-full"></div>
-            <div className="space-y-4">
-              {aiInsights
-                .replace(/###\s+/g, '')
-                .replace(/##\s+/g, '')
-                .replace(/#\s+/g, '')
-                .replace(/\*\*([^*]+)\*\*/g, '$1')
-                .replace(/\*([^*]+)\*/g, '$1')
-                .split('\n')
-                .map((line, i) => {
-                  const trimmed = line.trim()
-                  if (!trimmed) return <div key={i} className="h-4" />
-                  if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-                    return (
-                      <div key={i} className="flex gap-3">
-                        <span className="text-indigo-500 mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
-                        <span className="text-sm sm:text-base">{trimmed.slice(2)}</span>
-                      </div>
-                    )
-                  }
-                  return <p key={i} className="text-sm sm:text-base">{trimmed}</p>
-                })}
+        {aiLoading ? (
+          <div className="card flex items-center justify-center h-48">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 size={32} className="animate-spin text-indigo-500" />
+              <p className="text-sm text-tertiary">AI đang phân tích dữ liệu...</p>
             </div>
           </div>
-        ) : !aiLoading ? (
-          <div className="text-center py-20 border-2 border-dashed border-indigo-200 dark:border-indigo-800/50 rounded-3xl bg-indigo-50/30 dark:bg-indigo-900/5 group/empty">
-            <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover/empty:scale-110 transition-transform duration-500">
-              <Sparkles size={40} className="text-indigo-400" />
+        ) : aiInsights ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Card 1: Performance Overview - Scorecards */}
+            <div className="card lg:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="text-blue-500" size={20} />
+                <h3 className="font-bold text-primary">Tổng quan hiệu suất</h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Revenue Card with Sparkline */}
+                <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10 rounded-xl border border-blue-200/50 dark:border-blue-800/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Doanh thu tháng này</span>
+                    <TrendingUp
+                      size={14}
+                      className={aiInsights?.overview?.revenueTrend === 'up' ? 'text-green-500' : aiInsights?.overview?.revenueTrend === 'down' ? 'text-red-500' : 'text-gray-500'}
+                    />
+                  </div>
+                  <p className="text-2xl font-bold text-primary">{formatLargeCurrency(aiInsights?.overview?.currentRevenue || 0)}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`text-xs font-bold ${(aiInsights?.overview?.revenueTrendPercent || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(aiInsights?.overview?.revenueTrendPercent || 0) >= 0 ? '+' : ''}{(aiInsights?.overview?.revenueTrendPercent || 0).toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-tertiary">so với tháng trước</span>
+                  </div>
+                  {/* Mini Sparkline */}
+                  <div className="mt-3 h-8 flex items-end gap-0.5">
+                    {aiInsights?.overview?.last3MonthsRevenue?.map((val, idx) => {
+                      const max = Math.max(...(aiInsights?.overview?.last3MonthsRevenue || []), 1)
+                      const height = (val / max) * 100
+                      return (
+                        <div
+                          key={idx}
+                          className="flex-1 bg-blue-400/60 rounded-t"
+                          style={{ height: `${height}%` }}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Occupancy Rate Card with Progress */}
+                <div className="p-4 bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-800/10 rounded-xl border border-green-200/50 dark:border-green-800/30">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-green-600 dark:text-green-400">Tỷ lệ lấp đầy</span>
+                    <Building2 size={14} className="text-green-500" />
+                  </div>
+                  <p className="text-2xl font-bold text-primary">{(aiInsights?.overview?.occupancyRate || 0).toFixed(0)}%</p>
+                  {/* Progress Bar */}
+                  <div className="mt-3 h-2 bg-green-200 dark:bg-green-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full"
+                      style={{ width: `${Math.min(100, (aiInsights?.overview?.occupancyRate || 0))}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-tertiary mt-2">Phòng đang cho thuê</p>
+                </div>
+              </div>
             </div>
-            <h3 className="text-lg font-bold text-primary mb-2">Trình phân tích thông minh sẵn sàng</h3>
-            <p className="text-sm text-tertiary max-w-sm mx-auto leading-relaxed">
-              Nhấn nút phía trên để bắt đầu phân tích sâu về xu hướng thị trường, dự báo dòng tiền và các rủi ro tiềm ẩn cho nhà trọ của bạn.
-            </p>
+
+            {/* Card 2: Warnings - Urgent Alerts */}
+            <div className="card border-red-200/50 dark:border-red-800/30 bg-red-50/30 dark:bg-red-900/10">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="text-red-500" size={20} />
+                <h3 className="font-bold text-primary">Cảnh báo cấp bách</h3>
+              </div>
+
+              {/* Debt Warning */}
+              {(aiInsights?.warnings?.totalDebt || 0) > 0 && (
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-800 mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-red-600 dark:text-red-400">Công nợ chưa thu</span>
+                    <span className="text-xs bg-red-200 dark:bg-red-800 px-2 py-0.5 rounded-full text-red-700 dark:text-red-300">
+                      {aiInsights?.warnings?.overdueInvoices?.length} hóa đơn
+                    </span>
+                  </div>
+                  <p className="text-xl font-bold text-red-600 dark:text-red-400">{formatLargeCurrency(aiInsights?.warnings?.totalDebt || 0)}</p>
+                </div>
+              )}
+
+              {/* Expiring Contracts Warning */}
+              {(aiInsights?.warnings?.expiringContracts?.length || 0) > 0 && (
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-orange-600 dark:text-orange-400">Hợp đồng sắp hết hạn</span>
+                    <span className="text-xs bg-orange-200 dark:bg-orange-800 px-2 py-0.5 rounded-full text-orange-700 dark:text-orange-300">
+                      {aiInsights?.warnings?.expiringContracts?.length} hợp đồng
+                    </span>
+                  </div>
+                  <p className="text-sm text-tertiary mt-1">
+                    Cần gia hạn trước {Math.max(...(aiInsights?.warnings?.expiringContracts?.map(c => c.daysUntilExpiry) || [0]))} ngày
+                  </p>
+                </div>
+              )}
+
+              {(aiInsights?.warnings?.totalDebt || 0) === 0 && (aiInsights?.warnings?.expiringContracts?.length || 0) === 0 && (
+                <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800 text-center">
+                  <TrendingUp className="mx-auto text-green-500 mb-2" size={24} />
+                  <p className="text-sm font-medium text-green-700 dark:text-green-400">Không có cảnh báo</p>
+                </div>
+              )}
+            </div>
+
+            {/* Card 3: Actionable Recommendations */}
+            <div className="card lg:col-span-3">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="text-purple-500" size={20} />
+                <h3 className="font-bold text-primary">Đề xuất hành động</h3>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {aiInsights?.recommendations?.map((rec) => {
+                  const isExpanded = expandedRecs.has(rec.id)
+                  return (
+                    <div
+                      key={rec.id}
+                      className={`flex flex-col h-full rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 overflow-hidden ${rec.priority === 'high'
+                        ? 'bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-[#1a1a1a] border-red-200 dark:border-red-900/30'
+                        : rec.priority === 'medium'
+                          ? 'bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/20 dark:to-[#1a1a1a] border-yellow-200 dark:border-yellow-900/30'
+                          : 'bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-[#1a1a1a] border-blue-200 dark:border-blue-900/30'
+                        }`}
+                    >
+                      <div className="p-4 sm:p-5 flex-grow">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className={`w-2 h-2 rounded-full animate-pulse ${rec.priority === 'high' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : rec.priority === 'medium' ? 'bg-yellow-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                            }`}></span>
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${rec.priority === 'high' ? 'text-red-600 dark:text-red-400' : rec.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
+                            }`}>
+                            {rec.priority === 'high' ? 'Khẩn cấp' : rec.priority === 'medium' ? 'Quan trọng' : 'Phân tích'}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-primary text-sm sm:text-base mb-2 leading-tight">{rec.title}</h4>
+                        <div className="space-y-2">
+                          <p className={`text-xs text-tertiary leading-relaxed ${!isExpanded ? 'line-clamp-3' : ''}`}>
+                            {rec.description}
+                          </p>
+                          {rec.description.length > 60 && (
+                            <button
+                              onClick={() => {
+                                setExpandedRecs(prev => {
+                                  const next = new Set(prev)
+                                  if (next.has(rec.id)) next.delete(rec.id)
+                                  else next.add(rec.id)
+                                  return next
+                                })
+                              }}
+                              className={`text-[11px] font-bold inline-flex items-center gap-1 transition-all ${rec.priority === 'high' ? 'text-red-500 hover:text-red-600' : rec.priority === 'medium' ? 'text-yellow-600 hover:text-yellow-700' : 'text-blue-500 hover:text-blue-600'
+                                }`}
+                            >
+                              {isExpanded ? '← Thu gọn' : 'Xem thêm →'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Button - New Premium Style */}
+                      <div className="p-4 pt-0">
+                        {rec.actionType === 'view_list' && (
+                          <a
+                            href="/admin/rooms"
+                            className="w-full flex items-center justify-between py-2.5 px-4 bg-white dark:bg-slate-900/40 border-2 border-primary/20 hover:border-primary text-primary text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-sm hover:shadow-md hover:shadow-primary/10 transition-all group"
+                          >
+                            <span>Xem danh sách</span>
+                            <Search size={14} className="group-hover:scale-110 transition-transform" />
+                          </a>
+                        )}
+                        {rec.actionType === 'send_message' && (
+                          <a
+                            href="/admin/invoices"
+                            className="w-full flex items-center justify-between py-2.5 px-4 bg-white dark:bg-slate-900/40 border-2 border-red-500/20 hover:border-red-500 text-red-600 dark:text-red-400 text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-sm hover:shadow-md hover:shadow-red-500/10 transition-all group"
+                          >
+                            <span>Gửi nhắc nợ</span>
+                            <Send size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                          </a>
+                        )}
+                        {rec.actionType === 'renew_contract' && (
+                          <a
+                            href="/admin/renewals"
+                            className="w-full flex items-center justify-between py-2.5 px-4 bg-white dark:bg-slate-900/40 border-2 border-orange-500/20 hover:border-orange-500 text-orange-600 dark:text-orange-400 text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-sm hover:shadow-md hover:shadow-orange-500/10 transition-all group"
+                          >
+                            <span>Gia hạn ngay</span>
+                            <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                          </a>
+                        )}
+                        {rec.actionType === 'check_invoice' && (
+                          <a
+                            href="/admin/invoices"
+                            className="w-full flex items-center justify-between py-2.5 px-4 bg-white dark:bg-slate-900/40 border-2 border-blue-500/20 hover:border-blue-500 text-blue-600 dark:text-blue-400 text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-sm hover:shadow-md hover:shadow-blue-500/10 transition-all group"
+                          >
+                            <span>Kiểm tra hóa đơn</span>
+                            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="h-48 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <Loader2 size={48} className="animate-spin text-indigo-500" />
-                <Sparkles size={16} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-400 animate-pulse" />
-              </div>
-              <div className="space-y-1 text-center">
-                <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400">AI đang suy nghĩ...</p>
-                <p className="text-xs text-tertiary">Đang quét hàng nghìn điểm dữ liệu của bạn</p>
-              </div>
+          <div className="card text-center py-16">
+            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles size={32} className="text-indigo-500" />
             </div>
+            <h3 className="text-lg font-bold text-primary mb-2">Chưa có dữ liệu phân tích</h3>
+            <p className="text-sm text-tertiary max-w-md mx-auto">
+              Nhấn nút "Phân tích AI" để nhận các đề xuất hành động dựa trên dữ liệu hiện tại của nhà trọ.
+            </p>
           </div>
         )}
       </div>

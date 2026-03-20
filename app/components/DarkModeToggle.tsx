@@ -9,7 +9,7 @@ export function DarkModeToggle() {
   return (
     <button
       onClick={toggleDarkMode}
-      className="relative p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-all duration-200"
+      className="relative p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-all duration-200"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
     >
       <div className="relative w-5 h-5 flex items-center justify-center">
