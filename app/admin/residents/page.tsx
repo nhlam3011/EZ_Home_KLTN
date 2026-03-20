@@ -364,7 +364,7 @@ export default function ResidentsPage() {
               </div>
               <div className="text-left pr-1 flex-1">
                 <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
-                  TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' : statusFilter === 'active' ? 'ĐANG Ở' : 'ĐÃ RỜI ĐI'}
+                  {statusFilter === 'all' ? 'TẤT CẢ' : statusFilter === 'active' ? 'ĐANG Ở' : 'ĐÃ RỜI ĐI'}
                 </p>
               </div>
               <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
@@ -377,7 +377,7 @@ export default function ResidentsPage() {
                   {[
                     { id: 'all', label: 'TẤT CẢ CƯ DÂN', icon: <Users size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
                     { id: 'active', label: 'ĐANG Ở', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
-                    { id: 'inactive', label: 'ĐÃ DỜI ĐI', icon: <LogOut size={16} />, color: 'text-gray-500', bg: 'bg-gray-50/50 dark:bg-gray-900/10' }
+                    { id: 'inactive', label: 'ĐÃ DỜI ĐI', icon: <LogOut size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
                   ].map((item) => (
                     <button
                       key={item.id}

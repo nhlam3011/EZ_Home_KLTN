@@ -303,7 +303,7 @@ export default function RenewalsPage() {
                             </div>
                             <div className="text-left pr-1 flex-1">
                                 <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
-                                    TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' :
+                                    {statusFilter === 'all' ? 'TẤT CẢ' :
                                         statusFilter === 'PENDING' ? 'CHỜ DUYỆT' :
                                             statusFilter === 'APPROVED' ? 'ĐÃ DUYỆT' : 'TỪ CHỐI'}
                                 </p>
@@ -316,7 +316,7 @@ export default function RenewalsPage() {
                                 <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
                                 <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
                                     {[
-                                        { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <Filter size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                                        { id: 'all', label: 'TẤT CẢ', icon: <Filter size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
                                         { id: 'PENDING', label: 'CHỜ DUYỆT', icon: <Clock size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
                                         { id: 'APPROVED', label: 'ĐÃ DUYỆT', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
                                         { id: 'REJECTED', label: 'TỪ CHỐI', icon: <X size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }

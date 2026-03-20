@@ -166,7 +166,7 @@ export default function IssuesPage() {
                   <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
                   <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
                     {[
-                      { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                      { id: 'all', label: 'TẤT CẢ', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
                       { id: 'PENDING', label: 'CHỜ XỬ LÝ', icon: <AlertTriangle size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
                       { id: 'PROCESSING', label: 'ĐANG SỬA CHỮA', icon: <Wrench size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
                       { id: 'DONE', label: 'HOÀN THÀNH', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
