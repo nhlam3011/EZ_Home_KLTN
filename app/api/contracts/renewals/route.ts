@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams
         const status = searchParams.get('status')
         const userId = searchParams.get('userId')
+        const buildingId = searchParams.get('buildingId')
+        const search = searchParams.get('search')
 
         const where: any = {}
         if (status && status !== 'all') {
@@ -16,6 +18,22 @@ export async function GET(request: NextRequest) {
         // If userId is provided, filter by userId (for tenant)
         if (userId) {
             where.userId = parseInt(userId)
+        }
+
+        if (buildingId) {
+            where.contract = {
+                room: {
+                    buildingId: parseInt(buildingId)
+                }
+            }
+        }
+
+        if (search) {
+            where.OR = [
+                { user: { fullName: { contains: search, mode: 'insensitive' } } },
+                { user: { phone: { contains: search } } },
+                { contract: { room: { name: { contains: search, mode: 'insensitive' } } } }
+            ]
         }
 
         let requests: any[] = []

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Loading from '@/components/Loading'
 import { pusherClient } from '@/lib/pusher-client'
 import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Message {
   id: number
@@ -54,6 +55,7 @@ export default function AdminMessagesPage() {
   const [sending, setSending] = useState(false)
   const [newMessage, setNewMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const { selectedBuildingId } = useBuilding()
   const [user, setUser] = useState<any>(null)
   const [selectedImages, setSelectedImages] = useState<string[]>([])
   const [uploadingImages, setUploadingImages] = useState(false)
@@ -283,7 +285,11 @@ export default function AdminMessagesPage() {
   const fetchMessages = async (userId: number) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/messages?userId=${userId}`)
+      const params = new URLSearchParams()
+      params.append('userId', userId.toString())
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
+
+      const response = await fetch(`/api/admin/messages?${params.toString()}`)
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           const userData = localStorage.getItem('user')
@@ -420,6 +426,12 @@ export default function AdminMessagesPage() {
       console.error('Error fetching messages with tenant:', error)
     }
   }
+
+  useEffect(() => {
+    if (user) {
+      fetchMessages(user.id)
+    }
+  }, [selectedBuildingId, user])
 
   useEffect(() => {
     if (selectedTenant && user && !messagesByTenant[selectedTenant.id]) {

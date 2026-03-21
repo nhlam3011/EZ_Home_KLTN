@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
-    const building = searchParams.get('building')
+    const building = searchParams.get('building') || searchParams.get('buildingId')
     const floor = searchParams.get('floor')
     const status = searchParams.get('status')
 
@@ -32,13 +32,18 @@ export async function GET(request: NextRequest) {
         some: {
           ...(status === 'renting' || status === 'ACTIVE' ? { status: 'ACTIVE' } : status === 'INACTIVE' ? { status: { not: 'ACTIVE' } } : {}),
           room: {
-            ...(building && building !== 'all' ? { name: { contains: building } } : {}),
+            ...(building && building !== 'all' ? { buildingId: parseInt(building) } : {}),
             ...(floor && floor !== 'all' ? { floor: parseInt(floor) } : {})
           }
         }
       }
     }
 
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const skip = (page - 1) * limit
+
+    const total = await prisma.user.count({ where })
     const users = await prisma.user.findMany({
       where,
       include: {
@@ -49,22 +54,14 @@ export async function GET(request: NextRequest) {
           orderBy: { startDate: 'desc' }
         }
       },
-      orderBy: { fullName: 'asc' }
-    })
-
-    // Sort residents by room name numerically
-    users.sort((a, b) => {
-      const roomA = a.contracts[0]?.room?.name || ''
-      const roomB = b.contracts[0]?.room?.name || ''
-      if (!roomA && !roomB) return a.fullName.localeCompare(b.fullName)
-      if (!roomA) return 1
-      if (!roomB) return -1
-      return roomA.localeCompare(roomB, undefined, { numeric: true, sensitivity: 'base' })
+      orderBy: { fullName: 'asc' },
+      take: limit,
+      skip: skip
     })
 
     return NextResponse.json({
       residents: users,
-      total: users.length
+      total: total
     })
   } catch (error) {
     console.error('Error fetching residents:', error)
@@ -307,8 +304,20 @@ export async function PUT(request: NextRequest) {
     const action = searchParams.get('action')
 
     if (action === 'export') {
+      const buildingId = searchParams.get('building') || searchParams.get('buildingId')
+      const where: any = { role: 'TENANT' }
+      
+      if (buildingId && buildingId !== 'all') {
+        where.contracts = {
+          some: {
+            status: 'ACTIVE',
+            room: { buildingId: parseInt(buildingId) }
+          }
+        }
+      }
+
       const users = await prisma.user.findMany({
-        where: { role: 'TENANT' },
+        where,
         include: {
           contracts: {
             where: { status: 'ACTIVE' },
@@ -394,7 +403,7 @@ export async function PATCH(request: NextRequest) {
         // Find or create room if provided
         let roomId: number | undefined
         if (roomName) {
-          const room = await prisma.room.findUnique({
+          const room = await prisma.room.findFirst({
             where: { name: roomName }
           })
           roomId = room?.id

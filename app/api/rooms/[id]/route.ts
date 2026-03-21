@@ -68,7 +68,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, floor, price, area, maxPeople, status, roomType, description, amenities } = body
+    const { name, floor, price, area, maxPeople, status, roomType, description, amenities, buildingId } = body
 
     // Check if room exists first
     const existingRoom = await prisma.room.findUnique({
@@ -89,6 +89,7 @@ export async function PUT(
     if (area !== undefined) updateData.area = area ? parseFloat(area) : null
     if (maxPeople) updateData.maxPeople = parseInt(maxPeople)
     if (status) updateData.status = status
+    if (buildingId) updateData.buildingId = parseInt(buildingId)
     if (roomType !== undefined) updateData.roomType = roomType || null
     if (description !== undefined) updateData.description = description || null
     if (amenities !== undefined) updateData.amenities = Array.isArray(amenities) ? amenities : []

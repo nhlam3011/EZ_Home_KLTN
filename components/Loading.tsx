@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
 
 // Loading style types
 type LoadingStyle = 'spinner' | 'pulse' | 'dots' | 'wave' | 'progress' | 'bars' | 'dual-ring'
@@ -355,10 +356,16 @@ export function PageLoader({ text = 'Đang tải...' }: { text?: string }) {
             <div className="flex flex-col items-center gap-6">
                 {/* Logo with gradient */}
                 <div className="relative">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-400 via-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                        <span className="text-3xl font-bold text-white">E</span>
+                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-slate-100 overflow-hidden">
+                        <Image
+                            src="/logo_final.png"
+                            alt="Logo"
+                            width={64}
+                            height={64}
+                            className="object-contain"
+                            priority
+                        />
                     </div>
-                    <div className="absolute -inset-2 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl opacity-30 animate-ping"></div>
                 </div>
 
                 {/* Progress Bar Loading */}

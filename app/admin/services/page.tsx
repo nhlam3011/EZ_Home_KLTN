@@ -28,6 +28,7 @@ import {
   Loader2
 } from 'lucide-react'
 import Loading from '@/components/Loading'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Service {
   id: number
@@ -62,6 +63,7 @@ interface ServiceOrder {
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
+  const { selectedBuildingId } = useBuilding()
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'config' | 'registrations' | 'history'>('registrations')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -115,7 +117,7 @@ export default function ServicesPage() {
     if (activeTab === 'config') {
       fetchServices()
     }
-  }, [activeTab, orderSearch, orderStatusFilter])
+  }, [activeTab, orderSearch, orderStatusFilter, selectedBuildingId])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -140,6 +142,7 @@ export default function ServicesPage() {
       const params = new URLSearchParams()
       if (orderSearch) params.append('search', orderSearch)
       if (orderStatusFilter !== 'all') params.append('status', orderStatusFilter)
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
       const response = await fetch(`/api/admin/service-orders?${params.toString()}`)
       const data = await response.json()
@@ -840,7 +843,7 @@ export default function ServicesPage() {
                                 {statusBadge.label}
                               </Badge>
                               {order.status === 'CANCELLED' && order.note?.startsWith('Lý do hủy:') && (
-                                <p className="mt-1 text-xs italic text-tertiary">{order.note.replace('Lý do hủy: ', '')}</p>
+                                <p className="mt-1 text-xs text-tertiary">{order.note.replace('Lý do hủy: ', '')}</p>
                               )}
                             </td>
                             <td className="px-3 sm:px-4 py-3 sm:py-4 align-middle text-center">{renderOrderActions(order)}</td>

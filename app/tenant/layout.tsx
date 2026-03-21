@@ -35,7 +35,7 @@ const menuItems = [
   { href: '/tenant/services', label: 'Dịch vụ', icon: Grid3x3 },
   { href: '/tenant/issues', label: 'Báo hỏng', icon: Wrench },
   { href: '/tenant/community', label: 'Cộng đồng', icon: Users },
-  { href: '/tenant/ai-assistant', label: 'Trợ lý AI', icon: Bot },
+  { href: '/tenant/ai-assistant', label: 'Trợ lý EZ', icon: Bot },
 ]
 
 export default function TenantLayout({
@@ -130,6 +130,7 @@ export default function TenantLayout({
 
     for (let i = 0; i < paths.length; i++) {
       currentPath += `/${paths[i]}`
+      if (i === 0) continue // Bỏ qua phần 'admin' hoặc 'tenant' vì đã có link hardcode ở ngoài
       const label = titleMap[currentPath] || paths[i]
       breadcrumbs.push({ label, href: currentPath, isLast: i === paths.length - 1 })
     }

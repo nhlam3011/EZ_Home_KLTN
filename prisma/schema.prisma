@@ -83,19 +83,59 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Quan hệ
-  contracts     Contract[]
-  issues        Issue[]
-  serviceOrders ServiceOrder[]
-  posts         Post[]
-  documents     Document[]
-  sentMessages  Message[] @relation("MessageSender")
-  receivedMessages Message[] @relation("MessageReceiver")
+  contracts             Contract[]
+  issues                Issue[]
+  serviceOrders         ServiceOrder[]
+  posts                 Post[]
+  documents             Document[]
+  sentMessages          Message[] @relation("MessageSender")
+  receivedMessages      Message[] @relation("MessageReceiver")
   contractRenewalRequests ContractRenewalRequest[]
+  
+  // Quan hệ với chủ nhà (Owner)
+  ownerContracts        OwnerContract[]
+}
+
+model Building {
+  id           Int       @id @default(autoincrement())
+  name         String    // VD: "Nhà 123 Nguyễn Trãi", "Căn hộ ABC"
+  address      String    // Địa chỉ đầy đủ
+  buildingType String    // CĂN_HỘ, NHÀ_PHỐ, BIỆT_THỰ, PHÒNG_TRỌ
+  floorCount   Int       @default(1) // Số tầng
+  totalRooms   Int       @default(0) // Tổng số phòng
+  area         Float?    // Diện tích đất (m2)
+  description  String?   // Mô tả thêm
+  images       String[]  // Danh sách ảnh
+  thumbnailUrl String?   // Ảnh đại diện
+  
+  // Cấu giá dịch vụ cho căn nhà
+  electricityPrice Decimal @db.Decimal(10, 2) @default(3500)   // Giá điện/kWh
+  waterPrice       Decimal @db.Decimal(10, 2) @default(25000)  // Giá nước/m3
+  servicePrice     Decimal @db.Decimal(10, 2) @default(50000)   // Phí dịch vụ chung/phòng
+  
+  // Trạng thái
+  status       String    @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE
+  isActive     Boolean   @default(true)
+  roomTypePresets Json? // Cấu hình loại phòng mẫu: [{type, price, area, amenities}]
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Quan hệ
+  rooms          Room[]
+  ownerContracts OwnerContract[]
+  invoices       Invoice[]
+
+  @@index([name])
+  @@index([status])
 }
 
 model Room {
   id          Int        @id @default(autoincrement())
-  name        String     @unique // VD: P.101
+  buildingId  Int?       // Căn nhà/phòng trọ mà phòng này thuộc về (nullable để tương thích dữ liệu cũ)
+  building    Building?  @relation(fields: [buildingId], references: [id])
+  
+  name        String     // VD: P.101, Phòng 101
   floor       Int
   price       Decimal    @db.Decimal(10, 2)
   area        Float?
@@ -112,6 +152,7 @@ model Room {
   issues    Issue[]
 
   @@index([name])
+  @@index([buildingId])
 }
 
 model Asset {
@@ -148,6 +189,45 @@ model Contract {
 
   @@index([userId])
   @@index([roomId])
+  @@index([status])
+}
+
+// Hợp đồng với chủ nhà (Owner Contract)
+model OwnerContract {
+  id              Int       @id @default(autoincrement())
+  
+  // Chủ nhà (liên kết với User)
+  ownerId         Int
+  owner           User      @relation(fields: [ownerId], references: [id])
+  
+  // Căn nhà được thuê
+  buildingId      Int
+  building        Building  @relation(fields: [buildingId], references: [id])
+  
+  // Loại hợp đồng
+  contractType    String    @default("THUÊ_TOÀN_BỘ") // THUÊ_TOÀN_BỘ, THUÊ_TỪNG_PHÒNG
+  
+  // Điều khoản tài chính
+  monthlyRent     Decimal   @db.Decimal(12, 2)  // Tiền thuê hàng tháng phải trả cho chủ nhà
+  deposit         Decimal   @db.Decimal(12, 2)  // Tiền đặt cọc trả cho chủ nhà
+  commission      Decimal   @db.Decimal(5, 2)   @default(10) // % hoa hồng cho công ty (vd: 10%)
+  
+  // Thời hạn
+  startDate       DateTime
+  endDate         DateTime?
+  
+  // Trạng thái
+  status          String    @default("ACTIVE") // ACTIVE, EXPIRED, TERMINATED
+  
+  // Thông tin bổ sung
+  contractUrl     String?   // Link file hợp đồng scan
+  notes           String?   // Ghi chú
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([ownerId])
+  @@index([buildingId])
   @@index([status])
 }
 
@@ -211,11 +291,18 @@ model Invoice {
   
   // Thông tin hoá đơn quá hạn từ tháng trước
   overdueAmount      Decimal       @default(0) @db.Decimal(10, 2) // Tổng số tiền quá hạn
-  overdueInvoices    String?       @db.Text // JSON array of overdue invoice info: [{"id": 1, "month": 1, "year": 2025, "amount": 1500000}, ...]
+  overdueInvoices    String?       @db.Text // JSON array of overdue invoice info
+
+  // Thông tin Building (để hiển thị trên invoice, không phụ thuộc vào relationship)
+  buildingId         Int?
+  building           Building?    @relation(fields: [buildingId], references: [id])
+  buildingName       String?       // Copy tên building để không phụ thuộc
+  buildingAddress    String?       // Copy địa chỉ để không phụ thuộc
 
   @@index([contractId])
   @@index([status])
   @@index([month, year])
+  @@index([buildingId])
 }
 
 model Service {

@@ -5,30 +5,37 @@ import { sendInvoiceCreatedEmail } from '@/lib/email'
 export async function GET(request: NextRequest) {
   try {
     // First, check and update overdue invoices (if paymentDueDate field exists)
-    try {
-      const now = new Date()
-      await prisma.invoice.updateMany({
-        where: {
-          status: 'UNPAID',
-          paymentDueDate: {
-            lt: now
-          }
-        },
-        data: {
-          status: 'OVERDUE'
-        }
-      })
-    } catch (updateError) {
-      // Ignore error if paymentDueDate field doesn't exist yet (migration not run)
-      console.log('Could not update overdue invoices (field may not exist yet):', updateError)
-    }
-
     const searchParams = request.nextUrl.searchParams
     const month = searchParams.get('month')
     const year = searchParams.get('year')
     const status = searchParams.get('status')
     const search = searchParams.get('search')
     const contractId = searchParams.get('contractId')
+    const buildingId = searchParams.get('buildingId')
+    const checkOverdue = searchParams.get('checkOverdue')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const skip = (page - 1) * limit
+
+    // Only check and update overdue invoices if explicitly requested (to save performance)
+    if (checkOverdue === 'true') {
+      try {
+        const now = new Date()
+        await prisma.invoice.updateMany({
+          where: {
+            status: 'UNPAID',
+            paymentDueDate: {
+              lt: now
+            }
+          },
+          data: {
+            status: 'OVERDUE'
+          }
+        })
+      } catch (updateError) {
+        console.log('Could not update overdue invoices:', updateError)
+      }
+    }
 
     const where: any = {}
 
@@ -44,27 +51,39 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    if (buildingId) {
+      where.buildingId = parseInt(buildingId)
+    }
+
     const invoices = await prisma.invoice.findMany({
       where,
       include: {
+        building: {
+          select: {
+            id: true,
+            name: true,
+            address: true
+          }
+        },
         contract: {
           include: {
             user: { select: { fullName: true } },
-            room: { select: { name: true } }
+            room: {
+              select: {
+                id: true,
+                name: true,
+                buildingId: true
+              }
+            }
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
-    })
-
-    // Sort invoices by room name numerically
-    invoices.sort((a, b) => {
-      const roomA = a.contract?.room?.name || ''
-      const roomB = b.contract?.room?.name || ''
-      if (!roomA && !roomB) return 0
-      if (!roomA) return 1
-      if (!roomB) return -1
-      return roomA.localeCompare(roomB, undefined, { numeric: true, sensitivity: 'base' })
+      orderBy: [
+        { contract: { room: { name: 'asc' } } },
+        { createdAt: 'desc' }
+      ],
+      take: limit,
+      skip: skip
     })
 
     return NextResponse.json(invoices)
@@ -143,6 +162,16 @@ export async function POST(request: NextRequest) {
       parseFloat(amountService || 0) +
       overdueAmount // Add overdue amount to current invoice
 
+    // Get contract to find building
+    const contract = await prisma.contract.findUnique({
+      where: { id: parseInt(contractId) },
+      include: {
+        room: {
+          include: { building: true }
+        }
+      }
+    })
+
     // Create invoice
     const invoice = await prisma.invoice.create({
       data: {
@@ -158,9 +187,20 @@ export async function POST(request: NextRequest) {
         overdueInvoices: JSON.stringify(overdueInvoicesInfo),
         totalAmount,
         paymentDueDate: finalPaymentDueDate,
-        status: 'UNPAID'
+        status: 'UNPAID',
+        // Add building info to invoice
+        buildingId: contract?.room?.buildingId || null,
+        buildingName: contract?.room?.building?.name || null,
+        buildingAddress: contract?.room?.building?.address || null
       },
       include: {
+        building: {
+          select: {
+            id: true,
+            name: true,
+            address: true
+          }
+        },
         contract: {
           include: {
             user: true,

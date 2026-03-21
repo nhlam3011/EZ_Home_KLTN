@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Building2,
+  Home,
   Users,
   FileText,
   Wrench,
@@ -20,6 +21,7 @@ import {
   MessageSquare,
   RefreshCw,
   ChevronRight,
+  ChevronDown,
   Calendar,
   Clock as ClockIcon,
   Bot
@@ -28,6 +30,7 @@ import { useEffect, useState } from 'react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
 import { pusherClient } from '@/lib/pusher-client'
 import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
+import { BuildingProvider, useBuilding } from '../../components/BuildingContext'
 
 const menuItems = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
@@ -43,17 +46,20 @@ const menuItems = [
 ]
 
 const systemItems = [
+  { href: '/admin/buildings', label: 'Cấu hình tòa nhà', icon: Home },
+  { href: '/admin/owner-contracts', label: 'Hợp đồng ủy thác', icon: FileText },
   { href: '/admin/services', label: 'Cấu hình Dịch vụ', icon: Settings },
   { href: '/admin/settings', label: 'Cài đặt', icon: SlidersHorizontal },
 ]
 
-export default function AdminLayout({
+function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode
 }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { selectedBuildingId, setSelectedBuildingId, buildings, loading: buildingsLoading } = useBuilding()
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingPostsCount, setPendingPostsCount] = useState(0)
   const [pendingRenewalsCount, setPendingRenewalsCount] = useState(0)
@@ -67,6 +73,8 @@ export default function AdminLayout({
   const getPageTitle = () => {
     const titleMap: Record<string, string> = {
       '/admin': 'Admin Dashboard',
+      '/admin/buildings': 'Cấu hình tòa nhà',
+      '/admin/owner-contracts': 'Hợp đồng ủy thác',
       '/admin/rooms': 'Quản lý Phòng',
       '/admin/residents': 'Cư dân',
       '/admin/invoices': 'Tài chính',
@@ -99,7 +107,8 @@ export default function AdminLayout({
   // Generate Breadcrumbs
   const getBreadcrumbs = () => {
     const titleMap: Record<string, string> = {
-      '/admin': 'Tổng quan',
+      '/admin/buildings': 'Cấu hình tòa nhà',
+      '/admin/owner-contracts': 'Hợp đồng ủy thác',
       '/admin/rooms': 'Quản lý Phòng',
       '/admin/residents': 'Cư dân',
       '/admin/finance': 'Tài chính',
@@ -120,7 +129,16 @@ export default function AdminLayout({
 
     for (let i = 0; i < paths.length; i++) {
       currentPath += `/${paths[i]}`
-      const label = titleMap[currentPath] || paths[i]
+      if (i === 0) continue // Bỏ qua phần 'admin' hoặc 'tenant' vì đã có link hardcode ở ngoài
+      
+      let label = titleMap[currentPath] || paths[i]
+      
+      // Nếu là ID tòa nhà, tìm tên tòa nhà trong list
+      if (!titleMap[currentPath] && !isNaN(Number(paths[i]))) {
+        const building = buildings.find((b: any) => b.id === Number(paths[i]))
+        if (building) label = building.name
+      }
+      
       breadcrumbs.push({ label, href: currentPath, isLast: i === paths.length - 1 })
     }
 
@@ -474,43 +492,70 @@ export default function AdminLayout({
           </div>
         </nav>
 
-        {/* User Section */}
+        {/* User & Building Section */}
         <div
-          className="p-4 space-y-2"
+          className="p-4 space-y-4"
           style={{
             borderTop: '1px solid var(--border-primary)',
             backgroundColor: 'var(--bg-tertiary)'
           }}
         >
+          {/* User Card */}
           <div
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg border shadow-sm"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl border shadow-sm"
             style={{
               backgroundColor: 'var(--bg-primary)',
               borderColor: 'var(--border-primary)'
             }}
           >
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-md">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-md">
               {user.fullName?.charAt(0) || 'A'}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                 {user.fullName || 'Admin User'}
               </p>
-              <p className="text-xs truncate" style={{ color: 'var(--text-tertiary)' }}>
-                admin@ezhome.vn
+              <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-tertiary)' }}>
+                {user.email || 'admin@ezhome.vn'}
               </p>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-white text-sm font-semibold transition-all duration-200 shadow-md hover:shadow-lg"
-            style={{ backgroundColor: '#ef4444' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
-          >
-            <LogOut size={16} />
-            <span>Đăng xuất</span>
-          </button>
+
+          {/* Building & Logout Controls */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <select
+                  value={selectedBuildingId || ''}
+                  onChange={(e) => setSelectedBuildingId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full h-10 bg-primary border border-primary rounded-xl pl-3 pr-8 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 appearance-none cursor-pointer transition-all"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <option value="">Tất cả tòa nhà</option>
+                  {buildings.map((b: any) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-tertiary">
+                  <ChevronDown size={14} />
+                </div>
+              </div>
+              
+              <button
+                onClick={handleLogout}
+                title="Đăng xuất"
+                className="w-10 h-10 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90 flex-shrink-0"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+            
+            <p className="text-[9px] font-medium text-center uppercase tracking-widest opacity-40 px-2" style={{ color: 'var(--text-tertiary)' }}>
+              Đang quản lý: {selectedBuildingId ? buildings.find(b => b.id === selectedBuildingId)?.name : 'Tất cả tòa nhà'}
+            </p>
+          </div>
         </div>
       </aside>
 
@@ -601,5 +646,17 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+  )
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <BuildingProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </BuildingProvider>
   )
 }

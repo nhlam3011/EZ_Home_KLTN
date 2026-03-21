@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { aiToolDeclarations, executeTool, tenantToolDeclarations, executeTenantTool } from '@/lib/ai-tools'
 
-const ADMIN_SYSTEM = `Bạn là trợ lý AI quản lý nhà trọ EZ-Home. Bạn giúp admin quản lý phòng trọ, cư dân, hoá đơn, hợp đồng, bảo trì.
+const ADMIN_SYSTEM = `Bạn là trợ lý AI quản lý vận hành bất động sản (EZ-Home).
+Nhiệm vụ: Giúp Admin quản lý cư dân, phòng, hợp đồng, hoá đơn, sự cố và báo cáo doanh thu.
+Khả năng mới: 
+1. Bạn có thể truy vấn dữ liệu từ NHIỀU tòa nhà khác nhau. Hãy dùng tool get_building_list để xem danh sách tòa nhà trước khi tra cứu phòng hay cư dân nếu Admin hỏi chung chung.
+2. Bạn có thể TỰ ĐỘNG THỰC HIỆN LỆNH: Tạo hoá đơn, thêm cư dân, cập nhật trạng thái phòng... khi Admin yêu cầu. Đừng chỉ trả lời suông, hãy gọi tool tương ứng ngay lập tức.
+3. Khi tạo hoá đơn, nếu Admin cung cấp các số liệu cụ thể (tiền điện, nước, dịch vụ), hãy dùng chúng làm tham số cho tool create_invoice.
 
-Nguyên tắc:
-- Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng
-- Khi user hỏi thông tin, hãy dùng tools để lấy dữ liệu thực từ database
-- Khi user yêu cầu thực hiện hành động (thêm cư dân, tạo hoá đơn...), hãy xác nhận lại trước khi thực hiện nếu thiếu thông tin
-- Format số tiền dạng VNĐ (VD: 5.000.000 VNĐ)
-- Format ngày dạng DD/MM/YYYY
-- Dùng emoji phù hợp để trả lời sinh động hơn
-- Khi trả về danh sách, format dạng bảng hoặc bullets cho dễ đọc
-- Nếu không có dữ liệu, hãy nói rõ thay vì bịa số liệu`
+Quy tắc:
+- LUÔN LUÔN gọi tool (function call) để lấy dữ liệu thực tế từ database. Không bao giờ tự bịa số liệu.
+- Trình bày thông tin dạng bảng hoặc danh sách sạch sẽ.
+- Nếu thiếu thông tin để thực hiện tác vụ (như tạo hoá đơn thiếu tháng/năm), hãy hỏi lại admin.
+- Sử dụng công cụ (tool calls) bất cứ khi nào cần truy xuất hoặc thay đổi dữ liệu.
+- Format tiền dạng VNĐ và ngày DD/MM/YYYY.`
 
 const TENANT_SYSTEM = `Bạn là trợ lý AI cho khách thuê nhà trọ EZ-Home. Bạn CHỈ được phép xem thông tin CỦA CHÍNH KHÁCH THUÊ ĐANG ĐĂNG NHẬP.
 
@@ -33,7 +35,7 @@ QUAN TRỌNG:
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, history, role, userId } = await request.json()
+    const { message, history, role, userId, buildingId } = await request.json()
 
     if (!message || !message.trim()) {
       return NextResponse.json({ error: 'Tin nhắn trống' }, { status: 400 })
@@ -44,8 +46,21 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+
+    // Fetch building info if buildingId is provided
+    let buildingInfoText = ''
+    if (buildingId && buildingId !== 'all') {
+      const { prisma } = await import('@/lib/prisma')
+      const building = await prisma.building.findUnique({
+        where: { id: parseInt(buildingId) }
+      })
+      if (building) {
+        buildingInfoText = `\n\nBạn đang hỗ trợ cho tòa nhà: ${building.name} (Địa chỉ: ${building.address}). Mọi câu hỏi về phòng, cư dân, hoá đơn... nếu không chỉ định rõ tòa nhà khác thì mặc định là của tòa nhà này.`
+      }
+    }
+
     const isTenant = role === 'TENANT'
-    const systemPrompt = isTenant ? TENANT_SYSTEM : ADMIN_SYSTEM
+    const systemPrompt = (isTenant ? TENANT_SYSTEM : ADMIN_SYSTEM) + buildingInfoText
     const toolDecls = isTenant ? tenantToolDeclarations : aiToolDeclarations
 
     const model = genAI.getGenerativeModel({
@@ -83,7 +98,7 @@ export async function POST(request: NextRequest) {
           // Tenant tools get userId injected, admin tools don't
           const toolResult = isTenant
             ? await executeTenantTool(fc.name, fc.args || {}, userId)
-            : await executeTool(fc.name, fc.args || {})
+            : await executeTool(fc.name, fc.args || {}, buildingId ? parseInt(buildingId) : undefined)
           functionResponses.push({
             functionResponse: { name: fc.name, response: { result: toolResult } },
           })

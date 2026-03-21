@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Badge } from 'flowbite-react'
 import { Plus, Download, Search, Eye, Printer, MessageSquare, CheckCircle, AlertTriangle, FileText, Zap, Edit, Trash2, Upload, MoreVertical, X, Calendar, ChevronDown, ChevronLeft, ChevronRight, Send } from 'lucide-react'
 import Loading from '@/components/Loading'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Invoice {
   id: number
@@ -61,6 +62,8 @@ export default function InvoicesPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
 
+  const { selectedBuildingId } = useBuilding()
+
   // Sync monthFilter with state
   useEffect(() => {
     setMonthFilter(`${selectedMonth}/${selectedYear}`)
@@ -68,7 +71,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     fetchInvoices()
-  }, [monthFilter, statusFilter, search])
+  }, [monthFilter, statusFilter, search, selectedBuildingId])
 
   const fetchInvoices = async () => {
     setLoading(true)
@@ -81,6 +84,7 @@ export default function InvoicesPage() {
       }
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (search) params.append('search', search)
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
       const response = await fetch(`/api/invoices?${params.toString()}`)
       const data = await response.json()
@@ -208,10 +212,6 @@ export default function InvoicesPage() {
     setConfirmAction(null)
   }
 
-  useEffect(() => {
-    fetchInvoices()
-  }, [monthFilter, statusFilter, search])
-
   const handleEdit = (invoiceId: number) => {
     try {
       router.push(`/admin/invoices/${invoiceId}/edit`)
@@ -272,6 +272,7 @@ export default function InvoicesPage() {
         if (year) params.append('year', year)
       }
       if (statusFilter !== 'all') params.append('status', statusFilter)
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
       const response = await fetch(`/api/invoices/export?${params.toString()}`)
       if (response.ok) {
@@ -411,8 +412,8 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-center sm:text-left">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase line-clamp-1">QUẢN LÝ HOÁ ĐƠN</h1>
-          <p className="text-xs sm:text-sm text-secondary mt-1">Danh sách hóa đơn và thanh toán</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase tracking-tight">QUẢN LÝ HÓA ĐƠN</h1>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Danh sách hóa đơn và thanh toán hàng tháng</p>
         </div>
 
         {/* Actions - Only on Invoices tab */}
@@ -490,52 +491,49 @@ export default function InvoicesPage() {
       <div className="relative z-20 mt-6">
 
         {/* Filters */}
-        <div className="card p-3 sm:p-4 !overflow-visible relative z-20 mb-6">
+        <div className="card p-4 !overflow-visible relative z-20 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Modern Inline Period Picker */}
               <div className="relative w-full sm:w-auto">
                 <button
                   onClick={() => setShowMonthPicker(!showMonthPicker)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showMonthPicker
-                    ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
-                    : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all h-11 w-full sm:w-auto ${showMonthPicker
+                    ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
+                    : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
                     }`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${showMonthPicker ? 'bg-blue-100 dark:bg-blue-900/40 text-[var(--accent-blue)]' : 'bg-blue-50 dark:bg-blue-900/30 text-[var(--accent-blue)]'
-                    }`}>
-                    <Calendar size={14} />
-                  </div>
-                  <div className="text-left pr-1 flex-1">
-                    <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}</p>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 ${showMonthPicker ? 'rotate-180' : ''}`} />
+                  <Calendar size={16} className="text-blue-500" />
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider flex-1 text-left">
+                    THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}
+                  </span>
+                  <ChevronDown size={16} className={`transition-transform duration-300 text-tertiary ${showMonthPicker ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showMonthPicker && (
                   <>
                     <div
-                      className="fixed inset-0 z-40 transition-opacity"
+                      className="fixed inset-0 z-40"
                       onClick={() => setShowMonthPicker(false)}
                     />
-                    <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-3 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                    <div className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-primary rounded-2xl shadow-xl border border-primary p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="flex items-center justify-between mb-3 bg-tertiary/30 p-1.5 rounded-xl">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedYear(y => y - 1)
                           }}
-                          className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                          className="p-1.5 hover:bg-primary rounded-lg transition-all active:scale-90 text-secondary"
                         >
                           <ChevronLeft size={16} />
                         </button>
-                        <span className="text-sm font-bold text-primary uppercase">NĂM {selectedYear}</span>
+                        <span className="text-xs font-bold text-primary uppercase">NĂM {selectedYear}</span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedYear(y => y + 1)
                           }}
-                          className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                          className="p-1.5 hover:bg-primary rounded-lg transition-all active:scale-90 text-secondary"
                         >
                           <ChevronRight size={16} />
                         </button>
@@ -549,9 +547,9 @@ export default function InvoicesPage() {
                               setSelectedMonth(m)
                               setShowMonthPicker(false)
                             }}
-                            className={`py-2 rounded-xl text-xs font-bold transition-all ${selectedMonth === m
-                              ? 'bg-[var(--accent-blue)] text-white shadow-inner scale-95'
-                              : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-secondary border border-transparent hover:border-blue-100 dark:hover:border-blue-800'
+                            className={`py-2 rounded-xl text-[10px] font-bold transition-all ${selectedMonth === m
+                              ? 'bg-blue-600 text-white shadow-md'
+                              : 'hover:bg-tertiary text-secondary'
                               }`}
                           >
                             T{m}
@@ -566,38 +564,32 @@ export default function InvoicesPage() {
               <div className="relative w-full sm:w-auto">
                 <button
                   onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showStatusDropdown
-                    ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
-                    : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all h-11 w-full sm:w-auto ${showStatusDropdown
+                    ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
+                    : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
                     }`}
                 >
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
-                    statusFilter === 'PAID' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
-                      statusFilter === 'UNPAID' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-500' :
-                        'bg-red-50 dark:bg-red-900/20 text-red-500'
-                    }`}>
-                    {statusFilter === 'all' && <FileText size={14} />}
-                    {statusFilter === 'PAID' && <CheckCircle size={14} />}
-                    {statusFilter === 'UNPAID' && <Zap size={14} />}
-                    {statusFilter === 'OVERDUE' && <AlertTriangle size={14} />}
+                  <div className="text-blue-500">
+                    {statusFilter === 'all' && <FileText size={16} />}
+                    {statusFilter === 'PAID' && <CheckCircle size={16} />}
+                    {statusFilter === 'UNPAID' && <Zap size={16} />}
+                    {statusFilter === 'OVERDUE' && <AlertTriangle size={16} />}
                   </div>
-                  <div className="text-left pr-1 flex-1">
-                    <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
-                      {statusFilter === 'all' ? 'TẤT CẢ' :
-                        statusFilter === 'PAID' ? 'ĐÃ THANH TOÁN' :
-                          statusFilter === 'UNPAID' ? 'CHƯA THANH TOÁN' : 'QUÁ HẠN'}
-                    </p>
-                  </div>
-                  <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+                  <span className="text-xs font-md text-primary uppercase tracking-wider flex-1 text-left">
+                    {statusFilter === 'all' ? 'Tất cả trạng thái' :
+                      statusFilter === 'PAID' ? 'Đã thanh toán' :
+                        statusFilter === 'UNPAID' ? 'Chưa thanh toán' : 'Quá hạn'}
+                  </span>
+                  <ChevronDown size={16} className={`transition-transform duration-300 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showStatusDropdown && (
                   <>
                     <div
-                      className="fixed inset-0 z-40 transition-opacity"
+                      className="fixed inset-0 z-40"
                       onClick={() => setShowStatusDropdown(false)}
                     />
-                    <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
+                    <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-primary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                       {[
                         { id: 'all', label: 'TẤT CẢ', icon: <FileText size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
                         { id: 'PAID', label: 'ĐÃ THANH TOÁN', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
@@ -610,15 +602,15 @@ export default function InvoicesPage() {
                             setStatusFilter(item.id)
                             setShowStatusDropdown(false)
                           }}
-                          className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id
-                            ? 'bg-[var(--accent-blue)] text-white shadow-md'
+                          className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === item.id
+                            ? 'bg-blue-600 text-white shadow-md'
                             : 'hover:bg-tertiary text-secondary'
                             }`}
                         >
-                          <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                          <div className={`p-1 ${statusFilter === item.id ? 'text-white' : item.color}`}>
                             {item.icon}
                           </div>
-                          <span className="uppercase">{item.label}</span>
+                          <span>{item.label}</span>
                         </button>
                       ))}
                     </div>
@@ -627,14 +619,14 @@ export default function InvoicesPage() {
               </div>
             </div>
 
-            <div className="relative flex-1 lg:max-w-md w-full">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+            <div className="relative flex-1 w-full lg:max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
               <input
                 type="text"
                 placeholder="Tìm hóa đơn, phòng, tên..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                className="input input-with-icon w-full pl-12 h-11"
               />
             </div>
           </div>

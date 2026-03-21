@@ -21,6 +21,10 @@ interface Invoice {
     room: {
       name: string
       floor: number
+      building?: {
+        name: string
+        address: string
+      }
     }
     occupants?: Array<{
       id: number
@@ -486,7 +490,7 @@ export default function InvoicesPage() {
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                   <div className="flex-1">
                     <h2 className="text-lg sm:text-xl font-bold text-primary">EZ-Home Management</h2>
-                    <p className="text-xs sm:text-sm text-secondary mt-1">59 - Ngõ 192 Lê Trọng Tấn, Khương Mai, Thanh Xuân, Hà Nội</p>
+                    <p className="text-xs sm:text-sm text-secondary mt-1">{selectedInvoice.contract.room.building?.address || ''}</p>
                     <p className="text-xs sm:text-sm text-secondary">Hotline: 1900 1234</p>
                   </div>
                   <div className="text-left sm:text-right">

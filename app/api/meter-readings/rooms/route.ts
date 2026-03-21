@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const month = searchParams.get('month') || (new Date().getMonth() + 1).toString()
     const year = searchParams.get('year') || new Date().getFullYear().toString()
+    const buildingId = searchParams.get('buildingId')
 
     // Calculate dates for history
     let lastMonth = parseInt(month) - 1
@@ -22,7 +23,8 @@ export async function GET(request: NextRequest) {
       prisma.room.findMany({
         where: {
           status: 'RENTED',
-          contracts: { some: { status: 'ACTIVE' } }
+          contracts: { some: { status: 'ACTIVE' } },
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
         },
         include: {
           contracts: {
@@ -36,12 +38,20 @@ export async function GET(request: NextRequest) {
 
       // Get current month's readings
       prisma.meterReading.findMany({
-        where: { month: parseInt(month), year: parseInt(year) }
+        where: { 
+          month: parseInt(month), 
+          year: parseInt(year),
+          room: buildingId ? { buildingId: parseInt(buildingId) } : undefined
+        }
       }),
 
       // Get last month's readings
       prisma.meterReading.findMany({
-        where: { month: lastMonth, year: lastYear }
+        where: { 
+          month: lastMonth, 
+          year: lastYear,
+          room: buildingId ? { buildingId: parseInt(buildingId) } : undefined
+        }
       })
     ])
 

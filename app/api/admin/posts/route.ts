@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') // 'all', 'PENDING', 'PUBLIC'
     const search = searchParams.get('search')
     const category = searchParams.get('category')
+    const buildingId = searchParams.get('buildingId')
 
     const where: any = {
       // Filter out invoice notification posts (they start with "[Hóa đơn #")
@@ -33,6 +34,23 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    if (buildingId) {
+      where.user = {
+        contracts: {
+          some: {
+            room: {
+              buildingId: parseInt(buildingId)
+            },
+            status: 'ACTIVE'
+          }
+        }
+      }
+    }
+
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const skip = (page - 1) * limit
+
     const posts = await prisma.post.findMany({
       where,
       include: {
@@ -50,7 +68,9 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: skip
     })
 
     return NextResponse.json(posts)

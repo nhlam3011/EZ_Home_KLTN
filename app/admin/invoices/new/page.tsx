@@ -138,32 +138,32 @@ export default function NewInvoicePage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Tạo hóa đơn mới</h1>
-            <p className="text-secondary mt-1 text-sm sm:text-base">Tạo hóa đơn thanh toán cho cư dân</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary uppercase tracking-tight">TẠO HÓA ĐƠN MỚI</h1>
+            <p className="text-xs sm:text-sm text-secondary mt-1 tracking-wide uppercase font-medium opacity-70">Tạo hóa đơn thanh toán cho cư dân</p>
           </div>
         </div>
         <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
           <Link
             href="/admin/invoices"
-            className="btn btn-secondary btn-sm sm:btn-md"
+            className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2"
           >
             <X size={18} />
-            <span>Hủy</span>
+            <span className="font-bold">Hủy</span>
           </Link>
           <button
             onClick={handleSubmit}
             disabled={loading || !selectedContract}
-            className="btn btn-primary btn-sm sm:btn-md"
+            className="btn btn-primary h-11 px-8 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
           >
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                <span>Đang tạo...</span>
+                <span className="font-bold">Đang tạo...</span>
               </>
             ) : (
               <>
                 <Save size={18} strokeWidth={2.5} />
-                <span>Tạo hóa đơn</span>
+                <span className="font-bold uppercase tracking-tight">Tạo hóa đơn</span>
               </>
             )}
           </button>
@@ -174,20 +174,20 @@ export default function NewInvoicePage() {
         <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Contract Selection */}
           <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <FileText className="text-white" size={20} />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                <FileText className="text-blue-600 dark:text-blue-400" size={20} />
               </div>
-              <h2 className="text-lg font-semibold text-primary">Chọn hợp đồng</h2>
+              <h2 className="text-lg font-bold text-primary uppercase tracking-tight">Chọn hợp đồng</h2>
             </div>
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={16} />
+            <div className="relative mb-6">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
               <input
                 type="text"
-                placeholder="Tìm kiếm"
+                placeholder="Tìm kiếm cư dân, phòng..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input input-with-icon w-full pr-4 py-2 text-sm"
+                className="input input-with-icon w-full pl-12 h-11"
               />
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -217,16 +217,16 @@ export default function NewInvoicePage() {
 
           {/* Invoice Details */}
           <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                <DollarSign className="text-white" size={20} />
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                <DollarSign className="text-green-600 dark:text-green-400" size={20} />
               </div>
-              <h2 className="text-lg font-semibold text-primary">Chi tiết hóa đơn</h2>
+              <h2 className="text-lg font-bold text-primary uppercase tracking-tight">Chi tiết hóa đơn</h2>
             </div>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2 ml-1">
                     Tháng
                   </label>
                   <select
@@ -240,7 +240,7 @@ export default function NewInvoicePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
+                  <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2 ml-1">
                     Năm
                   </label>
                   <input
@@ -255,7 +255,7 @@ export default function NewInvoicePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2 ml-1">
                   Tiền phòng (VND)
                 </label>
                 <input
@@ -328,7 +328,7 @@ export default function NewInvoicePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2 ml-1">
                   Hạn thanh toán
                 </label>
                 <input
@@ -336,9 +336,9 @@ export default function NewInvoicePage() {
                   value={formData.paymentDueDate}
                   onChange={(e) => setFormData(prev => ({ ...prev, paymentDueDate: e.target.value }))}
                   required
-                  className="input"
+                  className="input h-11"
                 />
-                <p className="text-xs text-tertiary mt-1">Ngày hết hạn thanh toán hóa đơn</p>
+                <p className="text-[10px] text-tertiary mt-2 ml-1 font-medium uppercase tracking-tight opacity-70">Ngày hết hạn thanh toán hóa đơn</p>
               </div>
             </div>
           </div>

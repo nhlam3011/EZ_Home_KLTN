@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     const search = searchParams.get('search')
+    const buildingId = searchParams.get('buildingId')
 
     const where: any = {}
 
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest) {
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } }
       ]
+    }
+
+    if (buildingId) {
+      where.room = { buildingId: parseInt(buildingId) }
     }
 
     const issues = await prisma.issue.findMany({

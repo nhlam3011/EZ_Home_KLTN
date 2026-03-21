@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const buildingId = searchParams.get('buildingId')
+    const buildingIdInt = buildingId && buildingId !== 'all' ? parseInt(buildingId) : null
+
     const currentDate = new Date()
     const currentMonth = currentDate.getMonth() + 1
     const currentYear = currentDate.getFullYear()
@@ -28,18 +32,24 @@ export async function GET() {
         by: ['month', 'year'],
         where: {
           status: 'PAID',
-          OR: historyMonths.map(h => ({ month: h.month, year: h.year }))
+          OR: historyMonths.map(h => ({ month: h.month, year: h.year })),
+          ...(buildingIdInt ? { buildingId: buildingIdInt } : {})
         },
         _sum: { totalAmount: true }
       }),
       prisma.contract.findMany({
-        where: { status: 'ACTIVE' },
+        where: { 
+          status: 'ACTIVE',
+          ...(buildingIdInt ? { room: { buildingId: buildingIdInt } } : {})
+        },
         include: {
           room: true,
           user: { select: { fullName: true, phone: true } }
         }
       }),
-      prisma.room.count()
+      prisma.room.count({
+        where: buildingIdInt ? { buildingId: buildingIdInt } : {}
+      })
     ])
 
     // Map history results back to the ordered historyMonths array

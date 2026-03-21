@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const tenantId = searchParams.get('tenantId') // Filter theo tenant cụ thể
     const userId = searchParams.get('userId') // Admin user ID từ query
+    const buildingId = searchParams.get('buildingId')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const skip = (page - 1) * limit
@@ -130,7 +131,17 @@ export async function GET(request: NextRequest) {
         where: {
           id: { in: tenantIdsWithMessages },
           role: 'TENANT',
-          isActive: true
+          isActive: true,
+          ...(buildingId ? {
+            contracts: {
+              some: {
+                room: {
+                  buildingId: parseInt(buildingId)
+                },
+                status: 'ACTIVE'
+              }
+            }
+          } : {})
         },
         select: {
           id: true,
@@ -168,7 +179,17 @@ export async function GET(request: NextRequest) {
         where: {
           role: 'TENANT',
           isActive: true,
-          id: { notIn: tenantIdsWithMessages }
+          id: { notIn: tenantIdsWithMessages },
+          ...(buildingId ? {
+            contracts: {
+              some: {
+                room: {
+                  buildingId: parseInt(buildingId)
+                },
+                status: 'ACTIVE'
+              }
+            }
+          } : {})
         },
         select: {
           id: true,
@@ -196,7 +217,7 @@ export async function GET(request: NextRequest) {
     ])
 
     // Format tenants WITH messages - use the map for last message data
-    const formattedTenants = tenantsWithUnread.map(tenant => {
+    const formattedTenants = (tenantsWithUnread as any[]).map(tenant => {
       const lastMsg = lastMessageMap.get(tenant.id)
       return {
         id: tenant.id,
@@ -215,7 +236,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Format tenants WITHOUT messages
-    const otherTenants = allTenantsNoMsg.map(tenant => ({
+    const otherTenants = (allTenantsNoMsg as any[]).map(tenant => ({
       id: tenant.id,
       fullName: tenant.fullName,
       avatarUrl: tenant.avatarUrl,

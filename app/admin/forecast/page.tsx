@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { TrendingUp, TrendingDown, AlertTriangle, Building2, DollarSign, Info, BarChart3, Sparkles, Loader2, Search, Send, RefreshCw, ArrowRight } from 'lucide-react'
 import Loading from '@/components/Loading'
+import { useBuilding } from '@/components/BuildingContext'
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
@@ -111,6 +112,7 @@ interface AiInsightsData {
 }
 
 export default function ForecastPage() {
+  const { selectedBuildingId } = useBuilding()
   const [data, setData] = useState<ForecastData | null>(null)
   const [loading, setLoading] = useState(true)
   const [showMethodology, setShowMethodology] = useState(false)
@@ -120,11 +122,14 @@ export default function ForecastPage() {
 
   useEffect(() => {
     fetchForecast()
-  }, [])
+  }, [selectedBuildingId])
 
   const fetchForecast = async () => {
     try {
-      const response = await fetch('/api/admin/forecast')
+      const url = selectedBuildingId
+        ? `/api/admin/forecast?buildingId=${selectedBuildingId}`
+        : '/api/admin/forecast'
+      const response = await fetch(url)
       const forecastData = await response.json()
       setData(forecastData)
     } catch (error) {
@@ -760,7 +765,11 @@ export default function ForecastPage() {
               setAiLoading(true)
               setAiInsights(null)
               try {
-                const res = await fetch('/api/admin/forecast/ai-insights', { method: 'POST' })
+                const res = await fetch('/api/admin/forecast/ai-insights', { 
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ buildingId: selectedBuildingId })
+                })
                 const result = await res.json()
                 if (!res.ok) throw new Error(result.error)
                 setAiInsights(result)

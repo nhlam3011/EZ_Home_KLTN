@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, X, Loader2, User, Plus, Users, Upload, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Save, X, Loader2, User, Plus, Users, Upload, RefreshCw, FileText } from 'lucide-react'
 
 interface Occupant {
   fullName: string
@@ -174,8 +174,8 @@ export default function NewResidentPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Check-in Cư dân mới</h1>
-            <p className="text-secondary mt-1 text-sm sm:text-base">
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary uppercase tracking-tight">CHECK-IN CƯ DÂN MỚI</h1>
+            <p className="text-xs sm:text-sm text-secondary mt-1 tracking-wide uppercase font-medium opacity-70">
               {existingUserId
                 ? `Tạo hợp đồng mới cho cư dân: ${oldUserData?.fullName || 'Đang tải...'}`
                 : 'Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới'}
@@ -185,26 +185,25 @@ export default function NewResidentPage() {
         <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
           <Link
             href="/admin/residents"
-            className="btn btn-secondary btn-sm sm:btn-md"
+            className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2"
           >
             <X size={18} />
-            <span>Hủy</span>
+            <span className="font-bold">Hủy</span>
           </Link>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="btn btn-primary btn-sm sm:btn-md"
+            className="btn btn-primary h-11 px-8 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
           >
             {loading ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                <span>Đang tạo...</span>
+                <span className="font-bold">Đang tạo...</span>
               </>
             ) : (
               <>
                 <Save size={18} strokeWidth={2.5} />
-                <span className="hidden sm:inline">Lưu và tạo hợp đồng</span>
-                <span className="sm:hidden">Lưu</span>
+                <span className="font-bold uppercase tracking-tight">Lưu và tạo hợp đồng</span>
               </>
             )}
           </button>
@@ -244,13 +243,15 @@ export default function NewResidentPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Personal Information */}
           <div className="card">
-            <h2 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
-              <User size={20} />
-              <span>Thông tin cá nhân</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                <User className="text-blue-600 dark:text-blue-400" size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-primary uppercase tracking-tight">Thông tin cá nhân</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2 ml-1">
                   Họ và tên <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -337,10 +338,15 @@ export default function NewResidentPage() {
 
           {/* Contract Information */}
           <div className="card">
-            <h2 className="text-base sm:text-lg font-semibold text-primary mb-4">Thông tin hợp đồng</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                <FileText className="text-green-600 dark:text-green-400" size={20} />
+              </div>
+              <h2 className="text-lg font-bold text-primary uppercase tracking-tight">Thông tin hợp đồng</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-primary mb-2">
+                <label className="block text-xs font-black text-secondary uppercase tracking-widest mb-2 ml-1">
                   Chọn phòng <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -417,18 +423,20 @@ export default function NewResidentPage() {
 
           {/* Occupants Section */}
           <div className="card">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
-              <h2 className="text-base sm:text-lg font-semibold text-primary flex items-center gap-2">
-                <Users size={20} className="flex-shrink-0" />
-                <span>Người ở cùng (nếu có)</span>
-              </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                  <Users className="text-purple-600 dark:text-purple-400" size={20} />
+                </div>
+                <h2 className="text-lg font-bold text-primary uppercase tracking-tight">Người ở cùng (nếu có)</h2>
+              </div>
               <button
                 type="button"
                 onClick={addOccupant}
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary h-10 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-blue-500/10"
               >
-                <Plus size={18} strokeWidth={2.5} className="flex-shrink-0" />
-                <span>Thêm người ở</span>
+                <Plus size={18} strokeWidth={2.5} />
+                <span className="font-bold text-xs uppercase">Thêm người ở</span>
               </button>
             </div>
             {occupants.length === 0 ? (

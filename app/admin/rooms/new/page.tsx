@@ -2,13 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, X, Building2, DollarSign, Users, Ruler, Home, Wrench, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, Save, X, Building2, DollarSign, Users, Ruler, Home, Wrench, Image as ImageIcon, ChevronDown, CheckCircle, Sparkles, Wand2 } from 'lucide-react'
 import Link from 'next/link'
+import { useBuilding } from '@/components/BuildingContext'
+import Loading from '@/components/Loading'
+
+interface RoomTypePreset {
+  type: string
+  price: number
+  area: number
+  amenities: string[]
+}
 
 export default function NewRoomPage() {
   const router = useRouter()
+  const { selectedBuildingId, buildings } = useBuilding()
   const [loading, setLoading] = useState(false)
-  const [maxFloors, setMaxFloors] = useState(10)
+  const [buildingDetails, setBuildingDetails] = useState<any>(null)
   const [formData, setFormData] = useState({
     name: '',
     floor: '',
@@ -16,21 +26,65 @@ export default function NewRoomPage() {
     maxPeople: '2',
     price: '',
     status: 'AVAILABLE',
-    roomType: 'Studio',
+    roomType: '',
     description: '',
-    amenities: [] as string[]
+    amenities: [] as string[],
+    buildingId: ''
   })
+
+  // Fetch building details to get presets
+  useEffect(() => {
+    const fetchBuildingData = async () => {
+      if (!formData.buildingId) return
+      try {
+        const res = await fetch(`/api/admin/buildings/${formData.buildingId}`)
+        const data = await res.json()
+        if (data.building) {
+          setBuildingDetails(data.building)
+        }
+      } catch (error) {
+        console.error('Error fetching building details:', error)
+      }
+    }
+    fetchBuildingData()
+  }, [formData.buildingId])
+
+  useEffect(() => {
+    if (selectedBuildingId) {
+      setFormData(prev => ({ ...prev, buildingId: selectedBuildingId.toString() }))
+    }
+  }, [selectedBuildingId])
+
+  const handleRoomTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const type = e.target.value
+    setFormData(prev => ({ ...prev, roomType: type }))
+    
+    // Auto-fill logic
+    if (buildingDetails?.roomTypePresets) {
+      const preset = buildingDetails.roomTypePresets.find((p: RoomTypePreset) => p.type === type)
+      if (preset) {
+        setFormData(prev => ({
+          ...prev,
+          price: preset.price.toString(),
+          area: preset.area.toString(),
+          amenities: preset.amenities || []
+        }))
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.buildingId) {
+      alert('Vui lòng chọn tòa nhà')
+      return
+    }
+    
     setLoading(true)
-
     try {
       const response = await fetch('/api/rooms', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
 
@@ -55,332 +109,260 @@ export default function NewRoomPage() {
   }
 
   const handleAmenityChange = (amenity: string, checked: boolean) => {
-    setFormData(prev => {
-      if (checked) {
-        return { ...prev, amenities: [...prev.amenities, amenity] }
-      } else {
-        return { ...prev, amenities: prev.amenities.filter(a => a !== amenity) }
-      }
-    })
+    setFormData(prev => ({
+      ...prev,
+      amenities: checked 
+        ? [...prev.amenities, amenity] 
+        : prev.amenities.filter(a => a !== amenity)
+    }))
   }
 
-  const adjustMaxPeople = (delta: number) => {
-    const current = parseInt(formData.maxPeople) || 1
-    const newValue = Math.max(1, current + delta)
-    setFormData(prev => ({ ...prev, maxPeople: newValue.toString() }))
-  }
-
-  useEffect(() => {
-    // Fetch settings for max floors
-    fetch('/api/admin/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (data.maxFloors) {
-          setMaxFloors(parseInt(data.maxFloors))
-        }
-      })
-      .catch(console.error)
-  }, [])
+  const availableAmenityOptions = [
+    'Điều hòa', 'Nóng lạnh', 'Giường', 'Tủ quần áo', 'Máy giặt', 'Tủ lạnh', 'Bếp', 'Wifi', 'Ban công', 'Cửa sổ', 'Thang máy', 'Bảo vệ 24/7'
+  ]
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+      {/* Standardized Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/rooms"
-            className="btn btn-ghost btn-icon"
-          >
+        <div className="flex items-center gap-4 text-left">
+          <Link href="/admin/rooms" className="w-10 h-10 rounded-xl bg-primary border border-primary flex items-center justify-center text-secondary hover:bg-tertiary transition-all">
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Thêm phòng mới</h1>
-            <p className="text-secondary mt-1 text-sm sm:text-base">Nhập thông tin chi tiết để tạo phòng mới trong hệ thống</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">THÊM PHÒNG MỚI</h1>
+            <p className="text-xs sm:text-sm text-secondary mt-1">Thiết lập thông tin và tiện ích cho phòng</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <Link
-            href="/admin/rooms"
-            className="btn btn-secondary btn-sm sm:btn-md"
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Link href="/admin/rooms" className="btn btn-secondary h-11 px-6 flex-1 sm:flex-none font-bold uppercase tracking-wider text-xs">Hủy bỏ</Link>
+          <button 
+            onClick={handleSubmit} 
+            disabled={loading} 
+            className="btn btn-primary h-11 px-8 shadow-lg shadow-blue-500/20 flex-1 sm:flex-none flex items-center justify-center gap-2"
           >
-            <X size={18} />
-            <span>Hủy</span>
-          </Link>
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="btn btn-primary btn-sm sm:btn-md"
-          >
-            <Save size={18} />
-            <span>{loading ? 'Đang lưu...' : 'Lưu phòng'}</span>
+            {loading ? <Loading size="sm" /> : <><Save size={18} strokeWidth={2.5} /> <span className="font-bold">Lưu & Tạo phòng</span></>}
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column - Main Form */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Basic Information */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <Home className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Thông tin cơ bản</h2>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Info */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="card space-y-8">
+            <div className="flex items-center gap-3 border-b border-primary pb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+                <Building2 size={20} />
               </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Số phòng <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="VD: P.101"
-                      required
-                      className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Tầng <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="floor"
-                      value={formData.floor}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    >
-                      <option value="">Chọn tầng</option>
-                      {Array.from({ length: maxFloors }, (_, i) => i + 1).map(floor => (
-                        <option key={floor} value={floor}>Tầng {floor}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Diện tích (m²)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        name="area"
-                        value={formData.area}
-                        onChange={handleChange}
-                        min="0"
-                        step="0.1"
-                        placeholder="VD: 25.5"
-                        className="w-full px-4 py-2.5 pr-12 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary text-sm">m²</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Số người tối đa
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => adjustMaxPeople(-1)}
-                        className="w-11 h-11 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 flex items-center justify-center text-primary transition-all"
-                      >
-                        <span className="text-lg font-semibold">−</span>
-                      </button>
-                      <input
-                        type="number"
-                        name="maxPeople"
-                        value={formData.maxPeople}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-24 px-4 py-2.5 border border-primary rounded-lg text-center bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => adjustMaxPeople(1)}
-                        className="w-11 h-11 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 flex items-center justify-center text-primary transition-all"
-                      >
-                        <span className="text-lg font-semibold">+</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div className="text-left">
+                <h3 className="font-bold text-base text-primary uppercase">Thông tin căn bản</h3>
+                <p className="text-xs text-secondary">Chọn toà nhà và vị trí phòng</p>
               </div>
             </div>
 
-            {/* Cost & Description */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                  <DollarSign className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Chi phí & Mô tả</h2>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Giá thuê cơ bản (VND/tháng) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleChange}
-                      required
-                      min="0"
-                      placeholder="VD: 3000000"
-                      className="w-full px-4 py-2.5 pr-12 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
-                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary text-sm font-medium">₫</span>
-                  </div>
-                  <p className="text-xs text-tertiary mt-2 flex items-center gap-1">
-                    <span>ℹ️</span>
-                    <span>Giá này chưa bao gồm điện, nước và dịch vụ khác.</span>
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Mô tả phòng
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 pb-4">
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Toà nhà quản lý *</label>
+                <div className="relative">
+                  <select 
+                    name="buildingId"
+                    value={formData.buildingId}
                     onChange={handleChange}
-                    rows={5}
-                    placeholder="Nhập mô tả chi tiết về tiện nghi phòng, hướng cửa số, nội thất có sẵn..."
-                    className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-y"
-                  />
+                    required
+                    className="input input-with-icon h-11"
+                  >
+                    <option value="">Chọn tòa nhà...</option>
+                    {buildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                  <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
                 </div>
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest flex items-center justify-between">
+                  Loại phòng *
+                  {buildingDetails?.roomTypePresets?.length > 0 && (
+                    <span className="text-[9px] text-emerald-600 font-extrabold flex items-center gap-1 uppercase bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800"><Sparkles size={10} /> Có mẫu sẵn</span>
+                  )}
+                </label>
+                <div className="relative">
+                  <select 
+                    name="roomType"
+                    value={formData.roomType}
+                    onChange={handleRoomTypeChange}
+                    className="input input-with-icon h-11"
+                  >
+                    <option value="">Chọn loại...</option>
+                    {buildingDetails?.roomTypePresets?.map((p: RoomTypePreset) => (
+                      <option key={p.type} value={p.type}>{p.type}</option>
+                    )) || (
+                      <>
+                        <option value="Studio">Studio (Khép kín)</option>
+                        <option value="1PN">1 Phòng ngủ</option>
+                        <option value="2PN">2 Phòng ngủ</option>
+                        <option value="Duplex">Duplex (Gác lửng)</option>
+                        <option value="Phòng trọ">Phòng trọ</option>
+                      </>
+                    )}
+                  </select>
+                  <Wrench size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số phòng / Tên phòng *</label>
+                <div className="relative">
+                  <input 
+                    type="text" name="name" required value={formData.name} onChange={handleChange}
+                    className="input input-with-icon h-11 uppercase"
+                    placeholder="Ví dụ: 101, 202..."
+                  />
+                  <Home size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Vị trí tầng *</label>
+                {buildingDetails?.floorCount ? (
+                  <div className="relative">
+                    <select 
+                      name="floor" 
+                      required 
+                      value={formData.floor} 
+                      onChange={handleChange}
+                      className="input input-with-icon h-11"
+                    >
+                      <option value="">Chọn tầng...</option>
+                      {Array.from({ length: buildingDetails.floorCount }, (_, i) => i + 1).map(f => (
+                        <option key={f} value={f}>Tầng {f}</option>
+                      ))}
+                    </select>
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary text-xs font-bold uppercase tracking-widest">F</div>
+                  </div>
+                ) : (
+                  <input 
+                    type="number" name="floor" required value={formData.floor} onChange={handleChange}
+                    className="input h-11"
+                    placeholder="Nhập số tầng..."
+                  />
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column - Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Classification */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <Building2 className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Phân loại</h2>
+          <div className="card space-y-8">
+            <div className="flex items-center gap-3 border-b border-primary pb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
+                <DollarSign size={20} />
               </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Loại phòng <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="roomType"
-                    value={formData.roomType}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  >
-                    <option value="Studio">Studio</option>
-                    <option value="1N1K">1N1K (1 phòng ngủ, 1 phòng khách)</option>
-                    <option value="2N1K">2N1K (2 phòng ngủ, 1 phòng khách)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-3">
-                    Tiện ích đi kèm
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[' Điều hòa', ' Nóng lạnh', ' Tủ lạnh', ' Giường tủ', ' Máy giặt chung'].map(amenity => (
-                      <label
-                        key={amenity}
-                        className={`flex items-center gap-2 p-2 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group ${formData.amenities.includes(amenity) ? 'bg-tertiary border-blue-500' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.amenities.includes(amenity)}
-                          onChange={(e) => handleAmenityChange(amenity, e.target.checked)}
-                          className="w-4 h-4 flex-shrink-0"
-                        />
-                        <span className="text-xs font-medium text-primary group-hover:text-blue-600 transition-colors select-none">
-                          {amenity}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+              <div className="text-left">
+                <h3 className="font-bold text-base text-primary uppercase">Tài chính & Diện tích</h3>
+                <p className="text-xs text-secondary">Cấu hình giá và thông số kỹ thuật</p>
               </div>
             </div>
 
-            {/* Initial Status */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <Wrench className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Trạng thái</h2>
-              </div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="AVAILABLE"
-                    checked={formData.status === 'AVAILABLE'}
-                    onChange={handleChange}
-                    className="w-5 h-5"
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Giá thuê (VNĐ/Tháng) *</label>
+                <div className="relative">
+                  <input 
+                    type="number" name="price" required value={formData.price} onChange={handleChange}
+                    className="input input-with-icon h-11 text-blue-600 dark:text-blue-400"
                   />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-primary group-hover:text-blue-600 transition-colors">Trống (Sẵn sàng)</span>
-                    <p className="text-xs text-tertiary mt-0.5">Phòng có thể cho thuê ngay</p>
-                  </div>
-                </label>
-                <label className="flex items-center gap-3 p-3 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="MAINTENANCE"
-                    checked={formData.status === 'MAINTENANCE'}
-                    onChange={handleChange}
-                    className="w-5 h-5"
+                  <DollarSign size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
+              </div>
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Diện tích (m²) *</label>
+                <div className="relative">
+                  <input 
+                    type="number" name="area" required value={formData.area} onChange={handleChange}
+                    className="input input-with-icon h-11"
                   />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-primary group-hover:text-blue-600 transition-colors">Đang bảo trì</span>
-                    <p className="text-xs text-tertiary mt-0.5">Phòng đang được sửa chữa</p>
-                  </div>
-                </label>
+                  <Ruler size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
+              </div>
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số người ở tối đa</label>
+                <div className="relative">
+                  <input 
+                    type="number" name="maxPeople" required value={formData.maxPeople} onChange={handleChange}
+                    className="input input-with-icon h-11"
+                  />
+                  <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
               </div>
             </div>
 
-            {/* Images */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">
-                  <ImageIcon className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Hình ảnh</h2>
-              </div>
-              <div className="border-2 border-dashed border-primary rounded-lg p-8 text-center hover:border-blue-500 hover:bg-tertiary transition-all cursor-pointer group">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-16 h-16 bg-tertiary rounded-lg flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
-                    <ImageIcon className="text-tertiary group-hover:text-blue-500 transition-colors" size={24} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-primary mb-1">Tải ảnh lên</p>
-                    <p className="text-xs text-tertiary">PNG, JPG tối đa 5MB</p>
-                  </div>
-                </div>
-              </div>
+            <div className="space-y-2 text-left">
+              <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Mô tả phòng</label>
+              <textarea 
+                name="description" value={formData.description} onChange={handleChange} rows={4}
+                className="input py-3 min-h-[120px]"
+                placeholder="Mô tả các đặc điểm nổi bật: ánh sáng, nội thất, view..."
+              />
             </div>
+          </div>
+        </div>
+
+        {/* Sidebar Info */}
+        <div className="space-y-6">
+          <div className="card bg-primary border-primary p-6 space-y-6">
+            <div className="flex items-center gap-3 text-amber-500">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-500 flex items-center justify-center border border-amber-100 dark:border-amber-800">
+                <Sparkles size={20} />
+              </div>
+              <h3 className="font-bold text-base text-primary uppercase">Tiện ích đi kèm</h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {availableAmenityOptions.map(item => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => handleAmenityChange(item, !formData.amenities.includes(item))}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-sm font-medium transition-all text-left ${
+                    formData.amenities.includes(item)
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/10'
+                      : 'bg-tertiary/10 text-secondary border-primary hover:border-blue-200'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-colors ${
+                    formData.amenities.includes(item) ? 'bg-white border-transparent' : 'bg-primary border-primary'
+                  }`}>
+                    {formData.amenities.includes(item) && <CheckCircle size={10} className="text-blue-600" />}
+                  </div>
+                  <span className="truncate">{item}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="card space-y-6">
+             <div className="flex items-center gap-3 border-b border-primary pb-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+                    <ImageIcon size={20} />
+                </div>
+                <h3 className="font-bold text-base text-primary uppercase">Trạng thái & Ảnh</h3>
+             </div>
+             
+             <div className="aspect-video bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-800 flex flex-col items-center justify-center text-blue-400 group cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shadow-inner">
+                <ImageIcon size={28} className="mb-2 group-hover:scale-110 transition-transform" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Tải lên ảnh phòng</span>
+                <span className="text-[9px] mt-1 opacity-60 font-bold uppercase tracking-widest">Dưới 5MB, tối đa 10 ảnh</span>
+             </div>
+             
+             <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Trạng thái khi tạo</label>
+                <select 
+                  name="status" value={formData.status} onChange={handleChange}
+                  className="input h-11"
+                >
+                  <option value="AVAILABLE">Phòng trống (CÓ SẴN)</option>
+                  <option value="MAINTENANCE">Đang bảo trì</option>
+                  <option value="RENTED">Đã cho thuê</option>
+                </select>
+             </div>
           </div>
         </div>
       </form>

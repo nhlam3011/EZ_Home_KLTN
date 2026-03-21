@@ -1,9 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { ArrowLeft, Save, X, Building2, Users, DollarSign, Ruler, Home, Wrench, FileText, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, X, Building2, Users, DollarSign, Ruler, Home, Wrench, FileText, AlertCircle, ChevronDown, CheckCircle, Trash2, Sparkles, Wand2 } from 'lucide-react'
 import Link from 'next/link'
+import { useBuilding } from '@/components/BuildingContext'
+import Loading from '@/components/Loading'
+
+interface RoomTypePreset {
+  type: string
+  price: number
+  area: number
+  amenities: string[]
+}
 
 interface Room {
   id: number
@@ -16,6 +25,7 @@ interface Room {
   roomType?: string | null
   description?: string | null
   amenities?: string[]
+  buildingId?: number
   contracts: Array<{
     id: number
     startDate: Date | string
@@ -32,9 +42,11 @@ export default function EditRoomPage() {
   const router = useRouter()
   const params = useParams()
   const roomId = params?.id as string
+  const { buildings } = useBuilding()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [room, setRoom] = useState<Room | null>(null)
+  const [buildingDetails, setBuildingDetails] = useState<any>(null)
   const [formData, setFormData] = useState({
     name: '',
     floor: '',
@@ -42,9 +54,10 @@ export default function EditRoomPage() {
     maxPeople: '2',
     price: '',
     status: 'AVAILABLE',
-    roomType: 'Studio',
+    roomType: '',
     description: '',
-    amenities: [] as string[]
+    amenities: [] as string[],
+    buildingId: ''
   })
 
   useEffect(() => {
@@ -54,12 +67,6 @@ export default function EditRoomPage() {
   }, [roomId])
 
   const fetchRoom = async () => {
-    if (!roomId) {
-      alert('ID phòng không hợp lệ')
-      router.push('/admin/rooms')
-      return
-    }
-
     try {
       const response = await fetch(`/api/rooms/${roomId}`)
       const data = await response.json()
@@ -73,9 +80,10 @@ export default function EditRoomPage() {
           maxPeople: data.maxPeople?.toString() || '2',
           price: data.price?.toString() || '',
           status: data.status || 'AVAILABLE',
-          roomType: data.roomType || 'Studio',
+          roomType: data.roomType || '',
           description: data.description || '',
-          amenities: data.amenities || []
+          amenities: data.amenities || [],
+          buildingId: data.buildingId?.toString() || ''
         })
       } else {
         alert(data.error || 'Không tìm thấy phòng')
@@ -83,44 +91,68 @@ export default function EditRoomPage() {
       }
     } catch (error) {
       console.error('Error fetching room:', error)
-      alert('Có lỗi xảy ra khi tải thông tin phòng. Vui lòng thử lại sau.')
-      router.push('/admin/rooms')
+      alert('Có lỗi xảy ra khi tải thông tin phòng')
     } finally {
       setLoading(false)
     }
   }
 
+  // Fetch building details to get presets when buildingId changes
+  useEffect(() => {
+    const fetchBuildingData = async () => {
+      if (!formData.buildingId) return
+      try {
+        const res = await fetch(`/api/admin/buildings/${formData.buildingId}`)
+        const data = await res.json()
+        if (data.building) {
+          setBuildingDetails(data.building)
+        }
+      } catch (error) {
+        console.error('Error fetching building details:', error)
+      }
+    }
+    fetchBuildingData()
+  }, [formData.buildingId])
+
+  const handleRoomTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const type = e.target.value
+    setFormData(prev => ({ ...prev, roomType: type }))
+    
+    // Auto-fill logic
+    if (buildingDetails?.roomTypePresets) {
+      const preset = buildingDetails.roomTypePresets.find((p: RoomTypePreset) => p.type === type)
+      if (preset) {
+        setFormData(prev => ({
+          ...prev,
+          price: preset.price.toString(),
+          area: preset.area.toString(),
+          amenities: preset.amenities || []
+        }))
+      }
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!roomId) {
-      alert('ID phòng không hợp lệ')
-      return
-    }
-
     setSaving(true)
 
     try {
       const response = await fetch(`/api/rooms/${roomId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
 
-      const data = await response.json()
-
       if (response.ok) {
-        alert('Cập nhật phòng thành công!')
         router.push('/admin/rooms')
         router.refresh()
       } else {
-        alert(data.error || 'Có lỗi xảy ra khi cập nhật phòng')
+        const error = await response.json()
+        alert(error.error || 'Có lỗi xảy ra')
       }
     } catch (error) {
       console.error('Error updating room:', error)
-      alert('Có lỗi xảy ra khi cập nhật phòng. Vui lòng thử lại sau.')
+      alert('Có lỗi xảy ra khi cập nhật phòng')
     } finally {
       setSaving(false)
     }
@@ -132,529 +164,300 @@ export default function EditRoomPage() {
   }
 
   const handleAmenityChange = (amenity: string, checked: boolean) => {
-    setFormData(prev => {
-      if (checked) {
-        return { ...prev, amenities: [...prev.amenities, amenity] }
-      } else {
-        return { ...prev, amenities: prev.amenities.filter(a => a !== amenity) }
-      }
-    })
+    setFormData(prev => ({
+      ...prev,
+      amenities: checked 
+        ? [...prev.amenities, amenity] 
+        : prev.amenities.filter(a => a !== amenity)
+    }))
   }
 
-  const adjustMaxPeople = (delta: number) => {
-    const current = parseInt(formData.maxPeople) || 1
-    const newValue = Math.max(1, current + delta)
-    setFormData(prev => ({ ...prev, maxPeople: newValue.toString() }))
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0
-    }).format(Number(amount))
-  }
-
-  const formatDate = (date: Date | string) => {
-    return new Intl.DateTimeFormat('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(new Date(date))
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'RENTED':
-        return 'badge badge-error'
-      case 'AVAILABLE':
-        return 'badge badge-success'
-      case 'MAINTENANCE':
-        return 'badge badge-warning'
-      default:
-        return 'badge badge-info'
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'RENTED':
-        return 'Đang thuê'
-      case 'AVAILABLE':
-        return 'Trống'
-      case 'MAINTENANCE':
-        return 'Đang bảo trì'
-      default:
-        return status
-    }
-  }
+  const availableAmenityOptions = [
+    'Điều hòa', 'Nóng lạnh', 'Giường', 'Tủ quần áo', 'Máy giặt', 'Tủ lạnh', 'Bếp', 'Wifi', 'Ban công', 'Cửa sổ', 'Thang máy', 'Bảo vệ 24/7'
+  ]
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-tertiary">Đang tải thông tin phòng...</p>
-        </div>
+      <div className="h-96 flex flex-col items-center justify-center">
+        <Loading size="lg" />
+        <p className="text-tertiary mt-4 animate-pulse uppercase text-[10px] font-black tracking-widest">Đang tải dữ liệu phòng...</p>
       </div>
     )
   }
 
-  if (!room) {
-    return null
-  }
-
-  const activeContract = room.contracts?.find(c => c.user) || null
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 items-center sm:items-start">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/rooms"
-            className="btn btn-ghost btn-icon"
-          >
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+      {/* Standardized Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 text-left">
+          <Link href="/admin/rooms" className="w-10 h-10 rounded-xl bg-primary border border-primary flex items-center justify-center text-secondary hover:bg-tertiary transition-all">
             <ArrowLeft size={20} />
           </Link>
-          <div className="text-center sm:text-left">
-            <h1 className="text-xl sm:text-2xl font-bold text-primary">Chỉnh sửa phòng</h1>
-            <p className="text-secondary mt-1 text-sm sm:text-base">Cập nhật thông tin chi tiết của phòng {room.name}</p>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase tracking-tight">CHỈNH SỬA PHÒNG: {room?.name}</h1>
+            <p className="text-xs sm:text-sm text-secondary mt-1 tracking-wide">
+              Cập nhật thông tin chi tiết và cấu hình của phòng
+            </p>
           </div>
         </div>
-        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <Link
             href="/admin/rooms"
-            className="btn btn-secondary btn-sm sm:btn-md"
+            className="btn btn-secondary h-11 px-6 flex-1 sm:flex-none font-bold uppercase tracking-wider text-xs flex items-center justify-center"
           >
-            <X size={18} />
-            <span>Hủy</span>
+            Hủy bỏ
           </Link>
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="btn btn-primary btn-sm sm:btn-md"
+            className="btn btn-primary h-11 px-8 shadow-lg shadow-blue-500/20 flex-1 sm:flex-none flex items-center justify-center gap-2"
           >
-            <Save size={18} />
-            <span>{saving ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
+            {saving ? (
+               <Loading size="sm" />
+            ) : (
+              <>
+                <Save size={18} strokeWidth={2.5} />
+                <span className="font-bold">Lưu thay đổi</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column - Main Form */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Current Status Alert */}
-            {activeContract && (
-              <div className="card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <AlertCircle className="text-white" size={20} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-primary mb-1">Phòng đang được thuê</p>
-                    <p className="text-sm text-secondary mb-2">
-                      <span className="font-medium">Khách thuê:</span> {activeContract.user.fullName}
-                    </p>
-                    <p className="text-sm text-secondary mb-2">
-                      <span className="font-medium">SĐT:</span> {activeContract.user.phone}
-                    </p>
-                    <p className="text-xs text-tertiary">
-                      <span className="font-medium">Hợp đồng:</span> {formatDate(activeContract.startDate)} - {formatDate(activeContract.endDate)}
-                    </p>
-                  </div>
-                  <span className={getStatusColor(room.status)}>
-                    {getStatusLabel(room.status)}
-                  </span>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Contracts Section if active */}
+          {room?.contracts && room.contracts.length > 0 && (
+            <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                  <CheckCircle size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Đang có hợp đồng</p>
+                  <p className="text-base font-bold text-primary">{room.contracts[0].user.fullName}</p>
                 </div>
               </div>
-            )}
-
-            {/* Basic Information */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <Home className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Thông tin cơ bản</h2>
+              <Link href={`/admin/contracts/${room.contracts[0].id}`} className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1">
+                Xem chi tiết <Wand2 size={12} />
+              </Link>
+            </div>
+          )}
+          {/* Main Info */}
+          <div className="card space-y-8">
+            <div className="flex items-center gap-3 border-b border-primary pb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+                <Building2 size={20} />
               </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Số phòng <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="VD: P.101"
-                      required
-                      className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Tầng <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="floor"
-                      value={formData.floor}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    >
-                      <option value="">Chọn tầng</option>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map(floor => (
-                        <option key={floor} value={floor}>Tầng {floor}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Diện tích (m²)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        name="area"
-                        value={formData.area}
-                        onChange={handleChange}
-                        min="0"
-                        step="0.1"
-                        placeholder="VD: 25.5"
-                        className="w-full px-4 py-2.5 pr-12 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      />
-                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary text-sm">m²</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-primary mb-2">
-                      Số người tối đa
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => adjustMaxPeople(-1)}
-                        className="w-11 h-11 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 flex items-center justify-center text-primary transition-all"
-                      >
-                        <span className="text-lg font-semibold">−</span>
-                      </button>
-                      <input
-                        type="number"
-                        name="maxPeople"
-                        value={formData.maxPeople}
-                        onChange={handleChange}
-                        min="1"
-                        className="w-24 px-4 py-2.5 border border-primary rounded-lg text-center bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-medium"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => adjustMaxPeople(1)}
-                        className="w-11 h-11 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 flex items-center justify-center text-primary transition-all"
-                      >
-                        <span className="text-lg font-semibold">+</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <div className="text-left">
+                <h3 className="font-bold text-base text-primary uppercase">Thông tin căn bản</h3>
+                <p className="text-xs text-secondary">Chọn toà nhà và vị trí phòng</p>
               </div>
             </div>
 
-            {/* Cost & Description */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                  <DollarSign className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Chi phí & Mô tả</h2>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Giá thuê cơ bản (VND/tháng) <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleChange}
-                      required
-                      min="0"
-                      placeholder="VD: 3000000"
-                      className="w-full px-4 py-2.5 pr-12 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    />
-                    <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-tertiary text-sm font-medium">₫</span>
-                  </div>
-                  <p className="text-xs text-tertiary mt-2 flex items-center gap-1">
-                    <span>ℹ️</span>
-                    <span>Giá này chưa bao gồm điện, nước và dịch vụ khác.</span>
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Mô tả phòng
-                  </label>
-                  <textarea
-                    name="description"
-                    value={formData.description}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 pb-4">
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Thuộc tòa nhà *</label>
+                <div className="relative">
+                  <select 
+                    name="buildingId"
+                    value={formData.buildingId}
                     onChange={handleChange}
-                    rows={5}
-                    placeholder="Nhập mô tả chi tiết về tiện nghi phòng, hướng cửa số, nội thất có sẵn..."
-                    className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-y"
-                  />
+                    required
+                    className="input input-with-icon h-11"
+                  >
+                    <option value="">Chọn tòa nhà...</option>
+                    {buildings.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                  <Building2 size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
                 </div>
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest flex items-center justify-between">
+                  Loại phòng *
+                  {buildingDetails?.roomTypePresets?.length > 0 && (
+                    <span className="text-[9px] text-emerald-600 font-extrabold flex items-center gap-1 uppercase bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-800"><Sparkles size={10} /> Có mẫu sẵn</span>
+                  )}
+                </label>
+                <div className="relative">
+                  <select 
+                    name="roomType"
+                    value={formData.roomType}
+                    onChange={handleRoomTypeChange}
+                    className="input input-with-icon h-11"
+                  >
+                    <option value="">Chọn loại...</option>
+                    {buildingDetails?.roomTypePresets?.map((p: RoomTypePreset) => (
+                      <option key={p.type} value={p.type}>{p.type}</option>
+                    )) || (
+                      <>
+                        <option value="Studio">Studio (Khép kín)</option>
+                        <option value="1PN">1 Phòng ngủ</option>
+                        <option value="2PN">2 Phòng ngủ</option>
+                        <option value="Duplex">Duplex (Gác lửng)</option>
+                        <option value="Phòng trọ">Phòng trọ</option>
+                      </>
+                    )}
+                  </select>
+                  <Wrench size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số phòng / Tên phòng *</label>
+                <div className="relative">
+                  <input 
+                    type="text" name="name" required value={formData.name} onChange={handleChange}
+                    className="input input-with-icon h-11 uppercase"
+                    placeholder="Ví dụ: 101, 202..."
+                  />
+                  <Home size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
+                </div>
+              </div>
+
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Vị trí tầng *</label>
+                {buildingDetails?.floorCount ? (
+                  <div className="relative">
+                    <select 
+                      name="floor" 
+                      required 
+                      value={formData.floor} 
+                      onChange={handleChange}
+                      className="input input-with-icon h-11"
+                    >
+                      <option value="">Chọn tầng...</option>
+                      {Array.from({ length: buildingDetails.floorCount }, (_, i) => i + 1).map(f => (
+                        <option key={f} value={f}>Tầng {f}</option>
+                      ))}
+                    </select>
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary text-xs font-bold uppercase tracking-widest">F</div>
+                  </div>
+                ) : (
+                  <input 
+                    type="number" name="floor" required value={formData.floor} onChange={handleChange}
+                    className="input h-11"
+                    placeholder="Nhập số tầng..."
+                  />
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column - Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Room Summary */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <Building2 className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Tóm tắt</h2>
+          <div className="card space-y-8">
+            <div className="flex items-center gap-3 border-b border-primary pb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
+                <DollarSign size={20} />
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary hover:border-blue-500 transition-colors">
-                  <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-                    <Building2 className="text-white" size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-tertiary mb-0.5">Số phòng</p>
-                    <p className="text-sm font-semibold text-primary truncate">{room.name}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary hover:border-blue-500 transition-colors">
-                  <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-                    <Ruler className="text-white" size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-tertiary mb-0.5">Diện tích</p>
-                    <p className="text-sm font-semibold text-primary">
-                      {room.area ? `${room.area} m²` : 'Chưa cập nhật'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary hover:border-blue-500 transition-colors">
-                  <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-                    <Users className="text-white" size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-tertiary mb-0.5">Số người tối đa</p>
-                    <p className="text-sm font-semibold text-primary">{room.maxPeople} người</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary hover:border-blue-500 transition-colors">
-                  <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-                    <DollarSign className="text-white" size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-tertiary mb-0.5">Giá thuê</p>
-                    <p className="text-sm font-semibold text-primary truncate">{formatCurrency(Number(room.price))}</p>
-                  </div>
-                </div>
-                {room.roomType && (
-                  <div className="flex items-center gap-3 p-3 bg-tertiary rounded-lg border border-primary hover:border-blue-500 transition-colors">
-                    <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center shadow-md flex-shrink-0">
-                      <Home className="text-white" size={20} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-tertiary mb-0.5">Loại phòng</p>
-                      <p className="text-sm font-semibold text-primary">{room.roomType}</p>
-                    </div>
-                  </div>
-                )}
+              <div className="text-left">
+                <h3 className="font-bold text-base text-primary uppercase">Tài chính & Diện tích</h3>
+                <p className="text-xs text-secondary">Cấu hình giá và thông số kỹ thuật</p>
               </div>
             </div>
 
-            {/* Description & Amenities Display */}
-            {(room.description || (room.amenities && room.amenities.length > 0)) && (
-              <div className="card">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-                    <FileText className="text-white" size={20} />
-                  </div>
-                  <h2 className="text-lg font-semibold text-primary">Thông tin chi tiết</h2>
-                </div>
-                <div className="space-y-4">
-                  {room.description && (
-                    <div>
-                      <p className="text-sm font-medium text-primary mb-2">Mô tả phòng</p>
-                      <p className="text-sm text-secondary whitespace-pre-wrap bg-tertiary p-3 rounded-lg border border-primary">
-                        {room.description}
-                      </p>
-                    </div>
-                  )}
-                  {room.amenities && room.amenities.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium text-primary mb-2">Tiện ích</p>
-                      <div className="flex flex-wrap gap-2">
-                        {room.amenities.map((amenity, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1.5 text-primary dark:text-primary rounded-lg text-xs font-medium"
-                          >
-                            {amenity}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Giá thuê (VNĐ/Tháng) *</label>
+                <div className="relative">
+                  <input 
+                    type="number" name="price" required value={formData.price} onChange={handleChange}
+                    className="input input-with-icon h-11 text-blue-600 dark:text-blue-400"
+                  />
+                  <DollarSign size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
                 </div>
               </div>
-            )}
-
-            {/* Classification */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
-                  <Home className="text-white" size={20} />
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Diện tích (m²) *</label>
+                <div className="relative">
+                  <input 
+                    type="number" name="area" required value={formData.area} onChange={handleChange}
+                    className="input input-with-icon h-11"
+                  />
+                  <Ruler size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
                 </div>
-                <h2 className="text-lg font-semibold text-primary">Phân loại</h2>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-2">
-                    Loại phòng <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="roomType"
-                    value={formData.roomType}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2.5 border border-primary rounded-lg bg-primary text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  >
-                    <option value="Studio">Studio</option>
-                    <option value="1N1K">1N1K (1 phòng ngủ, 1 phòng khách)</option>
-                    <option value="2N1K">2N1K (2 phòng ngủ, 1 phòng khách)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-primary mb-3">
-                    Tiện ích đi kèm
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[' Điều hòa', ' Nóng lạnh', ' Tủ lạnh', ' Giường tủ', ' Máy giặt chung'].map(amenity => (
-                      <label
-                        key={amenity}
-                        className={`flex items-center gap-2 p-2 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group ${formData.amenities.includes(amenity) ? 'bg-tertiary border-blue-500' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.amenities.includes(amenity)}
-                          onChange={(e) => handleAmenityChange(amenity, e.target.checked)}
-                          className="w-4 h-4 flex-shrink-0"
-                        />
-                        <span className="text-xs font-medium text-primary group-hover:text-blue-600 transition-colors select-none">
-                          {amenity}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+              <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số người ở tối đa</label>
+                <div className="relative">
+                  <input 
+                    type="number" name="maxPeople" required value={formData.maxPeople} onChange={handleChange}
+                    className="input input-with-icon h-11"
+                  />
+                  <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
                 </div>
               </div>
             </div>
 
-            {/* Status */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <Wrench className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Trạng thái</h2>
+            <div className="space-y-2 text-left">
+              <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Mô tả phòng</label>
+              <textarea 
+                name="description" value={formData.description} onChange={handleChange} rows={4}
+                className="input py-3 min-h-[120px]"
+                placeholder="Mô tả các đặc điểm nổi bật: ánh sáng, nội thất, view..."
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar Info */}
+        <div className="space-y-6">
+          <div className="card bg-primary border-primary p-6 space-y-6">
+            <div className="flex items-center gap-3 text-amber-500">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-500 flex items-center justify-center border border-amber-100 dark:border-amber-800">
+                <Sparkles size={20} />
               </div>
-              <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="AVAILABLE"
-                    checked={formData.status === 'AVAILABLE'}
-                    onChange={handleChange}
-                    className="w-5 h-5"
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-primary group-hover:text-blue-600 transition-colors">Trống (Sẵn sàng)</span>
-                    <p className="text-xs text-tertiary mt-0.5">Phòng có thể cho thuê ngay</p>
-                  </div>
-                </label>
-                <label className={`flex items-center gap-3 p-3 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group ${!activeContract ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  <input
-                    type="radio"
-                    name="status"
-                    value="RENTED"
-                    checked={formData.status === 'RENTED'}
-                    onChange={handleChange}
-                    disabled={!activeContract}
-                    className="w-5 h-5"
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-primary group-hover:text-blue-600 transition-colors">Đang thuê</span>
-                    <p className="text-xs text-tertiary mt-0.5">Phòng đang có khách thuê</p>
-                  </div>
-                </label>
-                <label className="flex items-center gap-3 p-3 border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 cursor-pointer transition-all group">
-                  <input
-                    type="radio"
-                    name="status"
-                    value="MAINTENANCE"
-                    checked={formData.status === 'MAINTENANCE'}
-                    onChange={handleChange}
-                    className="w-5 h-5"
-                  />
-                  <div className="flex-1">
-                    <span className="text-sm font-medium text-primary group-hover:text-blue-600 transition-colors">Đang bảo trì</span>
-                    <p className="text-xs text-tertiary mt-0.5">Phòng đang được sửa chữa/bảo trì</p>
-                  </div>
-                </label>
-              </div>
+              <h3 className="font-bold text-base text-primary uppercase">Tiện ích đi kèm</h3>
             </div>
 
-            {/* Quick Actions */}
-            <div className="card">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center">
-                  <FileText className="text-white" size={20} />
-                </div>
-                <h2 className="text-lg font-semibold text-primary">Thao tác nhanh</h2>
-              </div>
-              <div className="space-y-2">
-                {activeContract && (
-                  <Link
-                    href={`/admin/residents/${activeContract.user.id}`}
-                    className="block w-full px-4 py-2.5 text-sm border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 text-center transition-all text-primary font-medium"
-                  >
-                    Xem thông tin khách thuê
-                  </Link>
-                )}
-                <Link
-                  href={`/admin/rooms/${roomId}/contracts`}
-                  className="block w-full px-4 py-2.5 text-sm border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 text-center transition-all text-primary font-medium"
+            <div className="grid grid-cols-2 gap-2">
+              {availableAmenityOptions.map(item => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => handleAmenityChange(item, !formData.amenities.includes(item))}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-sm font-medium transition-all text-left ${
+                    formData.amenities.includes(item)
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/10'
+                      : 'bg-tertiary/10 text-secondary border-primary hover:border-blue-200'
+                  }`}
                 >
-                  Xem lịch sử hợp đồng
-                </Link>
-                <Link
-                  href={`/admin/maintenance?room=${roomId}`}
-                  className="block w-full px-4 py-2.5 text-sm border border-primary rounded-lg hover:bg-tertiary hover:border-blue-500 text-center transition-all text-primary font-medium"
-                >
-                  Xem sự cố phòng
-                </Link>
-              </div>
+                  <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-colors ${
+                    formData.amenities.includes(item) ? 'bg-white border-transparent' : 'bg-primary border-primary'
+                  }`}>
+                    {formData.amenities.includes(item) && <CheckCircle size={10} className="text-blue-600" />}
+                  </div>
+                  <span className="truncate">{item}</span>
+                </button>
+              ))}
             </div>
+          </div>
+
+          <div className="card space-y-6">
+             <div className="flex items-center gap-3 border-b border-primary pb-4">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+                    <AlertCircle size={20} />
+                </div>
+                <h3 className="font-bold text-base text-primary uppercase">Trạng thái</h3>
+             </div>
+             
+             <div className="space-y-2 text-left">
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Trạng thái hiện tại</label>
+                <select 
+                  name="status" value={formData.status} onChange={handleChange}
+                  className="input h-11"
+                >
+                  <option value="AVAILABLE">Phòng trống</option>
+                  <option value="MAINTENANCE">Đang bảo trì</option>
+                  <option value="RENTED">Đã cho thuê</option>
+                </select>
+             </div>
+
+             <div className="pt-4 border-t border-primary/50">
+               <button type="button" className="w-full h-11 rounded-xl bg-red-50 dark:bg-red-900/10 text-red-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-red-100 transition-all border border-red-100 dark:border-red-900/30">
+                 <Trash2 size={16} /> Xóa phòng vĩnh viễn
+               </button>
+             </div>
           </div>
         </div>
       </form>

@@ -66,7 +66,11 @@ export async function GET(request: NextRequest) {
         contract: {
           include: {
             user: true,
-            room: true,
+            room: {
+              include: {
+                building: true
+              }
+            },
             occupants: true // Lấy số người ở cùng
           }
         }

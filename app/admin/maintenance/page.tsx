@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TextInput, Select, Button, Badge } from 'flowbite-react'
 import { Search, Eye, X, Save, XCircle, XCircle as XIcon, User, Calendar, MapPin, AlertCircle, Image as ImageIcon, DollarSign, FileText, Clock, CheckCircle2, XCircle as CancelIcon, Receipt, MoreVertical, Wrench, AlertTriangle, CheckCircle, Ban, ChevronDown, ChevronLeft, ChevronRight, LayoutGrid, List, Check, RotateCcw, Maximize, Plus } from 'lucide-react'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Issue {
   id: number
@@ -55,15 +56,19 @@ export default function MaintenancePage() {
   })
   const [contract, setContract] = useState<any>(null)
   const [existingInvoice, setExistingInvoice] = useState<any>(null)
+  const { selectedBuildingId } = useBuilding()
 
   useEffect(() => {
     fetchIssues()
-  }, [])
+  }, [selectedBuildingId])
 
   const fetchIssues = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/maintenance')
+      const url = selectedBuildingId
+        ? `/api/maintenance?buildingId=${selectedBuildingId}`
+        : '/api/maintenance'
+      const response = await fetch(url)
       const data = await response.json()
       setIssues(data)
     } catch (error) {

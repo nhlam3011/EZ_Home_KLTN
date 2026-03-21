@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Badge } from 'flowbite-react'
 import { Plus, Download, Search, Eye, Edit, Users, Building2, Calendar, Wallet, Phone, Mail, MapPin, LogOut, X, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, Home } from 'lucide-react'
 import Loading from '@/components/Loading'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Resident {
   id: number
@@ -81,9 +82,11 @@ export default function ResidentsPage() {
   const [showFloorDropdown, setShowFloorDropdown] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
+  const { selectedBuildingId } = useBuilding()
+
   useEffect(() => {
     fetchResidents()
-  }, [search, floorFilter, statusFilter])
+  }, [search, floorFilter, statusFilter, selectedBuildingId])
 
   useEffect(() => {
     // Fetch settings for max floors
@@ -104,6 +107,7 @@ export default function ResidentsPage() {
       if (search) params.append('search', search)
       if (floorFilter !== 'all') params.append('floor', floorFilter)
       if (statusFilter !== 'all') params.append('status', statusFilter)
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
       const response = await fetch(`/api/residents?${params.toString()}`)
       const data = await response.json()
@@ -136,7 +140,10 @@ export default function ResidentsPage() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch('/api/residents/export')
+      const url = selectedBuildingId 
+        ? `/api/residents?action=export&buildingId=${selectedBuildingId}`
+        : '/api/residents?action=export'
+      const response = await fetch(url)
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
@@ -257,44 +264,44 @@ export default function ResidentsPage() {
         <div className="card stat-card-blue">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TỔNG CƯ DÂN</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">{stats.total}</p>
+              <p className="text-xs sm:text-sm text-secondary mb-1 font-bold uppercase tracking-wider opacity-70">TỔNG CƯ DÂN</p>
+              <p className="text-lg sm:text-xl font-bold text-primary tracking-tight">{stats.total}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
-              <Users className="text-white" size={20} />
+            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center shadow-sm">
+              <Users className="text-blue-600 dark:text-blue-400" size={24} />
             </div>
           </div>
         </div>
         <div className="card stat-card-green">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">ĐANG THUÊ</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">{stats.active}</p>
+              <p className="text-xs sm:text-sm text-secondary mb-1 font-bold uppercase tracking-wider opacity-70">ĐANG THUÊ</p>
+              <p className="text-lg sm:text-xl font-bold text-primary tracking-tight">{stats.active}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg flex items-center justify-center shadow-md">
-              <Building2 className="text-white" size={20} />
+            <div className="w-12 h-12 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center shadow-sm">
+              <Home className="text-green-600 dark:text-green-400" size={24} />
             </div>
           </div>
         </div>
         <div className="card stat-card-purple">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">ĐÃ CHUYỂN ĐI</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">{stats.inactive}</p>
+              <p className="text-xs sm:text-sm text-secondary mb-1 font-bold uppercase tracking-wider opacity-70">ĐÃ CHUYỂN ĐI</p>
+              <p className="text-lg sm:text-xl font-bold text-primary tracking-tight">{stats.inactive}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
-              <Users className="text-white" size={20} />
+            <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center shadow-sm">
+              <LogOut className="text-purple-600 dark:text-purple-400" size={24} />
             </div>
           </div>
         </div>
-        <div className="card stat-card-orange">
+        <div className="card stat-card-blue">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-secondary mb-1 font-medium">TỔNG TIỀN CỌC</p>
-              <p className="text-xl sm:text-xl font-bold text-primary">{formatCurrency(stats.totalDeposit)}</p>
+              <p className="text-xs sm:text-sm text-secondary mb-1 font-bold uppercase tracking-wider opacity-70">TỔNG TIỀN CỌC</p>
+              <p className="text-lg sm:text-xl font-bold text-primary tracking-tight">{formatCurrency(stats.totalDeposit)}</p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-lg flex items-center justify-center shadow-md">
-              <Wallet className="text-white" size={20} />
+            <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center shadow-sm">
+              <Wallet className="text-blue-600 dark:text-blue-400" size={24} />
             </div>
           </div>
         </div>
@@ -363,8 +370,8 @@ export default function ResidentsPage() {
                 {statusFilter === 'inactive' && <LogOut size={14} />}
               </div>
               <div className="text-left pr-1 flex-1">
-                <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
-                  {statusFilter === 'all' ? 'TẤT CẢ' : statusFilter === 'active' ? 'ĐANG Ở' : 'ĐÃ RỜI ĐI'}
+                <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider">
+                  {statusFilter === 'all' ? 'TẤT CẢ CƯ DÂN' : statusFilter === 'active' ? 'ĐANG Ở' : 'ĐÃ RỜI ĐI'}
                 </p>
               </div>
               <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
@@ -396,7 +403,7 @@ export default function ResidentsPage() {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
             <input
               type="text"
               placeholder="Tìm tên, số điện thoại, phòng..."
@@ -405,7 +412,7 @@ export default function ResidentsPage() {
                 setSearch(e.target.value)
                 setCurrentPage(1)
               }}
-              className="input input-with-icon w-full pl-10 h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700"
+              className="input input-with-icon w-full pl-12 h-11"
             />
           </div>
         </div>

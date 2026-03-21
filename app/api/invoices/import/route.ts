@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Find room
-        const room = await prisma.room.findUnique({
+        // Find room by name
+        const room = await prisma.room.findFirst({
           where: { name: roomName.toString().trim() }
         })
 

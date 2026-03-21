@@ -8,6 +8,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const floor = searchParams.get('floor')
     const search = searchParams.get('search')
+    const buildingId = searchParams.get('buildingId')
+
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const skip = (page - 1) * limit
 
     const where: any = {}
 
@@ -19,10 +24,36 @@ export async function GET(request: NextRequest) {
       where.floor = parseInt(floor)
     }
 
-    // Note: We'll filter by search term after fetching to support nested relation search
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        {
+          contracts: {
+            some: {
+              status: 'ACTIVE',
+              OR: [
+                { user: { fullName: { contains: search, mode: 'insensitive' } } },
+                { occupants: { some: { fullName: { contains: search, mode: 'insensitive' } } } }
+              ]
+            }
+          }
+        }
+      ]
+    }
+
+    if (buildingId) {
+      where.buildingId = parseInt(buildingId)
+    }
+
     const rooms = await prisma.room.findMany({
       where,
       include: {
+        building: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
         contracts: {
           where: { status: 'ACTIVE' },
           include: {
@@ -36,44 +67,13 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      take: limit,
+      skip: skip
     })
 
-    // Sort rooms numerically by name (e.g., P.101, P.102, P.201)
-    rooms.sort((a, b) => {
-      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-    })
-
-    // Filter by search term if provided (search in room name or tenant name)
-    let filteredRooms = rooms
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredRooms = rooms.filter(room => {
-        // Search in room name
-        if (room.name.toLowerCase().includes(searchLower)) {
-          return true
-        }
-        // Search in tenant names (contracts)
-        if (room.contracts && room.contracts.length > 0) {
-          return room.contracts.some(contract => {
-            // Search in main tenant name
-            if (contract.user.fullName.toLowerCase().includes(searchLower)) {
-              return true
-            }
-            // Search in occupant names
-            if (contract.occupants && contract.occupants.length > 0) {
-              return contract.occupants.some(occupant =>
-                occupant.fullName.toLowerCase().includes(searchLower)
-              )
-            }
-            return false
-          })
-        }
-        return false
-      })
-    }
-
-    return NextResponse.json(filteredRooms)
+    // Return as array even if there's an issue
+    return NextResponse.json(Array.isArray(rooms) ? rooms : [])
   } catch (error) {
     console.error('Error fetching rooms:', error)
     return NextResponse.json(
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, floor, price, area, maxPeople, status, roomType, description, amenities } = body
+    const { name, floor, price, area, maxPeople, status, roomType, description, amenities, buildingId } = body
 
     // Validate required fields
     if (!name || !floor || !price) {
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if room name already exists
-    const existingRoom = await prisma.room.findUnique({
+    const existingRoom = await prisma.room.findFirst({
       where: { name }
     })
 
@@ -118,7 +118,8 @@ export async function POST(request: NextRequest) {
         status: status || 'AVAILABLE',
         roomType: roomType || null,
         description: description || null,
-        amenities: amenities && Array.isArray(amenities) ? amenities : []
+        amenities: amenities && Array.isArray(amenities) ? amenities : [],
+        buildingId: buildingId ? parseInt(buildingId) : null
       }
     })
 
@@ -155,7 +156,14 @@ export async function PUT(request: NextRequest) {
     const action = searchParams.get('action')
 
     if (action === 'export') {
+      const buildingId = searchParams.get('buildingId')
+      const where: any = {}
+      if (buildingId) {
+        where.buildingId = parseInt(buildingId)
+      }
+
       const rooms = await prisma.room.findMany({
+        where,
         include: {
           contracts: {
             where: { status: 'ACTIVE' },
@@ -206,6 +214,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
+    const buildingId = formData.get('buildingId') as string
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
@@ -236,7 +245,8 @@ export async function PATCH(request: NextRequest) {
           area: row['Diện tích (m²)'] || row['area'] ? parseFloat(row['Diện tích (m²)'] || row['area']) : null,
           maxPeople: parseInt(row['Số người tối đa'] || row['maxPeople']) || 1,
           status: 'AVAILABLE' as const,
-          roomType: row['Loại phòng'] || row['roomType'] || null
+          roomType: row['Loại phòng'] || row['roomType'] || null,
+          buildingId: buildingId ? parseInt(buildingId) : null
         }
 
         if (!roomData.name) {
@@ -246,7 +256,7 @@ export async function PATCH(request: NextRequest) {
         }
 
         // Check if room exists
-        const existingRoom = await prisma.room.findUnique({
+        const existingRoom = await prisma.room.findFirst({
           where: { name: roomData.name }
         })
 

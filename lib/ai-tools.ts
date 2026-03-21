@@ -17,6 +17,10 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
           type: SchemaType.STRING,
           description: 'Trạng thái phòng cần lọc: AVAILABLE, RENTED, MAINTENANCE. Để trống lấy tất cả.',
         },
+        buildingId: {
+          type: SchemaType.NUMBER,
+          description: 'ID tòa nhà cụ thể. Để trống hoặc null để lấy theo tòa nhà đang ở hoặc tất cả.',
+        },
       },
     },
   },
@@ -29,6 +33,10 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
         search: {
           type: SchemaType.STRING,
           description: 'Từ khóa tìm kiếm (tên, SĐT). Để trống lấy tất cả.',
+        },
+        buildingId: {
+          type: SchemaType.NUMBER,
+          description: 'ID tòa nhà cụ thể.',
         },
       },
     },
@@ -50,6 +58,7 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
         endDate: { type: SchemaType.STRING, description: 'Ngày kết thúc hợp đồng ISO format (tùy chọn)' },
         deposit: { type: SchemaType.NUMBER, description: 'Tiền cọc (tùy chọn)' },
         rentPrice: { type: SchemaType.NUMBER, description: 'Giá thuê hàng tháng' },
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
       },
       required: ['fullName', 'phone', 'roomName', 'startDate', 'rentPrice'],
     },
@@ -63,6 +72,13 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
         roomName: { type: SchemaType.STRING, description: 'Tên phòng, VD: P.101' },
         month: { type: SchemaType.NUMBER, description: 'Tháng (1-12)' },
         year: { type: SchemaType.NUMBER, description: 'Năm (VD: 2026)' },
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
+        amountRoom: { type: SchemaType.NUMBER, description: 'Tiền phòng (tùy chọn, nếu muốn đặt thủ công)' },
+        amountElec: { type: SchemaType.NUMBER, description: 'Tiền điện (tùy chọn)' },
+        amountWater: { type: SchemaType.NUMBER, description: 'Tiền nước (tùy chọn)' },
+        amountService: { type: SchemaType.NUMBER, description: 'Phí dịch vụ khác (tùy chọn)' },
+        totalAmount: { type: SchemaType.NUMBER, description: 'Tổng tiền (tùy chọn, nếu cung cấp sẽ bỏ qua tính toán tự động)' },
+        description: { type: SchemaType.STRING, description: 'Ghi chú cho hoá đơn (tùy chọn)' },
       },
       required: ['roomName', 'month', 'year'],
     },
@@ -76,6 +92,7 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
         month: { type: SchemaType.NUMBER, description: 'Tháng cụ thể (1-12, tùy chọn)' },
         year: { type: SchemaType.NUMBER, description: 'Năm (VD: 2026)' },
         type: { type: SchemaType.STRING, description: 'Loại báo cáo: month (theo tháng), quarter (theo quý), year (cả năm). Mặc định: month' },
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
       },
       required: ['year'],
     },
@@ -87,6 +104,7 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
       type: SchemaType.OBJECT,
       properties: {
         days: { type: SchemaType.NUMBER, description: 'Số ngày tới để kiểm tra (mặc định 30)' },
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
       },
     },
   },
@@ -95,7 +113,9 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
     description: 'Lấy danh sách hoá đơn quá hạn chưa thanh toán.',
     parameters: {
       type: SchemaType.OBJECT,
-      properties: {},
+      properties: {
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
+      },
     },
   },
   {
@@ -103,7 +123,9 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
     description: 'Phân tích rủi ro trống phòng dựa trên hợp đồng, thanh toán, và thời gian thuê.',
     parameters: {
       type: SchemaType.OBJECT,
-      properties: {},
+      properties: {
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
+      },
     },
   },
   {
@@ -118,6 +140,7 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
       type: SchemaType.OBJECT,
       properties: {
         status: { type: SchemaType.STRING, description: 'Trạng thái: PENDING, PROCESSING, DONE, CANCELLED' },
+        buildingId: { type: SchemaType.NUMBER, description: 'ID tòa nhà (tùy chọn)' },
       },
     },
   },
@@ -129,36 +152,48 @@ export const aiToolDeclarations: FunctionDeclaration[] = [
       properties: {},
     },
   },
+  {
+    name: 'get_building_list',
+    description: 'Lấy danh sách tất cả các tòa nhà đang quản lý.',
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {},
+    },
+  },
 ]
 
 // ============================================
 // EXECUTE TOOLS - Thực thi function calls
 // ============================================
 
-export async function executeTool(name: string, args: any): Promise<any> {
+export async function executeTool(name: string, args: any, contextBuildingId?: number): Promise<any> {
+  const buildingId = args.buildingId || contextBuildingId
+
   switch (name) {
     case 'get_room_list':
-      return await getRoomList(args)
+      return await getRoomList({ ...args, buildingId })
     case 'get_residents':
-      return await getResidents(args)
+      return await getResidents({ ...args, buildingId })
     case 'add_resident':
-      return await addResident(args)
+      return await addResident({ ...args, buildingId })
     case 'create_invoice':
-      return await createInvoice(args)
+      return await createInvoice({ ...args, buildingId })
     case 'get_revenue_report':
-      return await getRevenueReport(args)
+      return await getRevenueReport({ ...args, buildingId })
     case 'get_expiring_contracts':
-      return await getExpiringContracts(args)
+      return await getExpiringContracts({ ...args, buildingId })
     case 'get_overdue_invoices':
-      return await getOverdueInvoices()
+      return await getOverdueInvoices(buildingId)
     case 'get_vacancy_risk':
-      return await getVacancyRisk()
+      return await getVacancyRisk(buildingId)
     case 'get_forecast_insights':
-      return await getForecastInsights()
+      return await getForecastInsights(buildingId)
     case 'get_maintenance_issues':
-      return await getMaintenanceIssues(args)
+      return await getMaintenanceIssues({ ...args, buildingId })
     case 'get_dashboard_summary':
-      return await getDashboardSummary()
+      return await getDashboardSummary(buildingId)
+    case 'get_building_list':
+      return await getBuildingList()
     default:
       return { error: `Tool "${name}" không tồn tại` }
   }
@@ -168,10 +203,30 @@ export async function executeTool(name: string, args: any): Promise<any> {
 // TOOL IMPLEMENTATIONS
 // ============================================
 
-async function getRoomList(args: { status?: string }) {
+async function getBuildingList() {
+  const buildings = await prisma.building.findMany({
+    orderBy: { name: 'asc' },
+  })
+  return {
+    total: buildings.length,
+    buildings: buildings.map((b) => ({
+      id: b.id,
+      name: b.name,
+      address: b.address,
+      type: b.buildingType,
+      totalRooms: b.totalRooms,
+      status: b.status,
+    })),
+  }
+}
+
+async function getRoomList(args: { status?: string; buildingId?: number }) {
   const where: any = {}
   if (args.status) {
     where.status = args.status
+  }
+  if (args.buildingId) {
+    where.buildingId = args.buildingId
   }
   const rooms = await prisma.room.findMany({
     where,
@@ -201,13 +256,23 @@ async function getRoomList(args: { status?: string }) {
   }
 }
 
-async function getResidents(args: { search?: string }) {
+async function getResidents(args: { search?: string; buildingId?: number }) {
   const where: any = { role: 'TENANT' }
   if (args.search) {
     where.OR = [
       { fullName: { contains: args.search, mode: 'insensitive' } },
       { phone: { contains: args.search, mode: 'insensitive' } },
     ]
+  }
+  if (args.buildingId) {
+    where.contracts = {
+      some: {
+        room: {
+          buildingId: args.buildingId
+        },
+        status: 'ACTIVE'
+      }
+    }
   }
   const users = await prisma.user.findMany({
     where,
@@ -252,7 +317,7 @@ async function addResident(args: {
   rentPrice: number
 }) {
   // Find room by name
-  const room = await prisma.room.findUnique({ where: { name: args.roomName } })
+  const room = await prisma.room.findFirst({ where: { name: args.roomName } })
   if (!room) return { error: `Không tìm thấy phòng "${args.roomName}"` }
   if (room.status !== 'AVAILABLE') return { error: `Phòng "${args.roomName}" không trống (trạng thái: ${room.status})` }
 
@@ -308,8 +373,23 @@ async function addResident(args: {
   }
 }
 
-async function createInvoice(args: { roomName: string; month: number; year: number }) {
-  const room = await prisma.room.findUnique({ where: { name: args.roomName } })
+async function createInvoice(args: {
+  roomName: string
+  month: number
+  year: number
+  buildingId?: number
+  amountRoom?: number
+  amountElec?: number
+  amountWater?: number
+  amountService?: number
+  totalAmount?: number
+  description?: string
+}) {
+  const whereRoom: any = { name: args.roomName }
+  if (args.buildingId) {
+    whereRoom.buildingId = args.buildingId
+  }
+  const room = await prisma.room.findFirst({ where: whereRoom })
   if (!room) return { error: `Không tìm thấy phòng "${args.roomName}"` }
 
   const contract = await prisma.contract.findFirst({
@@ -324,26 +404,31 @@ async function createInvoice(args: { roomName: string; month: number; year: numb
   })
   if (existingInvoice) return { error: `Hoá đơn tháng ${args.month}/${args.year} cho phòng "${args.roomName}" đã tồn tại (ID: ${existingInvoice.id})` }
 
-  // Get meter readings
-  const meter = await prisma.meterReading.findFirst({
-    where: { roomId: room.id, month: args.month, year: args.year },
-  })
+  // Calculation logic
+  let amountRoom = args.amountRoom !== undefined ? args.amountRoom : Number(contract.rentPrice)
+  let amountElec = args.amountElec || 0
+  let amountWater = args.amountWater || 0
+  let amountService = args.amountService || 0
 
-  // Get system settings for unit prices
-  const settings = await prisma.settings.findMany({
-    where: { key: { in: ['elecPrice', 'waterPrice'] } },
-  })
-  const elecPrice = Number(settings.find((s) => s.key === 'elecPrice')?.value || 3500)
-  const waterPrice = Number(settings.find((s) => s.key === 'waterPrice')?.value || 30000)
+  // If manual amounts not provided for elec/water, try to calculate from meter
+  if (args.amountElec === undefined || args.amountWater === undefined) {
+    const meter = await prisma.meterReading.findFirst({
+      where: { roomId: room.id, month: args.month, year: args.year },
+    })
+    const settings = await prisma.settings.findMany({
+      where: { key: { in: ['elecPrice', 'waterPrice'] } },
+    })
+    const elecPrice = Number(settings.find((s) => s.key === 'elecPrice')?.value || 3500)
+    const waterPrice = Number(settings.find((s) => s.key === 'waterPrice')?.value || 30000)
 
-  const elecUsage = meter ? meter.elecNew - meter.elecOld : 0
-  const waterUsage = meter ? meter.waterNew - meter.waterOld : 0
-  const amountElec = elecUsage * elecPrice
-  const amountWater = waterUsage * waterPrice
-  const amountRoom = Number(contract.rentPrice)
-  const totalAmount = amountRoom + amountElec + amountWater
+    if (meter) {
+      if (args.amountElec === undefined) amountElec = (meter.elecNew - meter.elecOld) * elecPrice
+      if (args.amountWater === undefined) amountWater = (meter.waterNew - meter.waterOld) * waterPrice
+    }
+  }
 
-  const paymentDueDate = new Date(args.year, args.month - 1, 15) // Hạn ngày 15
+  const totalAmount = args.totalAmount !== undefined ? args.totalAmount : (amountRoom + amountElec + amountWater + amountService)
+  const paymentDueDate = new Date(args.year, args.month - 1, 15)
 
   const invoice = await prisma.invoice.create({
     data: {
@@ -353,6 +438,7 @@ async function createInvoice(args: { roomName: string; month: number; year: numb
       amountRoom,
       amountElec,
       amountWater,
+      amountService,
       totalAmount,
       status: 'UNPAID',
       paymentDueDate,
@@ -368,17 +454,27 @@ async function createInvoice(args: { roomName: string; month: number; year: numb
       tiềnPhòng: amountRoom,
       tiềnĐiện: amountElec,
       tiềnNước: amountWater,
+      phíDịchVụ: amountService,
       tổngCộng: totalAmount,
     },
   }
 }
 
-async function getRevenueReport(args: { month?: number; year: number; type?: string }) {
+async function getRevenueReport(args: { month?: number; year: number; type?: string; buildingId?: number }) {
   const reportType = args.type || 'month'
+  const where: any = { year: args.year }
+  if (args.month && reportType === 'month') where.month = args.month
+  if (args.buildingId) {
+    where.contract = {
+      room: {
+        buildingId: args.buildingId
+      }
+    }
+  }
 
   if (reportType === 'month' && args.month) {
     const invoices = await prisma.invoice.findMany({
-      where: { month: args.month, year: args.year },
+      where,
       include: { contract: { include: { room: true, user: { select: { fullName: true } } } } },
     })
     const paid = invoices.filter((i) => i.status === 'PAID')
@@ -420,17 +516,24 @@ async function getRevenueReport(args: { month?: number; year: number; type?: str
   }
 }
 
-async function getExpiringContracts(args: { days?: number }) {
+async function getExpiringContracts(args: { days?: number; buildingId?: number }) {
   const daysAhead = args.days || 30
   const now = new Date()
   const futureDate = new Date()
   futureDate.setDate(futureDate.getDate() + daysAhead)
 
+  const where: any = {
+    status: 'ACTIVE',
+    endDate: { gte: now, lte: futureDate },
+  }
+  if (args.buildingId) {
+    where.room = {
+      buildingId: args.buildingId
+    }
+  }
+
   const contracts = await prisma.contract.findMany({
-    where: {
-      status: 'ACTIVE',
-      endDate: { gte: now, lte: futureDate },
-    },
+    where,
     include: {
       user: { select: { fullName: true, phone: true } },
       room: { select: { name: true, floor: true } },
@@ -454,9 +557,17 @@ async function getExpiringContracts(args: { days?: number }) {
   }
 }
 
-async function getOverdueInvoices() {
+async function getOverdueInvoices(buildingId?: number) {
+  const where: any = { status: 'OVERDUE' }
+  if (buildingId) {
+    where.contract = {
+      room: {
+        buildingId: buildingId
+      }
+    }
+  }
   const invoices = await prisma.invoice.findMany({
-    where: { status: 'OVERDUE' },
+    where,
     include: {
       contract: {
         include: {
@@ -484,9 +595,13 @@ async function getOverdueInvoices() {
   }
 }
 
-async function getVacancyRisk() {
+async function getVacancyRisk(buildingId?: number) {
+  const whereContract: any = { status: 'ACTIVE' }
+  if (buildingId) {
+    whereContract.room = { buildingId }
+  }
   const activeContracts = await prisma.contract.findMany({
-    where: { status: 'ACTIVE' },
+    where: whereContract,
     include: {
       room: true,
       user: { select: { fullName: true, phone: true } },
@@ -538,9 +653,12 @@ async function getVacancyRisk() {
   }
 }
 
-async function getMaintenanceIssues(args: { status?: string }) {
+async function getMaintenanceIssues(args: { status?: string; buildingId?: number }) {
   const where: any = {}
   if (args.status) where.status = args.status
+  if (args.buildingId) {
+    where.room = { buildingId: args.buildingId }
+  }
 
   const issues = await prisma.issue.findMany({
     where,
@@ -567,19 +685,31 @@ async function getMaintenanceIssues(args: { status?: string }) {
   }
 }
 
-async function getDashboardSummary() {
+async function getDashboardSummary(buildingId?: number) {
   const now = new Date()
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()
 
-  const [totalRooms, availableRooms, totalTenants, activeContracts, monthInvoices, overdueInvoices, pendingIssues] = await Promise.all([
-    prisma.room.count(),
-    prisma.room.count({ where: { status: 'AVAILABLE' } }),
-    prisma.user.count({ where: { role: 'TENANT', isActive: true } }),
-    prisma.contract.count({ where: { status: 'ACTIVE' } }),
-    prisma.invoice.findMany({ where: { month: currentMonth, year: currentYear } }),
-    prisma.invoice.count({ where: { status: 'OVERDUE' } }),
-    prisma.issue.count({ where: { status: 'PENDING' } }),
+  const whereRoom: any = {}
+  const whereContract: any = { status: 'ACTIVE' }
+  const whereInvoice: any = { month: currentMonth, year: currentYear }
+  const whereIssue: any = { status: 'PENDING' }
+
+  if (buildingId) {
+    whereRoom.buildingId = buildingId
+    whereContract.room = { buildingId }
+    whereInvoice.contract = { room: { buildingId } }
+    whereIssue.room = { buildingId }
+  }
+
+  const [totalRooms, availableRooms, totalTenants, activeContractsCount, monthInvoices, overdueInvoices, pendingIssues] = await Promise.all([
+    prisma.room.count({ where: whereRoom }),
+    prisma.room.count({ where: { ...whereRoom, status: 'AVAILABLE' } }),
+    prisma.user.count({ where: { role: 'TENANT', isActive: true, contracts: buildingId ? { some: { room: { buildingId }, status: 'ACTIVE' } } : undefined } }),
+    prisma.contract.count({ where: whereContract }),
+    prisma.invoice.findMany({ where: whereInvoice }),
+    prisma.invoice.count({ where: { ...whereInvoice, status: 'OVERDUE', month: undefined, year: undefined } }), // Simplify overdue check
+    prisma.issue.count({ where: whereIssue }),
   ])
 
   const occupancyRate = totalRooms > 0 ? ((totalRooms - availableRooms) / totalRooms * 100).toFixed(1) : '0'
@@ -589,7 +719,7 @@ async function getDashboardSummary() {
     phòngTrống: availableRooms,
     tỷLệLấp: `${occupancyRate}%`,
     tổngCưDân: totalTenants,
-    hợpĐồngĐangHoạtĐộng: activeContracts,
+    hợpĐồngĐangHoạtĐộng: activeContractsCount,
     doanhThuThángNày: monthInvoices.reduce((s, i) => s + Number(i.totalAmount), 0),
     đãThuThángNày: monthInvoices.filter((i) => i.status === 'PAID').reduce((s, i) => s + Number(i.totalAmount), 0),
     hoáĐơnQuáHạn: overdueInvoices,
@@ -842,7 +972,7 @@ async function tenantRequestRenewal(userId: number, args: { months?: number }) {
         ngàyGửi: existing.createdAt,
       }
     }
-  } catch {}
+  } catch { }
 
   // Calculate new end date
   const newEndDate = new Date(contract.endDate)
@@ -915,7 +1045,7 @@ async function tenantGetPaymentInfo(userId: number, args: { invoiceId?: number }
   }
 }
 
-async function getForecastInsights() {
+async function getForecastInsights(buildingId?: number) {
   const currentDate = new Date()
   const currentMonth = currentDate.getMonth() + 1
   const currentYear = currentDate.getFullYear()
@@ -927,23 +1057,33 @@ async function getForecastInsights() {
     historyMonths.push({ month: date.getMonth() + 1, year: date.getFullYear() })
   }
 
+  const whereInvoiceMatch: any = {
+    status: 'PAID',
+    OR: historyMonths.map(h => ({ month: h.month, year: h.year }))
+  }
+  const whereContractMatch: any = { status: 'ACTIVE' }
+  const whereRoomMatch: any = {}
+
+  if (buildingId) {
+    whereInvoiceMatch.contract = { room: { buildingId } }
+    whereContractMatch.room = { buildingId }
+    whereRoomMatch.buildingId = buildingId
+  }
+
   const [historyResults, activeContracts, totalRooms] = await Promise.all([
     prisma.invoice.groupBy({
       by: ['month', 'year'],
-      where: {
-        status: 'PAID',
-        OR: historyMonths.map(h => ({ month: h.month, year: h.year }))
-      },
+      where: whereInvoiceMatch,
       _sum: { totalAmount: true }
     }),
     prisma.contract.findMany({
-      where: { status: 'ACTIVE' },
+      where: whereContractMatch,
       include: {
         room: { select: { name: true } },
         user: { select: { fullName: true } }
       }
     }),
-    prisma.room.count()
+    prisma.room.count({ where: whereRoomMatch })
   ])
 
   // Linear Regression dự báo doanh thu
@@ -976,12 +1116,14 @@ async function getForecastInsights() {
 
   // Rủi ro trống phòng
   const now = new Date()
+  const overdueInvoicesWhere: any = {
+    contractId: { in: activeContracts.map(c => c.id) },
+    status: 'OVERDUE'
+  }
+
   const overdueCounts = await prisma.invoice.groupBy({
     by: ['contractId'],
-    where: {
-      contractId: { in: activeContracts.map(c => c.id) },
-      status: 'OVERDUE'
-    },
+    where: overdueInvoicesWhere,
     _count: { id: true }
   })
   const overdueMap = new Map(overdueCounts.map(o => [o.contractId, o._count.id]))
@@ -1017,13 +1159,12 @@ async function getForecastInsights() {
   }
 
   riskDetails.sort((a: any, b: any) => (b.mứcRủiRo === 'CAO' ? 1 : 0) - (a.mứcRủiRo === 'CAO' ? 1 : 0))
-
   const growthTrend = avgRevenue > 0 ? ((slope / avgRevenue) * 100).toFixed(1) : '0'
 
   return {
     dựBáoDoanhThu: {
       trungBìnhTháng: Math.round(avgRevenue),
-      xuHướng: Number(growthTrend) > 0 ? `📈 Tăng ${growthTrend}%/tháng` : Number(growthTrend) < 0 ? `📉 Giảm ${Math.abs(Number(growthTrend))}%/tháng` : '➡️ Ổn định',
+      xuTrend: Number(growthTrend) > 0 ? `📈 Tăng ${growthTrend}%/tháng` : Number(growthTrend) < 0 ? `📉 Giảm ${Math.abs(Number(growthTrend))}%/tháng` : '➡️ Ổn định',
       dựBáo3ThángTới: forecast,
     },
     rủiRoTrốngPhòng: {

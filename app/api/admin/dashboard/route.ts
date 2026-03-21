@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const buildingId = searchParams.get('buildingId')
+    
+    const whereClause: any = {}
+    if (buildingId && buildingId !== 'undefined' && buildingId !== 'null') {
+      whereClause.buildingId = parseInt(buildingId)
+    }
+
     const currentDate = new Date()
     const currentMonth = currentDate.getMonth() + 1
     const currentYear = currentDate.getFullYear()
@@ -19,23 +27,76 @@ export async function GET() {
       doneIssues,
       cancelledIssues
     ] = await Promise.all([
-      prisma.room.count(),
-      prisma.room.count({ where: { status: 'RENTED' } }),
-      prisma.user.count({ where: { role: 'TENANT' } }),
+      prisma.room.count({ where: whereClause }),
+      prisma.room.count({ where: { ...whereClause, status: 'RENTED' } }),
+      prisma.user.count({ 
+        where: { 
+          role: 'TENANT',
+          contracts: buildingId && buildingId !== 'all' ? { some: { room: { buildingId: parseInt(buildingId) } } } : undefined
+        } 
+      }),
       prisma.invoice.aggregate({
         where: {
+          ...(buildingId && buildingId !== 'all' ? { buildingId: parseInt(buildingId) } : {}),
           status: 'PAID',
           month: currentMonth,
           year: currentYear
         },
         _sum: { totalAmount: true }
       }),
-      prisma.issue.count({ where: { status: 'PENDING' } }),
-      prisma.invoice.count({ where: { status: 'UNPAID' } }),
-      prisma.issue.count({ where: { status: 'PROCESSING' } }),
-      prisma.issue.count({ where: { status: 'DONE' } }),
-      prisma.issue.count({ where: { status: 'CANCELLED' } })
+      prisma.issue.count({ 
+        where: { 
+          status: 'PENDING',
+          ...(buildingId && buildingId !== 'all' ? { room: { buildingId: parseInt(buildingId) } } : {})
+        } 
+      }),
+      prisma.invoice.count({ 
+        where: { 
+          status: 'UNPAID',
+          ...(buildingId && buildingId !== 'all' ? { buildingId: parseInt(buildingId) } : {})
+        } 
+      }),
+      prisma.issue.count({ 
+        where: { 
+          status: 'PROCESSING',
+          ...(buildingId && buildingId !== 'all' ? { room: { buildingId: parseInt(buildingId) } } : {})
+        } 
+      }),
+      prisma.issue.count({ 
+        where: { 
+          status: 'DONE',
+          ...(buildingId && buildingId !== 'all' ? { room: { buildingId: parseInt(buildingId) } } : {})
+        } 
+      }),
+      prisma.issue.count({ 
+        where: { 
+          status: 'CANCELLED',
+          ...(buildingId && buildingId !== 'all' ? { room: { buildingId: parseInt(buildingId) } } : {})
+        } 
+      })
     ])
+
+    let buildingInfo = null
+    if (buildingId && buildingId !== 'all' && buildingId !== 'undefined' && buildingId !== 'null') {
+      buildingInfo = await prisma.building.findUnique({
+        where: { id: parseInt(buildingId) },
+        include: {
+          ownerContracts: {
+            where: { status: 'ACTIVE' },
+            include: {
+              owner: {
+                select: {
+                  fullName: true,
+                  phone: true,
+                  email: true
+                }
+              }
+            },
+            take: 1
+          }
+        }
+      })
+    }
 
     // Preparation for parallel queries
     const yearStart = new Date(currentYear, 0, 1)
@@ -60,21 +121,46 @@ export async function GET() {
       ...revenueResults
     ] = await Promise.all([
       prisma.invoice.aggregate({
-        where: { status: 'PAID', createdAt: { gte: yearStart } },
+        where: { 
+          status: 'PAID', 
+          createdAt: { gte: yearStart },
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
+        },
         _sum: { totalAmount: true }
       }),
       prisma.invoice.aggregate({
-        where: { status: 'PAID', month: prevMonth, year: prevYear },
+        where: { 
+          status: 'PAID', 
+          month: prevMonth, 
+          year: prevYear,
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
+        },
         _sum: { totalAmount: true }
       }),
-      prisma.invoice.count({ where: { status: 'PAID' } }),
-      prisma.invoice.count({ where: { status: 'OVERDUE' } }),
-      prisma.invoice.count(),
+      prisma.invoice.count({ 
+        where: { 
+          status: 'PAID',
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
+        } 
+      }),
+      prisma.invoice.count({ 
+        where: { 
+          status: 'OVERDUE',
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
+        } 
+      }),
+      prisma.invoice.count({
+        where: buildingId ? { buildingId: parseInt(buildingId) } : {}
+      }),
       prisma.invoice.aggregate({
-        where: { status: 'UNPAID' },
+        where: { 
+          status: 'UNPAID',
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
+        },
         _sum: { totalAmount: true }
       }),
       prisma.invoice.findMany({
+        where: buildingId ? { buildingId: parseInt(buildingId) } : {},
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -87,6 +173,7 @@ export async function GET() {
         }
       }),
       prisma.issue.findMany({
+        where: buildingId ? { room: { buildingId: parseInt(buildingId) } } : {},
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -95,7 +182,12 @@ export async function GET() {
         }
       }),
       ...dates.map(d => prisma.invoice.aggregate({
-        where: { status: 'PAID', month: d.month, year: d.year },
+        where: { 
+          status: 'PAID', 
+          month: d.month, 
+          year: d.year,
+          ...(buildingId ? { buildingId: parseInt(buildingId) } : {})
+        },
         _sum: { totalAmount: true }
       }))
     ]);
@@ -120,6 +212,7 @@ export async function GET() {
     const occupancyRate = totalRooms > 0 ? Math.round((rentedRooms / totalRooms) * 100) : 0
 
     return NextResponse.json({
+      buildingInfo,
       // Basic stats
       totalRooms,
       rentedRooms,

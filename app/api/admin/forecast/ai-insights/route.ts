@@ -39,8 +39,11 @@ export interface StructuredInsight {
   }>
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    const { buildingId } = await request.json().catch(() => ({}));
+    const buildingIdInt = buildingId && buildingId !== 'all' ? parseInt(buildingId) : null
+
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: 'Chưa cấu hình GEMINI_API_KEY' }, { status: 500 })
     }
@@ -51,6 +54,7 @@ export async function POST() {
 
     // Gather data in parallel
     const [
+      building,
       totalRooms,
       availableRooms,
       activeContracts,
@@ -58,16 +62,33 @@ export async function POST() {
       overdueInvoicesData,
       expiringContractsData
     ] = await Promise.all([
-      prisma.room.count(),
-      prisma.room.count({ where: { status: 'AVAILABLE' } }),
-      prisma.contract.count({ where: { status: 'ACTIVE' } }),
+      buildingIdInt ? prisma.building.findUnique({ where: { id: buildingIdInt } }) : Promise.resolve(null),
+      prisma.room.count({ where: buildingIdInt ? { buildingId: buildingIdInt } : {} }),
+      prisma.room.count({ 
+        where: { 
+          status: 'AVAILABLE',
+          ...(buildingIdInt ? { buildingId: buildingIdInt } : {})
+        } 
+      }),
+      prisma.contract.count({ 
+        where: { 
+          status: 'ACTIVE',
+          ...(buildingIdInt ? { room: { buildingId: buildingIdInt } } : {})
+        } 
+      }),
       prisma.invoice.findMany({
-        where: { year: currentYear },
+        where: { 
+          year: currentYear,
+          ...(buildingIdInt ? { buildingId: buildingIdInt } : {})
+        },
         select: { month: true, year: true, totalAmount: true, status: true },
         orderBy: { month: 'asc' }
       }),
       prisma.invoice.findMany({
-        where: { status: 'OVERDUE' },
+        where: { 
+          status: 'OVERDUE',
+          ...(buildingIdInt ? { buildingId: buildingIdInt } : {})
+        },
         include: {
           contract: {
             include: {
@@ -85,6 +106,7 @@ export async function POST() {
             gte: currentDate,
             lte: new Date(currentDate.getTime() + 90 * 24 * 60 * 60 * 1000),
           },
+          ...(buildingIdInt ? { room: { buildingId: buildingIdInt } } : {})
         },
         include: {
           room: { select: { name: true } },
@@ -155,7 +177,7 @@ export async function POST() {
 
     // Get data for AI analysis
     const dataContext = `
-DỮ LIỆU THỐNG KÊ NHÀ TRỌ EZ-HOME (Tháng ${currentMonth}/${currentYear}):
+DỮ LIỆU THỐNG KÊ NHÀ TRỌ EZ-HOME (Tháng ${currentMonth}/${currentYear})${building ? ` - TÒA NHÀ: ${building.name} (${building.address})` : ''}:
 
 1. PHÒNG:
 - Tổng: ${totalRooms} phòng

@@ -22,6 +22,7 @@ import {
   ChevronDown,
   RotateCcw
 } from 'lucide-react'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface RoomReading {
   id: number
@@ -53,6 +54,7 @@ export default function FinancePage() {
   const [readings, setReadings] = useState<Record<number, { elecNew: string; waterNew: string; error?: string }>>({})
   const [selectedRooms, setSelectedRooms] = useState<number[]>([])
   const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const { selectedBuildingId } = useBuilding()
 
   useEffect(() => {
     if (pathname === '/admin/finance') {
@@ -60,12 +62,15 @@ export default function FinancePage() {
       // Reset readings khi chuyển tháng
       setReadings({})
     }
-  }, [pathname, selectedMonth, selectedYear])
+  }, [pathname, selectedMonth, selectedYear, selectedBuildingId])
 
   const fetchRoomsForReading = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}`)
+      const url = selectedBuildingId
+        ? `/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}&buildingId=${selectedBuildingId}`
+        : `/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}`
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
         setRooms(data)
@@ -276,7 +281,7 @@ export default function FinancePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-center sm:text-left">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase line-clamp-1">CHỈ SỐ ĐIỆN NƯỚC</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase tracking-tight">CHỈ SỐ ĐIỆN NƯỚC</h1>
           <p className="text-xs sm:text-sm text-secondary mt-1">Ghi nhận chỉ số điện nước hàng tháng</p>
         </div>
 
@@ -351,19 +356,16 @@ export default function FinancePage() {
                 <div className="relative w-full sm:w-auto">
                   <button
                     onClick={() => setShowMonthPicker(!showMonthPicker)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showMonthPicker
-                      ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
-                      : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                    className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all h-11 w-full sm:w-auto ${showMonthPicker
+                      ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
+                      : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
                       }`}
                   >
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${showMonthPicker ? 'bg-blue-100 dark:bg-blue-900/40 text-[var(--accent-blue)]' : 'bg-blue-50 dark:bg-blue-900/30 text-[var(--accent-blue)]'
-                      }`}>
-                      <Calendar size={14} />
-                    </div>
-                    <div className="text-left pr-1 flex-1">
-                      <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}</p>
-                    </div>
-                    <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 ${showMonthPicker ? 'rotate-180' : ''}`} />
+                    <Calendar size={16} className="text-blue-500" />
+                    <span className="text-xs font-bold text-primary uppercase tracking-wider flex-1 text-left">
+                      THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}
+                    </span>
+                    <ChevronDown size={16} className={`transition-transform duration-300 text-tertiary ${showMonthPicker ? 'rotate-180' : ''}`} />
                   </button>
 
                   {showMonthPicker && (
@@ -435,14 +437,14 @@ export default function FinancePage() {
                 )}
               </div>
 
-              <div className="relative flex-1 lg:max-w-md w-full">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+              <div className="relative flex-1 w-full lg:max-w-md">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
                 <input
                   type="text"
                   placeholder="Tìm phòng hoặc khách thuê..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-gray-100 dark:border-gray-700 focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                  className="input input-with-icon w-full pl-12 h-11"
                 />
               </div>
             </div>

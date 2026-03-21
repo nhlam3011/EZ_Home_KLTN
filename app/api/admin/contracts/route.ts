@@ -6,9 +6,16 @@ export async function GET(request: NextRequest) {
     try {
         const searchParams = request.nextUrl.searchParams
         const search = searchParams.get('search') || ''
+        const buildingId = searchParams.get('buildingId')
 
         const where: any = {
             status: 'ACTIVE'
+        }
+
+        if (buildingId) {
+            where.room = {
+                buildingId: parseInt(buildingId)
+            }
         }
 
         if (search) {

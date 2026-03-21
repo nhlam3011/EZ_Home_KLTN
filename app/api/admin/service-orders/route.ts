@@ -6,12 +6,33 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
     const status = searchParams.get('status')
-    const building = searchParams.get('building')
+    const buildingId = searchParams.get('buildingId')
 
     const where: any = {}
 
     if (status && status !== 'all') {
       where.status = status.toUpperCase()
+    }
+
+    if (buildingId) {
+      where.user = {
+        contracts: {
+          some: {
+            room: {
+              buildingId: parseInt(buildingId)
+            },
+            status: 'ACTIVE'
+          }
+        }
+      }
+    }
+
+    if (search) {
+      where.OR = [
+        { user: { fullName: { contains: search, mode: 'insensitive' } } },
+        { service: { name: { contains: search, mode: 'insensitive' } } },
+        { user: { contracts: { some: { room: { name: { contains: search, mode: 'insensitive' } } } } } }
+      ]
     }
 
     const orders = await prisma.serviceOrder.findMany({
@@ -33,30 +54,7 @@ export async function GET(request: NextRequest) {
       orderBy: { orderDate: 'desc' }
     })
 
-    // Filter by search and building
-    let filteredOrders = orders
-    if (search) {
-      const searchLower = search.toLowerCase()
-      filteredOrders = orders.filter(order => {
-        const roomName = order.user.contracts[0]?.room?.name || ''
-        const serviceName = order.service.name.toLowerCase()
-        const userName = order.user.fullName.toLowerCase()
-        return (
-          roomName.toLowerCase().includes(searchLower) ||
-          serviceName.includes(searchLower) ||
-          userName.includes(searchLower)
-        )
-      })
-    }
-
-    if (building && building !== 'all') {
-      filteredOrders = filteredOrders.filter(order => {
-        const roomName = order.user.contracts[0]?.room?.name || ''
-        return roomName.includes(building)
-      })
-    }
-
-    return NextResponse.json(filteredOrders)
+    return NextResponse.json(orders)
   } catch (error) {
     console.error('Error fetching service orders:', error)
     return NextResponse.json(

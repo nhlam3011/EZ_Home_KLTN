@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Badge } from 'flowbite-react'
 import { Check, X, Clock, RefreshCw, FileText, User, Calendar, Loader2, Search, Phone, Mail, Building2, CheckCircle, ChevronDown, Filter, Plus } from 'lucide-react'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface RenewalRequest {
     id: number
@@ -58,6 +59,7 @@ interface Contract {
 export default function RenewalsPage() {
     const [requests, setRequests] = useState<RenewalRequest[]>([])
     const [loading, setLoading] = useState(true)
+    const { selectedBuildingId } = useBuilding()
     const [statusFilter, setStatusFilter] = useState('all')
     const [showStatusDropdown, setShowStatusDropdown] = useState(false)
     const [search, setSearch] = useState('')
@@ -82,9 +84,12 @@ export default function RenewalsPage() {
     const fetchRequests = useCallback(async () => {
         try {
             setLoading(true)
-            const url = statusFilter === 'all'
-                ? '/api/contracts/renewals'
-                : `/api/contracts/renewals?status=${statusFilter}`
+            const params = new URLSearchParams()
+            if (statusFilter !== 'all') params.append('status', statusFilter)
+            if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
+            if (search) params.append('search', search)
+
+            const url = `/api/contracts/renewals?${params.toString()}`
 
             const response = await fetch(url)
             if (response.ok) {
@@ -96,7 +101,7 @@ export default function RenewalsPage() {
         } finally {
             setLoading(false)
         }
-    }, [statusFilter])
+    }, [statusFilter, selectedBuildingId, search])
 
     useEffect(() => {
         fetchRequests()
@@ -187,9 +192,11 @@ export default function RenewalsPage() {
     const fetchContracts = useCallback(async () => {
         try {
             setLoadingContracts(true)
-            const url = contractSearch
-                ? `/api/admin/contracts?search=${encodeURIComponent(contractSearch)}`
-                : '/api/admin/contracts'
+            const params = new URLSearchParams()
+            if (contractSearch) params.append('search', contractSearch)
+            if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
+
+            const url = `/api/admin/contracts?${params.toString()}`
 
             const response = await fetch(url)
             if (response.ok) {
@@ -201,7 +208,7 @@ export default function RenewalsPage() {
         } finally {
             setLoadingContracts(false)
         }
-    }, [contractSearch])
+    }, [contractSearch, selectedBuildingId])
 
     useEffect(() => {
         if (showExtendModal) {

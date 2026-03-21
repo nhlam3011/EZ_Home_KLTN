@@ -11,6 +11,7 @@ import {
 import CommunityPostCard from '@/components/CommunityPostCard'
 import EmojiPicker, { Theme } from 'emoji-picker-react'
 import { useDarkMode } from '../../contexts/DarkModeContext'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Post {
   id: number
@@ -58,6 +59,7 @@ export default function CommunityPage() {
   const { isDark } = useDarkMode()
   const [posts, setPosts] = useState<Post[]>([])
   const [publicPosts, setPublicPosts] = useState<Post[]>([])
+  const { selectedBuildingId } = useBuilding()
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'moderate' | 'community'>('moderate')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -117,7 +119,7 @@ export default function CommunityPage() {
     } else {
       fetchPublicPosts()
     }
-  }, [activeTab, statusFilter, categoryFilter, searchQuery])
+  }, [activeTab, statusFilter, categoryFilter, searchQuery, selectedBuildingId])
 
   const showAlert = (message: string) => {
     setSuccessMessage(message)
@@ -132,6 +134,7 @@ export default function CommunityPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (categoryFilter !== 'ALL') params.append('category', categoryFilter)
       if (searchQuery) params.append('search', searchQuery)
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
       const response = await fetch(`/api/admin/posts?${params.toString()}`)
       const data = await response.json()
@@ -151,6 +154,7 @@ export default function CommunityPage() {
       params.append('status', 'PUBLIC')
       if (categoryFilter !== 'ALL') params.append('category', categoryFilter)
       if (searchQuery) params.append('search', searchQuery)
+      if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
       const response = await fetch(`/api/admin/posts?${params.toString()}`)
       const data = await response.json()

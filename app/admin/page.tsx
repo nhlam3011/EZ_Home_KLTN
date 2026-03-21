@@ -19,6 +19,7 @@ import {
   ArrowRight
 } from 'lucide-react'
 import Loading from '@/components/Loading'
+import { useBuilding } from '@/components/BuildingContext'
 
 // Dynamic import for ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
@@ -75,19 +76,36 @@ interface DashboardStats {
     status: string
     createdAt: string
   }>
+  buildingInfo?: {
+    id: number
+    name: string
+    address: string
+    ownerContracts: Array<{
+      owner: {
+        fullName: string
+        phone: string
+        email: string
+      }
+    }>
+  } | null
 }
 
 export default function DashboardPage() {
+  const { selectedBuildingId } = useBuilding()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
-  }, [])
+  }, [selectedBuildingId])
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/dashboard')
+      setLoading(true)
+      const url = selectedBuildingId 
+        ? `/api/admin/dashboard?buildingId=${selectedBuildingId}`
+        : '/api/admin/dashboard'
+      const response = await fetch(url)
       const data = await response.json()
       setStats(data)
     } catch (error) {
@@ -169,11 +187,52 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-primary">Tổng quan</h1>
         <p className="text-secondary mt-1">Quản lý và theo dõi hệ thống EZ-Home</p>
       </div>
+
+      {/* Building Info Card */}
+      {selectedBuildingId && stats.buildingInfo && (
+        <div className="card bg-white border border-secondary/10 p-4 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center text-primary shrink-0">
+                <Building2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-primary">{stats.buildingInfo.name}</h3>
+                <p className="text-sm text-secondary flex items-center gap-1">
+                  <span className="opacity-70">Địa chỉ:</span> {stats.buildingInfo.address}
+                </p>
+              </div>
+            </div>
+            
+            {stats.buildingInfo.ownerContracts[0] && (
+              <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-secondary/10 pt-4 md:pt-0 md:pl-6">
+                <div>
+                  <p className="text-xs text-secondary font-medium uppercase tracking-wider mb-1">Chủ nhà</p>
+                  <div className="flex items-center gap-2">
+                    <Users size={16} className="text-primary/60" />
+                    <span className="text-sm font-semibold text-primary">
+                      {stats.buildingInfo.ownerContracts[0].owner.fullName}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-secondary font-medium uppercase tracking-wider mb-1">Liên hệ</p>
+                  <div className="flex items-center gap-2">
+                    <FileText size={16} className="text-primary/60" />
+                    <span className="text-sm font-medium text-primary">
+                      {stats.buildingInfo.ownerContracts[0].owner.phone}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -197,7 +256,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-sm text-primary mb-1 font-medium">Doanh thu tháng này</p>
-            <p className="text-2xl font-bold text-primary mb-1">
+            <p className="text-lg sm:text-xl font-bold text-primary mb-1">
               {formatLargeCurrency(Number(stats.monthlyRevenue))}
             </p>
             <p className="text-xs text-secondary font-medium">
@@ -215,7 +274,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-sm text-primary mb-1 font-medium">Tỷ lệ lấp đầy</p>
-            <p className="text-2xl font-bold text-primary mb-1">{stats.occupancyRate}%</p>
+            <p className="text-lg sm:text-xl font-bold text-primary mb-1">{stats.occupancyRate}%</p>
             <p className="text-xs text-secondary font-medium">
               {stats.rentedRooms}/{stats.totalRooms} phòng đang thuê
             </p>
@@ -231,7 +290,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-sm text-primary mb-1 font-medium">Công nợ</p>
-            <p className="text-2xl font-bold text-primary mb-1">
+            <p className="text-lg sm:text-xl font-bold text-primary mb-1">
               {stats.unpaidInvoices} hóa đơn
             </p>
             <p className="text-xs text-secondary font-medium">
@@ -249,7 +308,7 @@ export default function DashboardPage() {
           </div>
           <div>
             <p className="text-sm text-primary mb-1 font-medium">Sự cố cần xử lý</p>
-            <p className="text-2xl font-bold text-primary mb-1">
+            <p className="text-lg sm:text-xl font-bold text-primary mb-1">
               {stats.pendingIssues + stats.processingIssues}
             </p>
             <p className="text-xs text-secondary font-medium">
@@ -509,7 +568,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-secondary mb-1">Tổng cư dân</p>
-              <p className="text-2xl font-bold text-primary">{stats.totalResidents}</p>
+              <p className="text-lg sm:text-xl font-bold text-primary">{stats.totalResidents}</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
               <Users className="text-purple-600 dark:text-purple-400" size={24} />
@@ -520,7 +579,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-secondary mb-1">Phòng trống</p>
-              <p className="text-2xl font-bold text-primary">{stats.vacantRooms}</p>
+              <p className="text-lg sm:text-xl font-bold text-primary">{stats.vacantRooms}</p>
             </div>
             <div className="w-12 h-12 bg-tertiary rounded-lg flex items-center justify-center">
               <Building2 className="text-secondary" size={24} />
@@ -531,7 +590,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-secondary mb-1">Tỷ lệ thanh toán</p>
-              <p className="text-2xl font-bold text-primary">{stats.paymentRate}%</p>
+              <p className="text-lg sm:text-xl font-bold text-primary">{stats.paymentRate}%</p>
             </div>
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
               <CheckCircle2 className="text-green-600 dark:text-green-400" size={24} />

@@ -7,6 +7,7 @@ import {
   Building2, FileText, Users, TrendingUp, AlertTriangle, Wrench,
   BarChart3, Clock, Zap, X, MessageSquare
 } from 'lucide-react'
+import { useBuilding } from '@/components/BuildingContext'
 
 interface Message {
   id: string
@@ -93,6 +94,7 @@ const renderTable = (tableContent: string) => {
 }
 
 export default function AiAssistantPage({ role }: AiAssistantPageProps) {
+  const { selectedBuildingId } = useBuilding()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -114,7 +116,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
         setUserId(user.id)
       }
     } catch { }
-  }, [])
+  }, [role])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -124,28 +126,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
 
   useEffect(() => {
     const fullText = role === 'ADMIN' ? 'Trợ lý quản lý thông minh' : 'Trợ lý cư dân 24/7'
-    let i = 0
-    let isDeleting = false
-    let timer: NodeJS.Timeout
-
-    const type = () => {
-      const delay = isDeleting ? 30 : 50
-      setWelcomeText(fullText.substring(0, i))
-
-      if (!isDeleting && i === fullText.length) {
-        isDeleting = true
-        timer = setTimeout(type, 3000) // Wait at full text
-      } else if (isDeleting && i === 0) {
-        isDeleting = false
-        timer = setTimeout(type, 1000) // Wait at empty text
-      } else {
-        i = isDeleting ? i - 1 : i + 1
-        timer = setTimeout(type, delay)
-      }
-    }
-
-    type()
-    return () => clearTimeout(timer)
+    setWelcomeText(fullText)
   }, [role])
 
   useEffect(() => {
@@ -191,7 +172,13 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
       const res = await fetch('/api/admin/ai-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text.trim(), history, role, userId }),
+        body: JSON.stringify({ 
+          message: text.trim(), 
+          history, 
+          role, 
+          userId,
+          buildingId: selectedBuildingId
+        }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, {
@@ -210,33 +197,6 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) }
   }
 
-  const TypewriterText = ({ content }: { content: string }) => {
-    const [displayedContent, setDisplayedContent] = useState('')
-    const [isComplete, setIsComplete] = useState(false)
-
-    useEffect(() => {
-      let i = 0
-      const fullText = content
-      const timer = setInterval(() => {
-        setDisplayedContent(fullText.substring(0, i + 1))
-        i++
-        if (i >= fullText.length) {
-          clearInterval(timer)
-          setIsComplete(true)
-        }
-      }, 10)
-      return () => clearInterval(timer)
-    }, [content])
-
-    return (
-      <div className="relative">
-        {renderContent(displayedContent)}
-        {!isComplete && (
-          <span className="inline-block w-1.5 h-4 ml-1 bg-[#8b5cf6] animate-pulse align-middle" />
-        )}
-      </div>
-    )
-  }
 
   const renderContent = (content: string) => {
     const tableMatch = parseTable(content)
@@ -488,11 +448,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
                       }
                     >
                       {msg.role === 'assistant' ? (
-                        idx === messages.length - 1 ? (
-                          <TypewriterText content={msg.content} />
-                        ) : (
-                          renderContent(msg.content)
-                        )
+                        renderContent(msg.content)
                       ) : (
                         msg.content
                       )}
