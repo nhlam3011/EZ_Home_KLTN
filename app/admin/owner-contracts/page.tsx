@@ -66,6 +66,10 @@ export default function OwnerContractsPage() {
     const itemsPerPage = 8
 
     useEffect(() => {
+        setCurrentPage(1)
+    }, [search, statusFilter, selectedBuildingId])
+
+    useEffect(() => {
         fetchContracts()
         fetchBuildings()
     }, [search, statusFilter, selectedBuildingId, currentPage])

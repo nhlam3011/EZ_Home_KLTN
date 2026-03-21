@@ -41,7 +41,7 @@ export default function BuildingsPage() {
     const [totalPages, setTotalPages] = useState(1)
     const [showTypeDropdown, setShowTypeDropdown] = useState(false)
     const [showStatusDropdown, setShowStatusDropdown] = useState(false)
-    
+
     // Add/Edit State
     const [showModal, setShowModal] = useState(false)
     const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null)
@@ -226,7 +226,7 @@ export default function BuildingsPage() {
                     <p className="text-xs sm:text-sm text-secondary mt-1 font-medium">Thiết lập thông số vận hành và thông tin tòa nhà</p>
                 </div>
                 <div className="flex items-center justify-center sm:justify-end gap-3 flex-wrap w-full sm:w-auto">
-                    <button 
+                    <button
                         onClick={() => openModal()}
                         className="btn btn-primary h-11 px-6 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center gap-2"
                     >
@@ -294,7 +294,7 @@ export default function BuildingsPage() {
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showTypeDropdown
                                 ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
                                 : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
-                            }`}
+                                }`}
                         >
                             <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500">
                                 <Building2 size={14} />
@@ -332,12 +332,12 @@ export default function BuildingsPage() {
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showStatusDropdown
                                 ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
                                 : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
-                            }`}
+                                }`}
                         >
                             <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'ALL' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
                                 statusFilter === 'ACTIVE' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500' :
-                                'bg-amber-50 dark:bg-amber-900/20 text-amber-500'
-                            }`}>
+                                    'bg-amber-50 dark:bg-amber-900/20 text-amber-500'
+                                }`}>
                                 {statusFilter === 'ALL' ? <Activity size={14} /> : statusFilter === 'ACTIVE' ? <CheckCircle size={14} /> : <Zap size={14} />}
                             </div>
                             <div className="text-left pr-1 min-w-0 flex-1">
@@ -416,22 +416,21 @@ export default function BuildingsPage() {
                                         </div>
                                     )}
                                     <div className="absolute top-3 left-3">
-                                        <div className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${
-                                            b.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500'
-                                        }`} />
+                                        <div className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${b.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500'
+                                            }`} />
                                     </div>
-                                    
+
                                     {/* Quick Actions Hover Overlay */}
                                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <button 
-                                            onClick={() => openModal(b)} 
+                                        <button
+                                            onClick={() => openModal(b)}
                                             title="Chỉnh sửa thông tin"
                                             className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center hover:bg-amber-100 transition-all shadow-sm"
                                         >
                                             <Edit size={16} />
                                         </button>
-                                        <Link 
-                                            href={`/admin/buildings/${b.id}`} 
+                                        <Link
+                                            href={`/admin/buildings/${b.id}`}
                                             title="Xem chi tiết tòa nhà"
                                             className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
                                         >
@@ -508,7 +507,7 @@ export default function BuildingsPage() {
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-10">
-                    <button 
+                    <button
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(prev => prev - 1)}
                         className="w-11 h-11 rounded-xl bg-primary border border-primary flex items-center justify-center text-secondary disabled:opacity-30 hover:bg-tertiary transition-all"
@@ -519,7 +518,7 @@ export default function BuildingsPage() {
                         <span className="text-sm font-bold text-blue-600">{currentPage}</span>
                         <span className="text-xs text-tertiary font-medium">của {totalPages} trang</span>
                     </div>
-                    <button 
+                    <button
                         disabled={currentPage === totalPages}
                         onClick={() => setCurrentPage(prev => prev + 1)}
                         className="w-11 h-11 rounded-xl bg-primary border border-primary flex items-center justify-center text-secondary disabled:opacity-30 hover:bg-tertiary transition-all"
@@ -549,7 +548,7 @@ export default function BuildingsPage() {
                                 <X size={20} />
                             </button>
                         </div>
-                        
+
                         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 custom-scrollbar bg-secondary/30">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Left Side: Form Details */}
@@ -563,15 +562,15 @@ export default function BuildingsPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                             <div className="space-y-2 text-left">
                                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Tên tòa nhà *</label>
-                                                <input 
-                                                    required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                                                <input
+                                                    required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
                                                     className="input h-11" placeholder="VD: EZ Home Nguyễn Trãi"
                                                 />
                                             </div>
                                             <div className="space-y-2 text-left">
                                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Loại hình</label>
-                                                <select 
-                                                    value={formData.buildingType} onChange={e => setFormData({...formData, buildingType: e.target.value})}
+                                                <select
+                                                    value={formData.buildingType} onChange={e => setFormData({ ...formData, buildingType: e.target.value })}
                                                     className="select h-11 w-full"
                                                 >
                                                     <option value="NHÀ_PHỐ">Nhà phố</option>
@@ -581,23 +580,23 @@ export default function BuildingsPage() {
                                             </div>
                                             <div className="md:col-span-2 space-y-2 text-left">
                                                 <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Địa chỉ đầy đủ *</label>
-                                                <input 
-                                                    required value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
+                                                <input
+                                                    required value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })}
                                                     className="input h-11" placeholder="Số nhà, tên đường, phường, quận..."
                                                 />
                                             </div>
                                             <div className="grid grid-cols-3 gap-4 md:col-span-2">
                                                 <div className="space-y-2 text-left">
                                                     <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Số tầng</label>
-                                                    <input type="number" required value={formData.floorCount} onChange={e => setFormData({...formData, floorCount: parseInt(e.target.value)})} className="input h-11" />
+                                                    <input type="number" required value={formData.floorCount} onChange={e => setFormData({ ...formData, floorCount: parseInt(e.target.value) })} className="input h-11" />
                                                 </div>
                                                 <div className="space-y-2 text-left">
                                                     <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Tổng số phòng</label>
-                                                    <input type="number" required value={formData.totalRooms} onChange={e => setFormData({...formData, totalRooms: parseInt(e.target.value)})} className="input h-11" />
+                                                    <input type="number" required value={formData.totalRooms} onChange={e => setFormData({ ...formData, totalRooms: parseInt(e.target.value) })} className="input h-11" />
                                                 </div>
                                                 <div className="space-y-2 text-left">
                                                     <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Diện tích (m²)</label>
-                                                    <input value={formData.area} onChange={e => setFormData({...formData, area: e.target.value})} className="input h-11" />
+                                                    <input value={formData.area} onChange={e => setFormData({ ...formData, area: e.target.value })} className="input h-11" />
                                                 </div>
                                             </div>
                                         </div>
@@ -635,15 +634,15 @@ export default function BuildingsPage() {
                                                         </div>
                                                         <div className="md:col-span-4 text-left">
                                                             <label className="text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Tiện ích</label>
-                                                            <input 
-                                                                value={preset.amenities.join(', ')} 
+                                                            <input
+                                                                value={preset.amenities.join(', ')}
                                                                 onChange={e => {
                                                                     const val = e.target.value
                                                                     const amenities = val ? val.split(',').map(s => s.trim()).filter(s => s !== '') : []
                                                                     updatePreset(idx, 'amenities', amenities)
-                                                                }} 
-                                                                className="input h-10 text-xs font-medium" 
-                                                                placeholder="Máy lạnh, Tủ..." 
+                                                                }}
+                                                                className="input h-10 text-xs font-medium"
+                                                                placeholder="Máy lạnh, Tủ..."
                                                             />
                                                         </div>
                                                     </div>
@@ -662,28 +661,27 @@ export default function BuildingsPage() {
                                             </div>
                                             <h3 className="text-base font-bold text-primary">Hình ảnh toà nhà</h3>
                                         </div>
-                                        
+
                                         <div className="space-y-4">
                                             <div className="space-y-4 text-center">
                                                 <label className="text-[10px] font-black text-tertiary uppercase tracking-[0.2em] block">ẢNH ĐẠI DIỆN TÒA NHÀ</label>
                                                 <div className="flex flex-col items-center gap-4">
-                                                    <label className={`w-full max-w-sm h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                                        formData.thumbnailUrl ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500/50 text-emerald-600' : 'bg-tertiary/20 border-primary text-tertiary hover:border-blue-500/50 hover:text-blue-500'
-                                                    }`}>
-                                                        <input 
-                                                            type="file" 
-                                                            accept="image/*" 
-                                                            className="hidden" 
+                                                    <label className={`w-full max-w-sm h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all ${formData.thumbnailUrl ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500/50 text-emerald-600' : 'bg-tertiary/20 border-primary text-tertiary hover:border-blue-500/50 hover:text-blue-500'
+                                                        }`}>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
                                                             onChange={async (e) => {
                                                                 const file = e.target.files?.[0]
                                                                 if (file) {
                                                                     const reader = new FileReader()
                                                                     reader.readAsDataURL(file)
                                                                     reader.onload = () => {
-                                                                        setFormData({...formData, thumbnailUrl: reader.result as string})
+                                                                        setFormData({ ...formData, thumbnailUrl: reader.result as string })
                                                                     }
                                                                 }
-                                                            }} 
+                                                            }}
                                                         />
                                                         {formData.thumbnailUrl ? (
                                                             <div className="w-full h-full relative group flex items-center justify-center p-2">
@@ -703,11 +701,23 @@ export default function BuildingsPage() {
                                                             </>
                                                         )}
                                                     </label>
+
+                                                    <div className="w-full max-w-sm space-y-2 text-left px-2">
+                                                        <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">HOẶC NHẬP URL ẢNH</label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.thumbnailUrl?.startsWith('data:') ? '' : formData.thumbnailUrl || ''}
+                                                            onChange={e => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                                                            placeholder="https://example.com/image.jpg"
+                                                            className="input h-10 text-xs"
+                                                        />
+                                                    </div>
+
                                                     {formData.thumbnailUrl && (
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => setFormData({...formData, thumbnailUrl: ''})}
-                                                            className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center gap-2 hover:bg-rose-100 transition-all shadow-sm text-[10px] font-black uppercase tracking-wider"
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setFormData({ ...formData, thumbnailUrl: '' })}
+                                                            className="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center gap-2 hover:bg-rose-100 transition-all shadow-sm text-[10px] font-black uppercase tracking-wider mt-2"
                                                         >
                                                             <Trash2 size={16} /> Gỡ ảnh
                                                         </button>
@@ -717,8 +727,8 @@ export default function BuildingsPage() {
 
                                             <div className="pt-6 border-t border-primary">
                                                 <label className="text-[10px] font-black text-tertiary uppercase tracking-[0.2em] ml-1 block mb-3 text-left">TRẠNG THÁI HOẠT ĐỘNG</label>
-                                                <select 
-                                                    value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}
+                                                <select
+                                                    value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}
                                                     className="select h-11 w-full font-bold"
                                                 >
                                                     <option value="ACTIVE">HOẠT ĐỘNG</option>
@@ -735,9 +745,9 @@ export default function BuildingsPage() {
                                                 <FileText size={18} />
                                                 <p className="text-xs font-bold uppercase tracking-widest">Mô tả toà nhà</p>
                                             </div>
-                                            <textarea 
-                                                value={formData.description || ''} 
-                                                onChange={e => setFormData({...formData, description: e.target.value})}
+                                            <textarea
+                                                value={formData.description || ''}
+                                                onChange={e => setFormData({ ...formData, description: e.target.value })}
                                                 className="input text-xs sm:text-sm min-h-[140px] p-4 bg-primary border-primary focus:border-blue-500"
                                                 placeholder="Nhập mô tả về tòa nhà, vị trí, tiện ích chung..."
                                             />
@@ -751,8 +761,8 @@ export default function BuildingsPage() {
                         <div className="p-6 border-t border-primary flex items-center justify-between gap-3 bg-primary flex-shrink-0">
                             <div>
                                 {selectedBuilding && (
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => deleteBuilding(selectedBuilding.id)}
                                         className="btn bg-rose-50 text-rose-600 border border-rose-100 px-6 h-11 font-bold uppercase tracking-wider text-xs hover:bg-rose-100 transition-all"
                                     >
@@ -762,9 +772,9 @@ export default function BuildingsPage() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary px-8 h-11 font-bold uppercase tracking-wider text-xs">Hủy bỏ</button>
-                                <button 
+                                <button
                                     onClick={handleSubmit}
-                                    disabled={loadingSubmit} 
+                                    disabled={loadingSubmit}
                                     className="btn btn-primary px-6 h-11 min-w-[160px] shadow-lg shadow-blue-600/20 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2"
                                 >
                                     {loadingSubmit ? (

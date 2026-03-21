@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
           id: { in: readings.map((r: any) => parseInt(r.roomId)) }
         },
         include: {
+          building: true,
           contracts: {
             where: { status: 'ACTIVE' },
             include: { occupants: true }
@@ -153,7 +154,6 @@ export async function POST(request: NextRequest) {
     const meterReadingsToUpdateNext: any[] = []
     const invoicesToCreate: any[] = []
     const invoicesToUpdate: any[] = []
-    const invoiceIdsToMarkPaid: number[] = []
     const newInvoiceContractIds: number[] = []
     const errors: any[] = []
 
@@ -248,6 +248,9 @@ export async function POST(request: NextRequest) {
           const paymentDueDate = new Date()
           paymentDueDate.setDate(paymentDueDate.getDate() + 10)
 
+          const roomData = roomsMap.get(roomIdNum)
+          const building = roomData?.building
+
           if (existingInvoice) {
             const newStatus = existingInvoice.status === 'PAID' ? 'PAID' : 'UNPAID'
             invoicesToUpdate.push({
@@ -262,6 +265,9 @@ export async function POST(request: NextRequest) {
                 totalAmount: totalAmount + overdueAmount,
                 paymentDueDate,
                 status: newStatus,
+                buildingId: building?.id || null,
+                buildingName: building?.name || null,
+                buildingAddress: building?.address || null,
                 ...(existingInvoice.status === 'PAID' && { paidAt: existingInvoice.paidAt })
               }
             })
@@ -279,12 +285,12 @@ export async function POST(request: NextRequest) {
               overdueInvoices: JSON.stringify(overdueInvoicesInfo),
               totalAmount: totalAmount + overdueAmount,
               paymentDueDate,
-              status: 'UNPAID'
+              status: 'UNPAID',
+              buildingId: building?.id || null,
+              buildingName: building?.name || null,
+              buildingAddress: building?.address || null
             })
             newInvoiceContractIds.push(activeContract.id)
-            if (overdueInvoices.length > 0) {
-              invoiceIdsToMarkPaid.push(...overdueInvoices.map(inv => inv.id))
-            }
           }
         }
       } catch (error: any) {
@@ -314,12 +320,6 @@ export async function POST(request: NextRequest) {
       }
       for (const update of invoicesToUpdate) {
         await tx.invoice.update(update)
-      }
-      if (invoiceIdsToMarkPaid.length > 0) {
-        await tx.invoice.updateMany({
-          where: { id: { in: invoiceIdsToMarkPaid } },
-          data: { status: 'PAID', paidAt: new Date() }
-        })
       }
     }, {
       maxWait: 10000,

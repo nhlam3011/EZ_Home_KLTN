@@ -429,6 +429,7 @@ export default function AdminMessagesPage() {
 
   useEffect(() => {
     if (user) {
+      setSelectedTenant(null)
       fetchMessages(user.id)
     }
   }, [selectedBuildingId, user])

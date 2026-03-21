@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET - Lấy danh sách phòng với chỉ số điện nước để chốt
 export async function GET(request: NextRequest) {
   try {

@@ -122,6 +122,9 @@ export default function ForecastPage() {
 
   useEffect(() => {
     fetchForecast()
+    setShowMethodology(false)
+    setAiInsights(null)
+    setExpandedRecs(new Set())
   }, [selectedBuildingId])
 
   const fetchForecast = async () => {

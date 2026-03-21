@@ -60,6 +60,9 @@ export default function MaintenancePage() {
 
   useEffect(() => {
     fetchIssues()
+    setShowSidePanel(false)
+    setShowCancelModal(false)
+    setShowInvoiceModal(false)
   }, [selectedBuildingId])
 
   const fetchIssues = async () => {

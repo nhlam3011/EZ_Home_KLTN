@@ -104,6 +104,9 @@ export default function RenewalsPage() {
     }, [statusFilter, selectedBuildingId, search])
 
     useEffect(() => {
+        setCurrentPage(1)
+        setShowModal(false)
+        setShowExtendModal(false)
         fetchRequests()
     }, [fetchRequests])
 
@@ -321,24 +324,30 @@ export default function RenewalsPage() {
                         {showStatusDropdown && (
                             <>
                                 <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
-                                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
-                                    {[
-                                        { id: 'all', label: 'TẤT CẢ', icon: <Filter size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
-                                        { id: 'PENDING', label: 'CHỜ DUYỆT', icon: <Clock size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
-                                        { id: 'APPROVED', label: 'ĐÃ DUYỆT', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
-                                        { id: 'REJECTED', label: 'TỪ CHỐI', icon: <X size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
-                                    ].map((item) => (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false); setCurrentPage(1); }}
-                                            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-md' : 'hover:bg-tertiary text-secondary'}`}
-                                        >
-                                            <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
-                                                {item.icon}
-                                            </div>
-                                            <span className="uppercase">{item.label}</span>
-                                        </button>
-                                    ))}
+                                <div className="absolute top-full left-0 mt-2 w-full sm:w-[280px] bg-white/95 dark:bg-[#1a1c22]/95 backdrop-blur-xl rounded-[24px] shadow-2xl border border-white/20 dark:border-gray-800/50 p-3 z-50 animate-scaleIn origin-top-left overflow-hidden">
+                                    <div className="flex flex-col gap-1">
+                                        {[
+                                            { id: 'all', label: 'TẤT CẢ', icon: <Filter size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                                            { id: 'PENDING', label: 'CHỜ DUYỆT', icon: <Clock size={16} />, color: 'text-amber-500', bg: 'bg-amber-50/50 dark:bg-amber-900/10' },
+                                            { id: 'APPROVED', label: 'ĐÃ DUYỆT', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                                            { id: 'REJECTED', label: 'TỪ CHỐI', icon: <X size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
+                                        ].map((item) => (
+                                            <button
+                                              key={item.id}
+                                              onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false); setCurrentPage(1); }}
+                                              className={`flex items-center gap-3 w-full px-3 py-3 rounded-2xl text-[13px] font-bold transition-all duration-300 ${
+                                                statusFilter === item.id 
+                                                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 scale-[1.02]' 
+                                                  : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
+                                              }`}
+                                            >
+                                                <div className={`p-2 rounded-xl transition-colors ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                                                    {item.icon}
+                                                </div>
+                                                <span className="uppercase tracking-tight">{item.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </>
                         )}

@@ -117,11 +117,15 @@ export default function ServicesPage() {
     if (activeTab === 'config') {
       fetchServices()
     }
+    setShowInvoiceModal(false)
+    setShowCancelModal(false)
+    setShowConfirmModal(false)
+    setShowEditModal(false)
   }, [activeTab, orderSearch, orderStatusFilter, selectedBuildingId])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [activeTab, search, statusFilter, orderSearch, orderStatusFilter])
+  }, [activeTab, search, statusFilter, orderSearch, orderStatusFilter, selectedBuildingId])
 
   const fetchServices = async () => {
     setLoading(true)

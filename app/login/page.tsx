@@ -1,14 +1,84 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react'
 import { DarkModeToggle } from '../components/DarkModeToggle'
 import { LoadingSpinner } from '@/components/Loading'
 
+// Memoized background component to prevent flickering on state changes (keystrokes)
+const BackgroundComponent = React.memo(() => {
+  return (
+    <>
+      <style jsx>{`
+        @keyframes orb-swirl-1 {
+          0%, 100% { transform: translate(0, 0) scale(1.1); opacity: 0.8; filter: blur(90px); }
+          33% { transform: translate(70px, -50px) scale(1.3); opacity: 1; filter: blur(110px); }
+          66% { transform: translate(-40px, 40px) scale(1.0); opacity: 0.8; filter: blur(90px); }
+        }
+        @keyframes orb-swirl-2 {
+          0%, 100% { transform: translate(0, 0) scale(1.1); opacity: 0.8; filter: blur(90px); }
+          50% { transform: translate(-80px, 60px) scale(1.3); opacity: 1; filter: blur(120px); }
+        }
+        @keyframes orb-swirl-3 {
+          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+          50% { transform: translate(50px, 80px) scale(1.4); opacity: 1.0; }
+        }
+        .orb-1 { animation: orb-swirl-1 25s ease-in-out infinite; }
+        .orb-2 { animation: orb-swirl-2 30s ease-in-out infinite; }
+        .orb-3 { animation: orb-swirl-3 35s ease-in-out infinite; }
+        
+        .dot-grid {
+          background-image: radial-gradient(#64748b 1.0px, transparent 1.0px);
+          background-size: 24px 24px;
+        }
+        .dot-highlight {
+          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
+          mask-image: radial-gradient(200px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
+          -webkit-mask-image: radial-gradient(200px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
+        }
+
+      `}</style>
+
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] rounded-full bg-blue-500/22 dark:bg-blue-400/18 orb-1"></div>
+        <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[65%] rounded-full bg-purple-500/22 dark:bg-purple-400/18 orb-2"></div>
+        <div className="absolute top-[30%] right-[15%] w-[50%] h-[50%] rounded-full bg-indigo-500/15 dark:bg-indigo-400/12 blur-[120px] orb-3"></div>
+        <div className="absolute bottom-[20%] left-[10%] w-[45%] h-[45%] rounded-full bg-pink-500/15 dark:bg-pink-400/12 blur-[100px] orb-1 [animation-delay:-12s]"></div>
+        
+        <div className="absolute inset-0 opacity-[0.35] dark:opacity-[0.12] dot-grid" />
+
+
+
+
+        <div className="absolute inset-0 opacity-80 dark:opacity-60 dot-highlight" />
+
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(450px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(99, 102, 241, 0.05), transparent 100%)'
+        }} />
+      </div>
+    </>
+  )
+})
+
+BackgroundComponent.displayName = 'BackgroundComponent'
+
 export default function LoginPage() {
   const router = useRouter()
+  const containerRef = useRef<HTMLDivElement>(null)
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+  }
+
   const [loading, setLoading] = useState(false)
+
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     phone: '',
@@ -48,34 +118,21 @@ export default function LoginPage() {
       } else {
         setError(data.error || 'Đăng nhập thất bại')
       }
-    } catch (error) {
-      console.error('Login error:', error)
-      setError('Có lỗi xảy ra, vui lòng thử lại')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-[#0f172a] relative overflow-hidden">
-      {/* Mesh Gradient Background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/30 dark:bg-blue-400/20 blur-[120px] animate-pulse"></div>
-        <div className="absolute top-[10%] right-[-5%] w-[45%] h-[45%] rounded-full bg-purple-500/30 dark:bg-purple-400/20 blur-[120px] animate-pulse [animation-delay:2s]"></div>
-        <div className="absolute bottom-[-5%] left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/30 dark:bg-indigo-400/20 blur-[120px] animate-pulse [animation-delay:4s]"></div>
-        <div className="absolute bottom-[20%] right-[10%] w-[35%] h-[35%] rounded-full bg-pink-500/20 dark:bg-pink-400/10 blur-[100px] animate-pulse [animation-delay:1s]"></div>
-      </div>
-
-      {/* Dot Grid Pattern Overlay */}
-      <div
-        className="absolute inset-0 z-[1] opacity-[0.6] dark:opacity-[0.2]"
-        style={{
-          backgroundImage: 'radial-gradient(#64748b 0.8px, transparent 0.8px)',
-          backgroundSize: '32px 32px'
-        }}
-      ></div>
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-[#0f172a] relative overflow-hidden transition-colors duration-700"
+    >
+      <BackgroundComponent />
 
       {/* Dark Mode Toggle */}
+
       <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-30">
         <DarkModeToggle />
       </div>
@@ -185,3 +242,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

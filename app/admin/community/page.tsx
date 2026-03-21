@@ -119,6 +119,9 @@ export default function CommunityPage() {
     } else {
       fetchPublicPosts()
     }
+    setShowConfirmModal(false)
+    setShowCreateModal(false)
+    setSelectedPost(null)
   }, [activeTab, statusFilter, categoryFilter, searchQuery, selectedBuildingId])
 
   const showAlert = (message: string) => {

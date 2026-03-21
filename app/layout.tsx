@@ -11,8 +11,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "EZ-Home - Hệ thống quản lý nhà trọ",
-  description: "Hệ thống quản lý nhà trọ thông minh EZ-Home",
+  title: "EZ-Home - Quản lý nhà cho thuê thông minh",
+  description: "Hệ thống quản lý nhà cho thuê thông minh",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -22,6 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
+      <head />
       <body
         className={`${inter.variable} font-sans text-[14px] antialiased`}
       >

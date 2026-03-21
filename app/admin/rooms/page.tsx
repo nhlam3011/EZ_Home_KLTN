@@ -94,6 +94,10 @@ export default function RoomsPage() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
 
   useEffect(() => {
+    setCurrentPage(1)
+    setShowDetailModal(false)
+    setShowConfirmModal(false)
+    setSelectedRoom(null)
     fetchRooms()
   }, [search, statusFilter, floorFilter, selectedBuildingId])
 

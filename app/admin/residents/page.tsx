@@ -85,6 +85,7 @@ export default function ResidentsPage() {
   const { selectedBuildingId } = useBuilding()
 
   useEffect(() => {
+    setCurrentPage(1)
     fetchResidents()
   }, [search, floorFilter, statusFilter, selectedBuildingId])
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendInvoiceCreatedEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: NextRequest) {
   try {
     // First, check and update overdue invoices (if paymentDueDate field exists)
@@ -52,7 +55,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (buildingId) {
-      where.buildingId = parseInt(buildingId)
+      where.AND = [
+        ...((where.AND as any[]) || []),
+        {
+          OR: [
+            { buildingId: parseInt(buildingId) },
+            { contract: { room: { buildingId: parseInt(buildingId) } } }
+          ]
+        }
+      ]
     }
 
     const invoices = await prisma.invoice.findMany({
@@ -72,9 +83,11 @@ export async function GET(request: NextRequest) {
               select: {
                 id: true,
                 name: true,
+                floor: true,
                 buildingId: true
               }
             }
+
           }
         }
       },

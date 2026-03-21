@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
-import { Plus, Download, Search, Eye, Printer, MessageSquare, CheckCircle, AlertTriangle, FileText, Zap, Edit, Trash2, Upload, MoreVertical, X, Calendar, ChevronDown, ChevronLeft, ChevronRight, Send } from 'lucide-react'
+import { Plus, Download, Search, Eye, Printer, MessageSquare, CheckCircle, AlertTriangle, FileText, Zap, Edit, Trash2, Upload, MoreVertical, X, Calendar, ChevronDown, ChevronLeft, ChevronRight, Send, RefreshCw } from 'lucide-react'
 import Loading from '@/components/Loading'
 import { useBuilding } from '@/components/BuildingContext'
 
@@ -29,7 +29,9 @@ interface Invoice {
     }
     room: {
       name: string
+      floor: number
     }
+
   }
 }
 
@@ -57,6 +59,9 @@ export default function InvoicesPage() {
   const [showInvoices, setShowInvoices] = useState(false)
   const [showMonthPicker, setShowMonthPicker] = useState(false)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false)
+  const [selectedFloor, setSelectedFloor] = useState<number | 'all'>('all')
+  const [showFloorPicker, setShowFloorPicker] = useState(false)
+
 
   // Parse month and year from filter string or use defaults
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
@@ -70,6 +75,8 @@ export default function InvoicesPage() {
   }, [selectedMonth, selectedYear])
 
   useEffect(() => {
+    setCurrentPage(1)
+    setSelectedInvoices([])
     fetchInvoices()
   }, [monthFilter, statusFilter, search, selectedBuildingId])
 
@@ -86,7 +93,9 @@ export default function InvoicesPage() {
       if (search) params.append('search', search)
       if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
 
-      const response = await fetch(`/api/invoices?${params.toString()}`)
+      const response = await fetch(`/api/invoices?${params.toString()}&t=${Date.now()}`, {
+        cache: 'no-store'
+      })
       const data = await response.json()
 
       // Ensure data is always an array
@@ -402,10 +411,31 @@ export default function InvoicesPage() {
 
   // Ensure invoices is always an array
   const invoicesArray = Array.isArray(invoices) ? invoices : []
-  const totalPages = Math.ceil(invoicesArray.length / itemsPerPage)
+
+  // Extract floors from invoices
+  const floors = [...new Set(invoicesArray.map(inv => inv.contract.room.floor))].sort((a, b) => a - b)
+
+  const filteredInvoices = invoicesArray.filter(invoice => {
+    // Floor Filter
+    if (selectedFloor !== 'all' && invoice.contract.room.floor !== selectedFloor) return false
+
+    // Status Filter (Note: Status filter is also handled by API, but client-side backup is good for instant UI updates)
+    if (statusFilter !== 'all' && invoice.status !== statusFilter) return false
+
+    // Search Filter (Also handled by API, but client-side makes it smoother)
+    if (!search) return true
+    const s = search.toLowerCase()
+    return (
+      invoice.id.toString().includes(s) ||
+      invoice.contract.room.name.toLowerCase().includes(s) ||
+      invoice.contract.user.fullName.toLowerCase().includes(s)
+    )
+  })
+
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedInvoices = invoicesArray.slice(startIndex, endIndex)
+  const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex)
 
   return (
     <div className="space-y-6">
@@ -463,10 +493,10 @@ export default function InvoicesPage() {
 
       {/* Tabs */}
       <div className="border-b border-primary relative z-30">
-        <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-6">
+        <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-6 overflow-x-auto no-scrollbar">
           <Link
             href="/admin/invoices"
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${pathname === '/admin/invoices'
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${pathname === '/admin/invoices'
               ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-secondary hover:text-primary'
               }`}
@@ -476,7 +506,7 @@ export default function InvoicesPage() {
           </Link>
           <Link
             href="/admin/finance"
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${pathname === '/admin/finance'
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${pathname === '/admin/finance'
               ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
               : 'border-transparent text-secondary hover:text-primary'
               }`}
@@ -491,135 +521,224 @@ export default function InvoicesPage() {
       <div className="relative z-20 mt-6">
 
         {/* Filters */}
-        <div className="card p-4 !overflow-visible relative z-20 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {/* Modern Inline Period Picker */}
-              <div className="relative w-full sm:w-auto">
+        <div className="card p-3 sm:p-4 mb-6 !overflow-visible relative z-20">
+          <div className="flex flex-col md:grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {/* Period Picker */}
+            <div className="flex items-center gap-2 w-full">
+              <button
+                onClick={() => fetchInvoices()}
+                disabled={loading}
+                className="flex items-center justify-center p-2.5 h-11 w-11 rounded-xl border border-primary bg-white dark:bg-primary text-secondary hover:text-[var(--accent-blue)] hover:border-[var(--accent-blue)] transition-all duration-300 shadow-sm flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed group"
+                title="Tải lại dữ liệu"
+              >
+                <RefreshCw size={18} className={`transition-transform duration-500 group-hover:rotate-180 ${loading ? "animate-spin text-[var(--accent-blue)]" : ""}`} />
+              </button>
+              <div className="relative flex-1 min-w-0">
                 <button
                   onClick={() => setShowMonthPicker(!showMonthPicker)}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all h-11 w-full sm:w-auto ${showMonthPicker
-                    ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
-                    : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showMonthPicker
+                    ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                    : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
                     }`}
                 >
-                  <Calendar size={16} className="text-blue-500" />
-                  <span className="text-xs font-bold text-primary uppercase tracking-wider flex-1 text-left">
-                    THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}
-                  </span>
-                  <ChevronDown size={16} className={`transition-transform duration-300 text-tertiary ${showMonthPicker ? 'rotate-180' : ''}`} />
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex-shrink-0">
+                    <Calendar size={14} />
+                  </div>
+                  <div className="text-left pr-1 flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider truncate">
+                      THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth}/{selectedYear}
+                    </p>
+                  </div>
+                  <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showMonthPicker ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showMonthPicker && (
                   <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowMonthPicker(false)}
-                    />
-                    <div className="absolute top-full left-0 mt-2 w-full min-w-[240px] bg-primary rounded-2xl shadow-xl border border-primary p-3 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div className="flex items-center justify-between mb-3 bg-tertiary/30 p-1.5 rounded-xl">
+                    <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowMonthPicker(false)} />
+                    <div className="absolute top-full md:left-0 right-0 max-md:-left-[52px] mt-2 md:w-[280px] w-[275px] bg-white/95 dark:bg-[#1a1c22]/95 backdrop-blur-xl rounded-[20px] xs:rounded-[24px] shadow-2xl border border-white/20 dark:border-gray-800/50 p-4 xs:p-6 z-50 animate-scaleIn origin-top-right md:origin-top-left overflow-hidden">
+
+                      <div className="flex items-center justify-between mb-4 xs:mb-8 px-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedYear(y => y - 1)
                           }}
-                          className="p-1.5 hover:bg-primary rounded-lg transition-all active:scale-90 text-secondary"
+                          className="w-8 h-8 xs:w-9 xs:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 hover:text-blue-500 active:scale-90"
                         >
-                          <ChevronLeft size={16} />
+                          <ChevronLeft size={18} strokeWidth={2.5} />
                         </button>
-                        <span className="text-xs font-bold text-primary uppercase">NĂM {selectedYear}</span>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] xs:text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-0.5">Năm</span>
+                          <span className="text-14px xs:text-16px font-bold text-gray-800 dark:text-gray-100 uppercase tracking-tight">
+                            {selectedYear}
+                          </span>
+                        </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedYear(y => y + 1)
                           }}
-                          className="p-1.5 hover:bg-primary rounded-lg transition-all active:scale-90 text-secondary"
+                          className="w-8 h-8 xs:w-9 xs:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 hover:text-blue-500 active:scale-90"
                         >
-                          <ChevronRight size={16} />
+                          <ChevronRight size={18} strokeWidth={2.5} />
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                          <button
-                            key={m}
-                            onClick={() => {
-                              setSelectedMonth(m)
-                              setShowMonthPicker(false)
-                            }}
-                            className={`py-2 rounded-xl text-[10px] font-bold transition-all ${selectedMonth === m
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'hover:bg-tertiary text-secondary'
-                              }`}
-                          >
-                            T{m}
-                          </button>
-                        ))}
+                      <div className="grid grid-cols-4 gap-2 xs:gap-3">
+                        {Array.from({ length: 12 }, (_, i) => {
+                          const m = i + 1;
+                          const monthStr = m < 10 ? `0${m}` : `${m}`;
+                          const isSelected = selectedMonth === m;
+                          return (
+                            <button
+                              key={m}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMonth(m);
+                                setShowMonthPicker(false);
+                              }}
+                              className={`group relative h-10 xs:h-12 w-full rounded-xl xs:rounded-2xl text-[12px] xs:text-[14px] font-black transition-all duration-300 flex items-center justify-center overflow-hidden ${isSelected
+                                ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 scale-[1.05]'
+                                : 'text-gray-400 dark:text-gray-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400'
+                                }`}
+                            >
+                              <span className="relative z-10">{monthStr}</span>
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
 
-              <div className="relative w-full sm:w-auto">
-                <button
-                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all h-11 w-full sm:w-auto ${showStatusDropdown
-                    ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
-                    : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
-                    }`}
-                >
-                  <div className="text-blue-500">
-                    {statusFilter === 'all' && <FileText size={16} />}
-                    {statusFilter === 'PAID' && <CheckCircle size={16} />}
-                    {statusFilter === 'UNPAID' && <Zap size={16} />}
-                    {statusFilter === 'OVERDUE' && <AlertTriangle size={16} />}
-                  </div>
-                  <span className="text-xs font-md text-primary uppercase tracking-wider flex-1 text-left">
-                    {statusFilter === 'all' ? 'Tất cả trạng thái' :
-                      statusFilter === 'PAID' ? 'Đã thanh toán' :
-                        statusFilter === 'UNPAID' ? 'Chưa thanh toán' : 'Quá hạn'}
-                  </span>
-                  <ChevronDown size={16} className={`transition-transform duration-300 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showStatusDropdown && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowStatusDropdown(false)}
-                    />
-                    <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-primary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                      {[
-                        { id: 'all', label: 'TẤT CẢ', icon: <FileText size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
-                        { id: 'PAID', label: 'ĐÃ THANH TOÁN', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
-                        { id: 'UNPAID', label: 'CHƯA THANH TOÁN', icon: <Zap size={16} />, color: 'text-orange-500', bg: 'bg-orange-50/50 dark:bg-orange-900/10' },
-                        { id: 'OVERDUE', label: 'QUÁ HẠN', icon: <AlertTriangle size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            setStatusFilter(item.id)
-                            setShowStatusDropdown(false)
-                          }}
-                          className={`flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === item.id
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'hover:bg-tertiary text-secondary'
-                            }`}
-                        >
-                          <div className={`p-1 ${statusFilter === item.id ? 'text-white' : item.color}`}>
-                            {item.icon}
-                          </div>
-                          <span>{item.label}</span>
-                        </button>
-                      ))}
                     </div>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="relative flex-1 w-full lg:max-w-md">
+            {/* Status Filter */}
+            <div className="relative w-full">
+              <button
+                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showStatusDropdown
+                  ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                  : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  }`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                  statusFilter === 'PAID' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
+                    statusFilter === 'UNPAID' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-500' :
+                      'bg-red-50 dark:bg-red-900/20 text-red-500'}`}>
+                  {statusFilter === 'all' && <FileText size={14} />}
+                  {statusFilter === 'PAID' && <CheckCircle size={14} />}
+                  {statusFilter === 'UNPAID' && <Zap size={14} />}
+                  {statusFilter === 'OVERDUE' && <AlertTriangle size={14} />}
+                </div>
+                <div className="text-left pr-1 flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider truncate">
+                    {statusFilter === 'all' ? 'TẤT CẢ TRẠNG THÁI' :
+                      statusFilter === 'PAID' ? 'ĐÃ THANH TOÁN' :
+                        statusFilter === 'UNPAID' ? 'CHƯA THANH TOÁN' : 'QUÁ HẠN'}
+                  </p>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showStatusDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowStatusDropdown(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-full sm:w-max sm:min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left overflow-hidden">
+                    {[
+                      { id: 'all', label: 'TẤT CẢ TRẠNG THÁI', icon: <FileText size={16} />, color: 'text-blue-500', bg: 'bg-blue-50/50 dark:bg-blue-900/10' },
+                      { id: 'PAID', label: 'ĐÃ THANH TOÁN', icon: <CheckCircle size={16} />, color: 'text-green-500', bg: 'bg-green-50/50 dark:bg-green-900/10' },
+                      { id: 'UNPAID', label: 'CHƯA THANH TOÁN', icon: <Zap size={16} />, color: 'text-orange-500', bg: 'bg-orange-50/50 dark:bg-orange-900/10' },
+                      { id: 'OVERDUE', label: 'QUÁ HẠN', icon: <AlertTriangle size={16} />, color: 'text-red-500', bg: 'bg-red-50/50 dark:bg-red-900/10' }
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          setStatusFilter(item.id)
+                          setShowStatusDropdown(false)
+                          setCurrentPage(1)
+                        }}
+                        className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${statusFilter === item.id
+                          ? 'bg-[var(--accent-blue)] text-white shadow-md'
+                          : 'hover:bg-tertiary text-secondary'
+                          }`}
+                      >
+                        <div className={`p-1.5 rounded-lg ${statusFilter === item.id ? 'bg-white/20 text-white' : `${item.bg} ${item.color}`}`}>
+                          {item.icon}
+                        </div>
+                        <span className="uppercase">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Floor Picker */}
+            <div className="relative w-full">
+              <button
+                onClick={() => setShowFloorPicker(!showFloorPicker)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showFloorPicker
+                  ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                  : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                  }`}
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex-shrink-0">
+                  <Zap size={14} className="rotate-12" />
+                </div>
+                <div className="text-left pr-1 flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider truncate">
+                    {selectedFloor === 'all' ? 'TẤT CẢ TẦNG' : `TẦNG ${selectedFloor}`}
+                  </p>
+                </div>
+                <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showFloorPicker ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showFloorPicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowFloorPicker(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white/95 dark:bg-[#1a1c22]/95 backdrop-blur-xl rounded-[24px] shadow-2xl border border-white/20 dark:border-gray-800/50 p-4 z-50 animate-scaleIn origin-top-left">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedFloor('all')
+                          setShowFloorPicker(false)
+                        }}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedFloor === 'all'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'text-secondary hover:bg-tertiary'
+                          }`}
+                      >
+                        TẤT CẢ
+                      </button>
+                      {floors.map(floor => (
+                        <button
+                          key={floor}
+                          onClick={() => {
+                            setSelectedFloor(floor)
+                            setShowFloorPicker(false)
+                          }}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedFloor === floor
+                            ? 'bg-blue-500 text-white shadow-md'
+                            : 'text-secondary hover:bg-tertiary'
+                            }`}
+
+                        >
+                          TẦNG {floor}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
               <input
                 type="text"
@@ -631,6 +750,7 @@ export default function InvoicesPage() {
             </div>
           </div>
         </div>
+
 
         {/* Invoices Table */}
         {loading ? (

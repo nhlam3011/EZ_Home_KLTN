@@ -106,6 +106,17 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<any>(null)
 
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    containerRef.current.style.setProperty('--mouse-x', `${x}px`)
+    containerRef.current.style.setProperty('--mouse-y', `${y}px`)
+  }
+
   const suggestions = role === 'ADMIN' ? ADMIN_SUGGESTIONS : TENANT_SUGGESTIONS
 
   useEffect(() => {
@@ -172,10 +183,10 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
       const res = await fetch('/api/admin/ai-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: text.trim(), 
-          history, 
-          role, 
+        body: JSON.stringify({
+          message: text.trim(),
+          history,
+          role,
           userId,
           buildingId: selectedBuildingId
         }),
@@ -276,7 +287,12 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
   const hasMessages = messages.length > 0
 
   return (
-    <div className="h-full flex flex-col relative overflow-hidden" style={{ maxHeight: 'calc(100vh - 64px)' }}>
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="h-full flex flex-col relative overflow-hidden"
+      style={{ maxHeight: 'calc(100vh - 64px)' }}
+    >
       {/* GenAI Background Animation */}
       <style jsx>{`
         @keyframes orb-float-1 {
@@ -333,27 +349,48 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
+
+        .dot-grid {
+          /* image set inline to match login page */
+        }
+        .dot-highlight {
+          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
+          mask-image: radial-gradient(150px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
+          -webkit-mask-image: radial-gradient(150px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
+        }
+
+
+
       `}</style>
 
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Base gradient mesh */}
-        <div className="absolute inset-0 mesh-animate" style={{
-          background: 'radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(236, 72, 153, 0.04) 0%, transparent 60%)'
-        }} />
-        {/* Floating orbs */}
-        <div className="orb-1 absolute top-[5%] right-[10%] w-48 sm:w-72 h-48 sm:h-72 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%)' }} />
-        <div className="orb-2 absolute bottom-[15%] left-[5%] w-56 sm:w-80 h-56 sm:h-80 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(168, 85, 247, 0.12), transparent 70%)' }} />
-        <div className="orb-3 absolute top-[40%] left-[40%] w-40 sm:w-64 h-40 sm:h-64 rounded-full blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(236, 72, 153, 0.08), transparent 70%)' }} />
-        {/* Subtle grid pattern */}
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: 'linear-gradient(var(--text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--text-primary) 1px, transparent 1px)',
-          backgroundSize: '60px 60px'
+        {/* Base adaptive background */}
+        <div className="absolute inset-0 bg-slate-50 dark:bg-[#0f172a]" />
+
+        {/* Mesh Gradient Overlay like Login Page */}
+        <div className="absolute inset-0 z-0 opacity-40 dark:opacity-30">
+          <div className="absolute top-[-5%] left-[-5%] w-[60%] h-[60%] rounded-full bg-blue-500/20 dark:bg-blue-400/15 blur-[100px] orb-1"></div>
+          <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/20 dark:bg-purple-400/15 blur-[100px] orb-2"></div>
+          <div className="absolute bottom-[-10%] left-[10%] w-[45%] h-[45%] rounded-full bg-indigo-500/20 dark:bg-indigo-400/15 blur-[100px] orb-3"></div>
+        </div>
+
+        {/* Subtle dot pattern matching login page but allowing highlighting */}
+        <div className="absolute inset-0 opacity-[0.5] dark:opacity-[0.15] dot-grid"
+          style={{ backgroundImage: 'radial-gradient(#64748b 1.0px, transparent 1.0px)', backgroundSize: '24px 24px' }} />
+
+        {/* Interactive Highlight layer (the spotlight dots) */}
+        <div className="absolute inset-0 opacity-100 dark:opacity-80 dot-highlight"
+          style={{ backgroundSize: '24px 24px' }} />
+
+        {/* Mouse Spotlight Glow */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(350px circle at var(--mouse-x, -100px) var(--mouse-y, -100px), rgba(99, 102, 241, 0.1), transparent 100%)'
         }} />
       </div>
+
+
+
 
       {/* Messages Area / Welcome Screen */}
       <div className="flex-1 overflow-y-auto relative z-10 no-scrollbar">

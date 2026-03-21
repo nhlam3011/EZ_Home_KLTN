@@ -20,7 +20,8 @@ import {
   Calendar,
   X,
   ChevronDown,
-  RotateCcw
+  RotateCcw,
+  RefreshCw
 } from 'lucide-react'
 import { useBuilding } from '@/components/BuildingContext'
 
@@ -50,27 +51,35 @@ export default function FinancePage() {
   const [search, setSearch] = useState('')
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [selectedFloor, setSelectedFloor] = useState<number | 'all'>('all')
   const [rooms, setRooms] = useState<RoomReading[]>([])
   const [readings, setReadings] = useState<Record<number, { elecNew: string; waterNew: string; error?: string }>>({})
   const [selectedRooms, setSelectedRooms] = useState<number[]>([])
   const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const [showFloorPicker, setShowFloorPicker] = useState(false)
   const { selectedBuildingId } = useBuilding()
+
+  const floors = [...new Set(rooms.map(r => r.floor))].sort((a, b) => a - b)
 
   useEffect(() => {
     if (pathname === '/admin/finance') {
       fetchRoomsForReading()
-      // Reset readings khi chuyển tháng
+      // Reset readings và selected rooms khi chuyển tháng hoặc đổi tòa nhà
       setReadings({})
+      setSelectedRooms([])
     }
   }, [pathname, selectedMonth, selectedYear, selectedBuildingId])
+// ... (omitting unchanged fetchRoomsForReading, handleReadingChange, validateReading, handleSaveReadings, generateMonthYearOptions)
+// ... I will actually replace from the state down to the end of return to be safe.
+
 
   const fetchRoomsForReading = async () => {
     setLoading(true)
     try {
       const url = selectedBuildingId
-        ? `/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}&buildingId=${selectedBuildingId}`
-        : `/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}`
-      const response = await fetch(url)
+        ? `/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}&buildingId=${selectedBuildingId}&t=${Date.now()}`
+        : `/api/meter-readings/rooms?month=${selectedMonth}&year=${selectedYear}&t=${Date.now()}`
+      const response = await fetch(url, { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setRooms(data)
@@ -268,6 +277,10 @@ export default function FinancePage() {
   }
 
   const filteredRooms = rooms.filter(room => {
+    // Floor Filter
+    if (selectedFloor !== 'all' && room.floor !== selectedFloor) return false
+
+    // Search Filter
     if (!search) return true
     const searchLower = search.toLowerCase()
     return (
@@ -345,99 +358,168 @@ export default function FinancePage() {
 
       {/* Meter Reading Content */}
       {pathname === '/admin/finance' && (
-        <div className="space-y-6 mt-6">
-          {/* Main Content Area */}
-          <div className="card overflow-hidden p-0 relative z-20 bg-transparent border-none shadow-none">
-
-            {/* Period Selector & Tools Row */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-20 !overflow-visible mb-6 bg-white dark:bg-primary p-4 sm:p-6 rounded-2xl border border-primary shadow-sm">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                {/* Modern Inline Period Picker */}
-                <div className="relative w-full sm:w-auto">
+        <div className="relative z-20 mt-6 space-y-6">
+          {/* Filters */}
+          <div className="card p-3 sm:p-4 mb-6 !overflow-visible relative z-20">
+            <div className="flex flex-col md:grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+              {/* Period Picker */}
+              <div className="flex items-center gap-2 w-full">
+                <button
+                  onClick={() => fetchRoomsForReading()}
+                  disabled={loading}
+                  className="flex items-center justify-center p-2.5 h-11 w-11 rounded-xl border border-primary bg-white dark:bg-primary text-secondary hover:text-[var(--accent-blue)] hover:border-[var(--accent-blue)] transition-all duration-300 shadow-sm flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed group"
+                  title="Tải lại dữ liệu"
+                >
+                  <RefreshCw size={18} className={`transition-transform duration-500 group-hover:rotate-180 ${loading ? "animate-spin text-[var(--accent-blue)]" : ""}`} />
+                </button>
+                <div className="relative flex-1 min-w-0">
                   <button
                     onClick={() => setShowMonthPicker(!showMonthPicker)}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all h-11 w-full sm:w-auto ${showMonthPicker
-                      ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10 shadow-lg'
-                      : 'bg-primary border-primary hover:border-blue-500 shadow-sm'
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showMonthPicker
+                      ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                      : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
                       }`}
                   >
-                    <Calendar size={16} className="text-blue-500" />
-                    <span className="text-xs font-bold text-primary uppercase tracking-wider flex-1 text-left">
-                      THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth} / {selectedYear}
-                    </span>
-                    <ChevronDown size={16} className={`transition-transform duration-300 text-tertiary ${showMonthPicker ? 'rotate-180' : ''}`} />
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex-shrink-0">
+                      <Calendar size={14} />
+                    </div>
+                    <div className="text-left pr-1 flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider truncate">
+                        THÁNG {selectedMonth < 10 ? `0${selectedMonth}` : selectedMonth}/{selectedYear}
+                      </p>
+                    </div>
+                    <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showMonthPicker ? 'rotate-180' : ''}`} />
                   </button>
 
                   {showMonthPicker && (
                     <>
-                      <div
-                        className="fixed inset-0 z-40 transition-opacity"
-                        onClick={() => setShowMonthPicker(false)}
-                      />
-                      <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-3 z-50 animate-scaleIn origin-top-left ring-1 ring-black/5 dark:ring-white/5 overflow-hidden">
-                        <div className="flex items-center justify-between mb-3 bg-tertiary/30 p-1.5 rounded-xl">
+                      <div className="fixed inset-0 z-40 transition-opacity" onClick={() => setShowMonthPicker(false)} />
+                      <div className="absolute top-full md:left-0 right-0 max-md:-left-[52px] mt-2 md:w-[280px] w-[275px] bg-white/95 dark:bg-[#1a1c22]/95 backdrop-blur-xl rounded-[20px] xs:rounded-[24px] shadow-2xl border border-white/20 dark:border-gray-800/50 p-4 xs:p-6 z-50 animate-scaleIn origin-top-right md:origin-top-left overflow-hidden">
+                        <div className="flex items-center justify-between mb-4 xs:mb-8 px-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               setSelectedYear(y => y - 1)
                               setSelectedRooms([])
                             }}
-                            className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                            className="w-8 h-8 xs:w-9 xs:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 hover:text-blue-500 active:scale-90"
                           >
-                            <ChevronLeft size={16} />
+                            <ChevronLeft size={18} strokeWidth={2.5} />
                           </button>
-                          <span className="text-sm font-bold text-primary">Năm {selectedYear}</span>
+                          <div className="flex flex-col items-center">
+                            <span className="text-[9px] xs:text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mb-0.5">Năm</span>
+                            <span className="text-14px xs:text-16px font-bold text-gray-800 dark:text-gray-100 uppercase tracking-tight">
+                              {selectedYear}
+                            </span>
+                          </div>
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               setSelectedYear(y => y + 1)
                               setSelectedRooms([])
                             }}
-                            className="p-1.5 hover:bg-primary dark:hover:bg-gray-700 rounded-lg transition-all active:scale-90 text-secondary"
+                            className="w-8 h-8 xs:w-9 xs:h-9 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 hover:text-blue-500 active:scale-90"
                           >
-                            <ChevronRight size={16} />
+                            <ChevronRight size={18} strokeWidth={2.5} />
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                            <button
-                              key={m}
-                              onClick={() => {
-                                setSelectedMonth(m)
-                                setSelectedRooms([])
-                                setShowMonthPicker(false)
-                              }}
-                              className={`py-2 rounded-xl text-xs font-bold transition-all ${selectedMonth === m
-                                ? 'bg-[var(--accent-blue)] text-white shadow-inner scale-95'
-                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-secondary border border-transparent hover:border-blue-100 dark:hover:border-blue-800'
-                                }`}
-                            >
-                              T{m}
-                            </button>
-                          ))}
+                        <div className="grid grid-cols-4 gap-2 xs:gap-3">
+                          {Array.from({ length: 12 }, (_, i) => {
+                            const m = i + 1;
+                            const monthStr = m < 10 ? `0${m}` : `${m}`;
+                            const isSelected = selectedMonth === m;
+                            return (
+                              <button
+                                key={m}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedMonth(m);
+                                  setSelectedRooms([]);
+                                  setShowMonthPicker(false);
+                                }}
+                                className={`group relative h-10 xs:h-12 w-full rounded-xl xs:rounded-2xl text-[12px] xs:text-[14px] font-black transition-all duration-300 flex items-center justify-center overflow-hidden ${isSelected
+                                  ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25 scale-[1.05]'
+                                  : 'text-gray-400 dark:text-gray-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400'
+                                  }`}
+                              >
+                                <span className="relative z-10">{monthStr}</span>
+                                {isSelected && (
+                                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     </>
                   )}
-                </div>
 
-                {selectedRooms.length > 0 && (
-                  <div className="flex items-center justify-between sm:justify-start gap-2 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-2xl border border-blue-100 dark:border-blue-800 animate-fadeIn h-11 w-full sm:w-auto">
-                    <span className="text-xs text-blue-700 dark:text-blue-300 font-bold whitespace-nowrap">
-                      Đã chọn: {selectedRooms.length} phòng
-                    </span>
-                    <button
-                      onClick={() => setSelectedRooms([])}
-                      className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors text-blue-500"
-                    >
-                      <X size={14} strokeWidth={3} />
-                    </button>
+                </div>
+              </div>
+
+              {/* Floor Picker */}
+              <div className="relative w-full">
+                <button
+                  onClick={() => setShowFloorPicker(!showFloorPicker)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full ${showFloorPicker
+                    ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
+                    : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
+                    }`}
+                >
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex-shrink-0">
+                    <Zap size={14} className="rotate-12" />
                   </div>
+                  <div className="text-left pr-1 flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider truncate">
+                      {selectedFloor === 'all' ? 'TẤT CẢ TẦNG' : `TẦNG ${selectedFloor}`}
+                    </p>
+                  </div>
+                  <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showFloorPicker ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showFloorPicker && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowFloorPicker(false)} />
+                    <div className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-white/95 dark:bg-[#1a1c22]/95 backdrop-blur-xl rounded-[24px] shadow-2xl border border-white/20 dark:border-gray-800/50 p-4 z-50 animate-scaleIn origin-top-left">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedFloor('all')
+                            setShowFloorPicker(false)
+                          }}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedFloor === 'all'
+                            ? 'bg-blue-500 text-white shadow-md'
+                            : 'text-secondary hover:bg-tertiary'
+                            }`}
+
+                        >
+                          TẤT CẢ
+                        </button>
+                        {floors.map(floor => (
+                          <button
+                            key={floor}
+                            onClick={() => {
+                              setSelectedFloor(floor)
+                              setShowFloorPicker(false)
+                            }}
+                            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedFloor === floor
+                              ? 'bg-blue-500 text-white shadow-md'
+                              : 'text-secondary hover:bg-tertiary'
+                              }`}
+
+                          >
+                            TẦNG {floor}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
 
-              <div className="relative flex-1 w-full lg:max-w-md">
+              {/* Search Bar */}
+              <div className="relative w-full xl:col-span-2">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
                 <input
                   type="text"
@@ -449,230 +531,181 @@ export default function FinancePage() {
               </div>
             </div>
 
-            {/* Table */}
-            {loading ? (
-              <div className="text-center py-12">
-                <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-                <p className="text-tertiary">Đang tải...</p>
-              </div>
-            ) : (
-              <div className="card overflow-hidden">
-                <div className="overflow-x-auto -mx-4 sm:mx-0">
-                  <div className="inline-block min-w-full align-middle">
-                    <table className="w-full">
-                      <thead className="bg-tertiary border-b border-primary">
-                        <tr>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left align-middle">
-                            <label className="inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
-                                checked={selectedRooms.length > 0 && filteredRooms.every(room => selectedRooms.includes(room.id))}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    const allIds = filteredRooms.map(room => room.id)
-                                    setSelectedRooms([...new Set([...selectedRooms, ...allIds])])
-                                  } else {
-                                    const unselectedIds = filteredRooms.map(room => room.id)
-                                    setSelectedRooms(selectedRooms.filter(id => !unselectedIds.includes(id)))
-                                  }
-                                }}
-                              />
-                            </label>
-                          </th>
-                          <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase sticky left-0 bg-tertiary z-10">PHÒNG</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
-                              <span>ĐIỆN CŨ</span>
-                            </div>
-                          </th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <Zap size={14} className="text-yellow-500 dark:text-yellow-400" />
-                              <span>ĐIỆN MỚI</span>
-                            </div>
-                          </th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
-                              <span>NƯỚC CŨ</span>
-                            </div>
-                          </th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">
-                            <div className="flex items-center gap-1 sm:gap-2">
-                              <Droplet size={14} className="text-blue-500 dark:text-blue-400" />
-                              <span>NƯỚC MỚI</span>
-                            </div>
-                          </th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs font-semibold text-secondary uppercase">TIÊU THỤ</th>
-                          <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-xs font-semibold text-secondary uppercase">TRẠNG THÁI</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-primary">
-                        {filteredRooms.length === 0 ? (
-                          <tr>
-                            <td colSpan={9} className="px-4 py-8 text-center text-xs sm:text-sm text-tertiary">
-                              Không có phòng nào
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredRooms.map((room) => {
-                            const reading = readings[room.id] || { elecNew: '', waterNew: '' }
-                            const elecNewNum = reading.elecNew ? parseFloat(reading.elecNew) : null
-                            const waterNewNum = reading.waterNew ? parseFloat(reading.waterNew) : null
-                            const elecConsumption = elecNewNum !== null ? elecNewNum - room.elecOld : null
-                            const waterConsumption = waterNewNum !== null ? waterNewNum - room.waterOld : null
-                            const hasError = reading.error ||
-                              (elecNewNum !== null && elecNewNum < room.elecOld) ||
-                              (waterNewNum !== null && waterNewNum < room.waterOld)
-                            const isComplete = elecNewNum !== null && waterNewNum !== null && !hasError
-
-                            return (
-                              <tr
-                                key={room.id}
-                                className={`hover:bg-tertiary transition-colors ${hasError ? 'bg-red-50 dark:bg-red-900/20' : ''
-                                  }`}
-                              >
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 align-middle">
-                                  <label className="inline-flex items-center cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
-                                      checked={selectedRooms.includes(room.id)}
-                                      onChange={(e) => {
-                                        if (e.target.checked) {
-                                          setSelectedRooms([...selectedRooms, room.id])
-                                        } else {
-                                          setSelectedRooms(selectedRooms.filter(id => id !== room.id))
-                                        }
-                                      }}
-                                    />
-                                  </label>
-                                </td>
-                                <td className="px-3 sm:px-4 py-2 sm:py-3 sticky left-0 bg-primary dark:bg-secondary z-10">
-                                  <div>
-                                    <p className="text-xs sm:text-sm font-medium text-primary">{room.name}</p>
-                                    {room.contract && (
-                                      <p className="text-xs text-tertiary">{room.contract.user.fullName}</p>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                  <div className="flex items-center gap-1 sm:gap-2">
-                                    <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
-                                    <span className="text-xs sm:text-sm text-secondary font-medium">{room.elecOld.toLocaleString('vi-VN')}</span>
-                                  </div>
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                  <div className="flex items-center gap-1 sm:gap-2">
-                                    <Zap size={12} className="sm:w-[14px] sm:h-[14px] text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
-                                    <input
-                                      type="number"
-                                      min={room.elecOld}
-                                      step="1"
-                                      value={reading.elecNew}
-                                      onChange={(e) => handleReadingChange(room.id, 'elecNew', e.target.value)}
-                                      onBlur={(e) => {
-                                        const val = parseFloat(e.target.value)
-                                        if (val < room.elecOld) {
-                                          handleReadingChange(room.id, 'elecNew', e.target.value)
-                                        }
-                                      }}
-                                      placeholder="Số mới"
-                                      className={`w-13 sm:w-20 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary placeholder:text-tertiary placeholder:opacity-50 ${hasError && elecNewNum !== null && elecNewNum < room.elecOld
-                                        ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                                        : 'border-primary focus:ring-2 focus:ring-yellow-500 dark:focus:ring-yellow-400'
-                                        }`}
-                                    />
-                                  </div>
-                                  {hasError && elecNewNum !== null && elecNewNum < room.elecOld && (
-                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.elecOld}</p>
-                                  )}
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                  {elecConsumption !== null ? (
-                                    <span className={`text-xs sm:text-sm font-medium ${elecConsumption < 0
-                                      ? 'text-red-600 dark:text-red-400'
-                                      : 'text-yellow-600 dark:text-yellow-400'
-                                      }`}>
-                                      {elecConsumption.toLocaleString('vi-VN')}
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs sm:text-sm text-tertiary">-</span>
-                                  )}
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                  <div className="flex items-center gap-1 sm:gap-2">
-                                    <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
-                                    <span className="text-xs sm:text-sm text-secondary font-medium">{room.waterOld.toLocaleString('vi-VN')}</span>
-                                  </div>
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                  <div className="flex items-center gap-1 sm:gap-2">
-                                    <Droplet size={12} className="sm:w-[14px] sm:h-[14px] text-blue-500 dark:text-blue-400 flex-shrink-0" />
-                                    <input
-                                      type="number"
-                                      min={room.waterOld}
-                                      step="1"
-                                      value={reading.waterNew}
-                                      onChange={(e) => handleReadingChange(room.id, 'waterNew', e.target.value)}
-                                      onBlur={(e) => {
-                                        const val = parseFloat(e.target.value)
-                                        if (val < room.waterOld) {
-                                          handleReadingChange(room.id, 'waterNew', e.target.value)
-                                        }
-                                      }}
-                                      placeholder="Số mới"
-                                      className={`w-13 sm:w-20 px-1.5 sm:px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary placeholder:text-tertiary placeholder:opacity-50 ${hasError && waterNewNum !== null && waterNewNum < room.waterOld
-                                        ? 'border-red-500 dark:border-red-400 bg-red-50 dark:bg-red-900/20'
-                                        : 'border-primary focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400'
-                                        }`}
-                                    />
-                                  </div>
-                                  {hasError && waterNewNum !== null && waterNewNum < room.waterOld && (
-                                    <p className="text-xs text-red-600 dark:text-red-400 mt-1">Tối thiểu: {room.waterOld}</p>
-                                  )}
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3">
-                                  {waterConsumption !== null ? (
-                                    <span className={`text-xs sm:text-sm font-medium ${waterConsumption < 0
-                                      ? 'text-red-600 dark:text-red-400'
-                                      : 'text-blue-600 dark:text-blue-400'
-                                      }`}>
-                                      {waterConsumption.toLocaleString('vi-VN')}
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs sm:text-sm text-tertiary">-</span>
-                                  )}
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
-                                  {hasError ? (
-                                    <div className="flex flex-col items-center gap-1">
-                                      <XCircle size={16} className="text-red-600 dark:text-red-400" />
-                                      <span className="text-xs text-red-600 dark:text-red-400">{reading.error || 'Lỗi'}</span>
-                                    </div>
-                                  ) : isComplete ? (
-                                    <CheckCircle size={16} className="sm:w-5 sm:h-5 text-green-600 dark:text-green-400 mx-auto" />
-                                  ) : (
-                                    <AlertCircle size={16} className="sm:w-5 sm:h-5 text-tertiary mx-auto" />
-                                  )}
-                                </td>
-                              </tr>
-                            )
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+            {selectedRooms.length > 0 && (
+              <div className="relative mt-4 animate-fadeIn">
+                <div className="flex items-center justify-between sm:justify-start gap-3 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-2xl border border-blue-100 dark:border-blue-800 h-11">
+                  <span className="text-sm text-blue-700 dark:text-blue-300 font-medium whitespace-nowrap">
+                    Đã chọn: {selectedRooms.length} phòng
+                  </span>
+                  <button
+                    onClick={() => setSelectedRooms([])}
+                    className="p-1 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors text-blue-500"
+                  >
+                    <X size={14} strokeWidth={3} />
+                  </button>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Table */}
+          {loading ? (
+            <div className="text-center py-12">
+              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
+              <p className="text-tertiary">Đang tải...</p>
+            </div>
+          ) : (
+            <div className="card overflow-hidden !p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-tertiary border-b border-primary">
+                    <tr>
+                      <th className="w-12 px-4 py-3 text-left">
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 cursor-pointer transition-all duration-200 hover:border-blue-500"
+                            checked={selectedRooms.length > 0 && filteredRooms.every(room => selectedRooms.includes(room.id))}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                const allIds = filteredRooms.map(room => room.id)
+                                setSelectedRooms([...new Set([...selectedRooms, ...allIds])])
+                              } else {
+                                const unselectedIds = filteredRooms.map(room => room.id)
+                                setSelectedRooms(selectedRooms.filter(id => !unselectedIds.includes(id)))
+                              }
+                            }}
+                          />
+                        </label>
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider sticky left-0 bg-tertiary z-10 w-[140px] sm:w-auto">PHÒNG</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider whitespace-nowrap">ĐIỆN CŨ/MỚI</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">TIÊU THỤ</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider whitespace-nowrap">NƯỚC CŨ/MỚI</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-secondary uppercase tracking-wider">TIÊU THỤ</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-secondary uppercase tracking-wider">TRẠNG THÁI</th>
+
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-primary">
+                    {filteredRooms.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-12 text-center text-tertiary">
+                          Không có phòng nào phù hợp
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredRooms.map((room) => {
+                        const reading = readings[room.id] || { elecNew: '', waterNew: '' }
+                        const elecNewNum = reading.elecNew ? parseFloat(reading.elecNew) : null
+                        const waterNewNum = reading.waterNew ? parseFloat(reading.waterNew) : null
+                        const elecConsumption = elecNewNum !== null ? elecNewNum - room.elecOld : null
+                        const waterConsumption = waterNewNum !== null ? waterNewNum - room.waterOld : null
+                        const hasError = reading.error ||
+                          (elecNewNum !== null && elecNewNum < room.elecOld) ||
+                          (waterNewNum !== null && waterNewNum < room.waterOld)
+                        const isComplete = elecNewNum !== null && waterNewNum !== null && !hasError
+
+                        return (
+                          <tr
+                            key={room.id}
+                            className={`hover:bg-tertiary/50 transition-colors ${hasError ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}
+                          >
+                            <td className="px-4 py-3 align-middle">
+                              <label className="inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-2 border-gray-400 dark:border-gray-500 text-blue-600 bg-gray-100 dark:bg-gray-700 cursor-pointer"
+                                  checked={selectedRooms.includes(room.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedRooms([...selectedRooms, room.id])
+                                    } else {
+                                      setSelectedRooms(selectedRooms.filter(id => id !== room.id))
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </td>
+                            <td className="px-4 py-3 sticky left-0 bg-white dark:bg-secondary z-10">
+                              <div className="min-w-[100px]">
+                                <p className="text-sm font-bold text-primary">{room.name}</p>
+                                {room.contract && (
+                                  <p className="text-[10px] text-tertiary truncate max-w-[120px] font-medium">{room.contract.user.fullName}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-tertiary">
+                                  <span>Cũ: {room.elecOld.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Zap size={14} className="text-yellow-500" />
+                                  <input
+                                    type="number"
+                                    value={reading.elecNew}
+                                    onChange={(e) => handleReadingChange(room.id, 'elecNew', e.target.value)}
+                                    placeholder="Mới"
+                                    className={`w-20 px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary ${hasError && elecNewNum !== null && elecNewNum < room.elecOld ? 'border-red-500 text-red-500' : 'border-primary focus:ring-2 focus:ring-yellow-500'}`}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs sm:text-sm font-bold ${elecConsumption !== null && elecConsumption < 0 ? 'text-red-500' : 'text-primary'}`}>
+                                {elecConsumption !== null ? elecConsumption.toLocaleString() : '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="space-y-1.5">
+                                <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-tertiary">
+                                  <span>Cũ: {room.waterOld.toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Droplet size={14} className="text-blue-500" />
+                                  <input
+                                    type="number"
+                                    value={reading.waterNew}
+                                    onChange={(e) => handleReadingChange(room.id, 'waterNew', e.target.value)}
+                                    placeholder="Mới"
+                                    className={`w-20 px-2 py-1 text-xs sm:text-sm border rounded bg-primary text-primary ${hasError && waterNewNum !== null && waterNewNum < room.waterOld ? 'border-red-500 text-red-500' : 'border-primary focus:ring-2 focus:ring-blue-500'}`}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs sm:text-sm font-bold ${waterConsumption !== null && waterConsumption < 0 ? 'text-red-500' : 'text-primary'}`}>
+                                {waterConsumption !== null ? waterConsumption.toLocaleString() : '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {hasError ? (
+                                <div className="flex justify-center">
+                                  <XCircle size={18} className="text-red-500" />
+                                </div>
+                              ) : isComplete ? (
+                                <div className="flex justify-center">
+                                  <CheckCircle size={18} className="text-green-500" />
+                                </div>
+                              ) : (
+                                <div className="flex justify-center">
+                                  <AlertCircle size={18} className="text-tertiary/50" />
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
-      )
-      }
+      )}
     </div>
   )
 }
+

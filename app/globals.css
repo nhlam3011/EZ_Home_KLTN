@@ -161,10 +161,6 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
   --color-accent-blue: var(--accent-blue);
-
-  --color-background: var(--bg-secondary);
-  --color-foreground: var(--text-primary);
-  --font-sans: var(--font-inter);
 }
 
 /* ============================================
