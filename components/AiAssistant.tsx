@@ -133,7 +133,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
         if (!containerRef.current) return
 
         const elapsed = (Date.now() - startTime) / 1000
-        
+
         // Use different frequencies for X and Y to create a "wandering" effect
         // Range: 10% to 90%
         const xPercent = 50 + Math.sin(elapsed * 0.4) * 40
@@ -392,17 +392,29 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .dot-grid {
-          /* image set inline to match login page */
+        .line-grid {
+          background-image: 
+            linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+          background-size: 40px 40px;
         }
-        .dot-highlight {
-          background-image: radial-gradient(circle, #6366f1 1.5px, transparent 1.5px);
-          background-size: 24px 24px;
-          mask-image: radial-gradient(150px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
-          -webkit-mask-image: radial-gradient(150px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
+        :global(.dark) .line-grid {
+          background-image: 
+            linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
         }
-        :global(.dark) .dot-highlight {
-          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
+        .grid-highlight {
+          background-image: 
+            linear-gradient(to right, rgba(118, 27, 255, 0.2) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(118, 27, 255, 0.2) 1px, transparent 1px);
+          background-size: 40px 40px;
+          mask-image: radial-gradient(350px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
+          -webkit-mask-image: radial-gradient(350px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
+        }
+        :global(.dark) .grid-highlight {
+          background-image: 
+            linear-gradient(to right, rgba(0, 255, 255, 0.4) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 255, 255, 0.4) 1px, transparent 1px);
         }
 
 
@@ -421,17 +433,13 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
           <div className="absolute bottom-[-10%] left-[10%] w-[45%] h-[45%] rounded-full bg-indigo-500/20 dark:bg-indigo-400/15 blur-[100px] orb-3"></div>
         </div>
 
-        {/* Subtle dot pattern matching login page but allowing highlighting */}
-        <div className="absolute inset-0 opacity-[0.5] dark:opacity-[0.15] dot-grid"
-          style={{ backgroundImage: 'radial-gradient(circle, #64748b 1.0px, transparent 1.0px)', backgroundSize: '24px 24px' }} />
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-100 line-grid" />
 
-        {/* Interactive Highlight layer (the spotlight dots) */}
-        <div className="absolute inset-0 opacity-100 dark:opacity-80 dot-highlight"
-          style={{ backgroundSize: '24px 24px' }} />
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-100 grid-highlight" />
 
-        {/* Mouse Spotlight Glow */}
+        {/* Global Spotlight Glow */}
         <div className="absolute inset-0 pointer-events-none" style={{
-          background: 'radial-gradient(350px circle at var(--mouse-x, -100px) var(--mouse-y, -100px), rgba(99, 102, 241, 0.1), transparent 100%)'
+          background: 'radial-gradient(500px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), rgba(118, 27, 255, 0.05), transparent 100%)'
         }} />
       </div>
 

@@ -28,18 +28,29 @@ const BackgroundComponent = React.memo(() => {
         .orb-2 { animation: orb-swirl-2 30s ease-in-out infinite; }
         .orb-3 { animation: orb-swirl-3 35s ease-in-out infinite; }
         
-        .dot-grid {
-          background-image: radial-gradient(circle, #64748b 1.0px, transparent 1.0px);
-          background-size: 24px 24px;
+        .line-grid {
+          background-image: 
+            linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+          background-size: 40px 40px;
         }
-        .dot-highlight {
-          background-image: radial-gradient(circle, #761bffff 1.5px, transparent 1.5px);
-          background-size: 24px 24px;
-          mask-image: radial-gradient(200px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
-          -webkit-mask-image: radial-gradient(200px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
+        :global(.dark) .line-grid {
+          background-image: 
+            linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
         }
-        :global(.dark) .dot-highlight {
-          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
+        .grid-highlight {
+          background-image: 
+            linear-gradient(to right, rgba(118, 27, 255, 0.2) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(118, 27, 255, 0.2) 1px, transparent 1px);
+          background-size: 40px 40px;
+          mask-image: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
+          -webkit-mask-image: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
+        }
+        :global(.dark) .grid-highlight {
+          background-image: 
+            linear-gradient(to right, rgba(0, 255, 255, 0.4) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(0, 255, 255, 0.4) 1px, transparent 1px);
         }
 
       `}</style>
@@ -50,15 +61,13 @@ const BackgroundComponent = React.memo(() => {
         <div className="absolute top-[30%] right-[15%] w-[50%] h-[50%] rounded-full bg-indigo-500/15 dark:bg-indigo-400/12 blur-[120px] orb-3"></div>
         <div className="absolute bottom-[20%] left-[10%] w-[45%] h-[45%] rounded-full bg-pink-500/15 dark:bg-pink-400/12 blur-[100px] orb-1 [animation-delay:-12s]"></div>
 
-        <div className="absolute inset-0 opacity-[0.35] dark:opacity-[0.12] dot-grid" />
+        <div className="absolute inset-x-0 bottom-0 top-0 opacity-100 line-grid" />
 
+        <div className="absolute inset-x-0 bottom-0 top-0 opacity-100 grid-highlight" />
 
-
-
-        <div className="absolute inset-0 opacity-100 dark:opacity-80 dot-highlight" />
-
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(450px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(99, 102, 241, 0.05), transparent 100%)'
+        {/* Global Spotlight Glow */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(500px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(118, 27, 255, 0.05), transparent 100%)'
         }} />
       </div>
     </>
