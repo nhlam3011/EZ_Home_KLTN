@@ -40,7 +40,9 @@ const TENANT_SUGGESTIONS = [
 
 // Parse markdown table
 const parseTable = (content: string): { before: string; table: string; after: string } | null => {
-  const tableRegex = /(\|[\s\S]*?\|)\s*\n(\|[-:\s|]+\|)\s*\n((?:\|[\s\S]*?\|\s*\n?)+)/g
+  // More lenient regex to catch tables even without perfect separator line
+  // Matches lines with at least 2 pipes, appearing at least twice consecutively
+  const tableRegex = /((?:\|[^|\n]+\|(?:\s*\|[^|\n]+\|)*\s*\n)+)/g
   const match = tableRegex.exec(content)
   if (!match) return null
   const before = content.slice(0, match.index)
@@ -66,7 +68,7 @@ const renderTable = (tableContent: string) => {
         <thead>
           <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
             {headers.map((header, i) => (
-              <th key={i} className="px-4 py-2.5 text-left font-semibold whitespace-nowrap"
+              <th key={i} className="px-4 py-2.5 text-left font-semibold whitespace-normal sm:whitespace-nowrap min-w-[120px] sm:min-w-0"
                 style={{ color: 'var(--text-primary)' }}>{header}</th>
             ))}
           </tr>
@@ -81,7 +83,7 @@ const renderTable = (tableContent: string) => {
                 borderBottom: '1px solid var(--border-primary)'
               }}>
                 {cells.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2.5 whitespace-nowrap"
+                  <td key={cellIndex} className="px-4 py-2.5 whitespace-normal sm:whitespace-nowrap min-w-[120px] sm:min-w-0"
                     style={{ color: 'var(--text-secondary)' }}>{cell}</td>
                 ))}
               </tr>
@@ -108,8 +110,48 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
 
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const [isMobile, setIsMobile] = useState(false)
+  const lastInteractionTime = useRef(Date.now())
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    let frameId: number
+    let startTime = Date.now()
+
+    const animate = () => {
+      // Only auto-animate if on mobile OR if no interaction for 3 seconds
+      const timeSinceInteraction = Date.now() - lastInteractionTime.current
+      if (isMobile || timeSinceInteraction > 3000) {
+        if (!containerRef.current) return
+
+        const elapsed = (Date.now() - startTime) / 1000
+        
+        // Use different frequencies for X and Y to create a "wandering" effect
+        // Range: 10% to 90%
+        const xPercent = 50 + Math.sin(elapsed * 0.4) * 40
+        const yPercent = 50 + Math.cos(elapsed * 0.3) * 40
+
+        containerRef.current.style.setProperty('--mouse-x', `${xPercent}%`)
+        containerRef.current.style.setProperty('--mouse-y', `${yPercent}%`)
+      }
+      frameId = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => cancelAnimationFrame(frameId)
+  }, [isMobile])
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return
+    lastInteractionTime.current = Date.now()
     const rect = containerRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
@@ -354,9 +396,13 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
           /* image set inline to match login page */
         }
         .dot-highlight {
-          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
+          background-image: radial-gradient(circle, #6366f1 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
           mask-image: radial-gradient(150px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
           -webkit-mask-image: radial-gradient(150px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
+        }
+        :global(.dark) .dot-highlight {
+          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
         }
 
 
@@ -377,7 +423,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
 
         {/* Subtle dot pattern matching login page but allowing highlighting */}
         <div className="absolute inset-0 opacity-[0.5] dark:opacity-[0.15] dot-grid"
-          style={{ backgroundImage: 'radial-gradient(#64748b 1.0px, transparent 1.0px)', backgroundSize: '24px 24px' }} />
+          style={{ backgroundImage: 'radial-gradient(circle, #64748b 1.0px, transparent 1.0px)', backgroundSize: '24px 24px' }} />
 
         {/* Interactive Highlight layer (the spotlight dots) */}
         <div className="absolute inset-0 opacity-100 dark:opacity-80 dot-highlight"
@@ -460,7 +506,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
             <div className="max-w-3xl mx-auto space-y-4 sm:space-y-5">
               {messages.map((msg, idx) => (
                 <div key={msg.id} className={`msg-appear flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex gap-2 sm:gap-3 max-w-[95%] sm:max-w-[85%] min-w-0 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                     {/* Avatar */}
                     {msg.role === 'assistant' && (
                       <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-md gradient-flow"
@@ -469,9 +515,9 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
                       </div>
                     )}
                     {/* Bubble */}
-                    <div className={`px-3.5 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm leading-relaxed ${msg.role === 'user'
+                    <div className={`px-3.5 sm:px-4 py-2.5 sm:py-3 text-[13px] sm:text-sm leading-relaxed overflow-x-auto no-scrollbar break-words ${msg.role === 'user'
                       ? 'rounded-2xl rounded-br-md text-white shadow-md'
-                      : 'rounded-2xl rounded-bl-md border shadow-sm'
+                      : 'rounded-2xl rounded-bl-md border shadow-sm w-full'
                       }`}
                       style={
                         msg.role === 'user'

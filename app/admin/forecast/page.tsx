@@ -598,7 +598,7 @@ export default function ForecastPage() {
                 </span>
               </div>
               <div className="flex items-end justify-between mb-3">
-                <p className="text-3xl font-black text-primary leading-none tracking-tighter">
+                <p className="text-2xl font-bold text-primary leading-none tracking-tighter">
                   {formatLargeCurrency(data.vacancyRisk.summary.totalAtRiskRevenue)}
                 </p>
                 <div className="flex items-center gap-2 text-tertiary">
@@ -768,7 +768,7 @@ export default function ForecastPage() {
               setAiLoading(true)
               setAiInsights(null)
               try {
-                const res = await fetch('/api/admin/forecast/ai-insights', { 
+                const res = await fetch('/api/admin/forecast/ai-insights', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ buildingId: selectedBuildingId })

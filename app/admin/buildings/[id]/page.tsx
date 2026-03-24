@@ -244,7 +244,7 @@ export default function BuildingDetailPage() {
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 !hidden sm:!flex">
                     <button
                         onClick={deleteBuilding}
                         className="btn bg-rose-50 text-rose-600 border border-rose-100 h-11 px-4 rounded-2xl flex items-center justify-center hover:bg-rose-100 transition-all shadow-sm"
@@ -265,6 +265,26 @@ export default function BuildingDetailPage() {
                     >
                         <Plus size={20} strokeWidth={2.5} />
                         <span className="font-bold">Thêm phòng mới</span>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Mobile Sticky Footer */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => router.push(`/admin/buildings?edit=${building.id}`)}
+                        className="btn btn-secondary flex-1 py-3 rounded-xl font-bold uppercase text-[13px] tracking-tight flex items-center justify-center gap-2"
+                    >
+                        <Edit size={18} />
+                        Sửa
+                    </button>
+                    <Link
+                        href={`/admin/rooms/new?buildingId=${building.id}`}
+                        className="btn btn-primary flex-[2] py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                        <Plus size={20} />
+                        <span className="font-bold uppercase text-[13px] tracking-tight">Thêm phòng</span>
                     </Link>
                 </div>
             </div>

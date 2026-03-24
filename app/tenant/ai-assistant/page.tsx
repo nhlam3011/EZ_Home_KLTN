@@ -1,7 +1,12 @@
 'use client'
 
 import AiAssistantPage from '@/components/AiAssistant'
+import { BuildingProvider } from '@/components/BuildingContext'
 
 export default function TenantAiAssistantPage() {
-  return <AiAssistantPage role="TENANT" />
+  return (
+    <BuildingProvider>
+      <AiAssistantPage role="TENANT" />
+    </BuildingProvider>
+  )
 }

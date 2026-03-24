@@ -142,13 +142,11 @@ export async function POST(request: NextRequest) {
       finalPaymentDueDate.setDate(finalPaymentDueDate.getDate() + 10)
     }
 
-    // Find overdue invoices for this contract to add to current invoice
+    // Find ONLY overdue invoices for this contract to add to current invoice
     const overdueInvoices = await prisma.invoice.findMany({
       where: {
         contractId: parseInt(contractId),
-        status: {
-          in: ['UNPAID', 'OVERDUE']
-        },
+        status: 'OVERDUE',
         OR: [
           { year: { lt: parseInt(year) } },
           { year: parseInt(year), month: { lt: parseInt(month) } }
@@ -173,7 +171,7 @@ export async function POST(request: NextRequest) {
       parseFloat(amountWater || 0) +
       parseFloat(amountCommonService || 0) +
       parseFloat(amountService || 0) +
-      overdueAmount // Add overdue amount to current invoice
+      overdueAmount
 
     // Get contract to find building
     const contract = await prisma.contract.findUnique({

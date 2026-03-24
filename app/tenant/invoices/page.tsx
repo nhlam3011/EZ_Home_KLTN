@@ -256,12 +256,12 @@ export default function InvoicesPage() {
   }
 
   const openPayConfirmModal = () => {
-    if (!selectedInvoice || (selectedInvoice.status !== 'UNPAID' && selectedInvoice.status !== 'OVERDUE')) return
+    if (!selectedInvoice || selectedInvoice.status !== 'UNPAID') return
     setShowPayConfirmModal(true)
   }
 
   const handlePayOSPayment = async () => {
-    if (!selectedInvoice || (selectedInvoice.status !== 'UNPAID' && selectedInvoice.status !== 'OVERDUE')) return
+    if (!selectedInvoice || selectedInvoice.status !== 'UNPAID') return
 
     setPayLoading(true)
     try {
@@ -412,7 +412,7 @@ export default function InvoicesPage() {
   }, [])
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className={`space-y-4 sm:space-y-6 ${selectedInvoice ? 'pb-32 sm:pb-0' : ''}`}>
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase line-clamp-1">HÓA ĐƠN & THANH TOÁN</h1>
@@ -480,6 +480,52 @@ export default function InvoicesPage() {
             </div>
           </div>
         </div>
+
+        {/* Mobile Sticky Footer */}
+        {selectedInvoice && (
+          <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-secondary">Tổng cần thanh toán</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(Number(selectedInvoice.totalAmount))}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="p-2.5 bg-tertiary rounded-xl text-primary border border-primary active:scale-95 transition-transform"
+                  >
+                    <Download size={20} />
+                  </button>
+                  <button
+                    onClick={handleComplain}
+                    className="p-2.5 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 border border-red-200 dark:border-red-800 active:scale-95 transition-transform"
+                  >
+                    <AlertCircle size={20} />
+                  </button>
+                </div>
+              </div>
+              {selectedInvoice.status === 'UNPAID' ? (
+                <button
+                  onClick={handlePayOSPayment}
+                  disabled={loading}
+                  className="btn btn-primary btn-md w-full py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all"
+                >
+                  <span className="font-bold">THANH TOÁN PAYOS</span>
+                </button>
+              ) : selectedInvoice.status === 'OVERDUE' ? (
+                <div className="flex items-center justify-center gap-2 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs font-bold text-center">
+                  <AlertCircle size={16} />
+                  <span>HOÁ ĐƠN QUÁ HẠN, LIÊN HỆ QUẢN LÝ</span>
+                </div>
+              ) : (
+                <div className="py-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-600 dark:text-green-400 text-xs font-bold text-center">
+                  HOÁ ĐƠN ĐÃ THANH TOÁN
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Right Panel - Invoice Details */}
         {selectedInvoice && (
@@ -691,8 +737,8 @@ export default function InvoicesPage() {
                 </div>
               </div>
 
-              {/* Footer Actions */}
-              <div className="border-t border-primary pt-4 sm:pt-6">
+              {/* Footer Actions - Desktop */}
+              <div className="border-t border-primary pt-4 sm:pt-6 hidden sm:block">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
                     <button
@@ -702,7 +748,7 @@ export default function InvoicesPage() {
                       <Download size={20} className="flex-shrink-0" />
                       <span>Tải PDF</span>
                     </button>
-                    {(selectedInvoice.status === 'UNPAID' || selectedInvoice.status === 'OVERDUE') && (
+                    {selectedInvoice.status === 'UNPAID' && (
                       <button
                         onClick={handlePayOSPayment}
                         disabled={loading}
@@ -711,6 +757,12 @@ export default function InvoicesPage() {
                         <span>💳</span>
                         <span>Thanh toán PayOS</span>
                       </button>
+                    )}
+                    {selectedInvoice.status === 'OVERDUE' && (
+                      <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm font-medium">
+                        <AlertCircle size={18} />
+                        <span>Hoá đơn quá hạn, vui lòng liên hệ quản lý</span>
+                      </div>
                     )}
                     <button
                       onClick={handleComplain}

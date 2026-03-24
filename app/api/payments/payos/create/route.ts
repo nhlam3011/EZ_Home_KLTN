@@ -60,7 +60,14 @@ export async function POST(request: NextRequest) {
 
     if (invoice.status === 'PAID') {
       return NextResponse.json(
-        { error: 'Invoice already paid' },
+        { error: 'Hóa đơn này đã được thanh toán' },
+        { status: 400 }
+      )
+    }
+
+    if (invoice.status === 'OVERDUE') {
+      return NextResponse.json(
+        { error: 'Hóa đơn đã quá hạn thanh toán. Vui lòng liên hệ quản lý để được hỗ trợ.' },
         { status: 400 }
       )
     }

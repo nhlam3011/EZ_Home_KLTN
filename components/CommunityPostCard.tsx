@@ -197,17 +197,17 @@ export default function CommunityPostCard({
 
                 {/* Images - Hidden in main moderation grid */}
                 {!isModeration && post.images && post.images.length > 0 && (
-                    <div className="mb-4 rounded-xl overflow-hidden">
+                    <div className="mb-4 -mx-4 sm:mx-0 overflow-hidden sm:rounded-xl">
                         <div className={`grid gap-1 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                             {post.images.slice(0, 4).map((img, idx) => (
                                 <div
                                     key={idx}
-                                    className={`relative bg-tertiary ${post.images.length === 3 && idx === 0 ? 'row-span-2' : 'aspect-video'}`}
+                                    className={`relative bg-tertiary ${post.images.length === 1 ? 'w-full' : (post.images.length === 3 && idx === 0 ? 'row-span-2' : 'aspect-video')}`}
                                 >
                                     <img
                                         src={img}
                                         alt=""
-                                        className="w-full h-full object-cover"
+                                        className={`w-full h-full object-cover ${post.images.length === 1 ? 'object-contain max-h-[500px] bg-black/5 dark:bg-black/20' : ''}`}
                                     />
                                     {idx === 3 && post.images.length > 4 && (
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">

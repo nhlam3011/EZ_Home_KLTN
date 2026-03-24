@@ -438,7 +438,7 @@ export default function InvoicesPage() {
   const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 sm:pb-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-center sm:text-left">
@@ -451,7 +451,7 @@ export default function InvoicesPage() {
           <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto lg:flex lg:flex-row lg:items-center lg:gap-3 justify-center sm:justify-end">
             <Link
               href="/admin/invoices/new"
-              className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
+              className="btn btn-primary h-11 px-6 rounded-2xl !hidden sm:!flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
             >
               <Plus size={18} />
               <span className="font-bold">Tạo hóa đơn</span>
@@ -460,7 +460,7 @@ export default function InvoicesPage() {
             {selectedInvoices.length > 0 && (
               <button
                 onClick={handleBulkMarkAsPaid}
-                className="btn btn-success h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-2 lg:order-none animate-scaleIn shadow-lg shadow-green-500/20"
+                className="btn btn-success h-11 px-6 rounded-2xl !hidden sm:!flex items-center justify-center gap-2 order-2 lg:order-none animate-scaleIn shadow-lg shadow-green-500/20"
               >
                 <CheckCircle size={18} strokeWidth={2.5} />
                 <span className="font-bold whitespace-nowrap">Pay ({selectedInvoices.length})</span>
@@ -1612,7 +1612,27 @@ export default function InvoicesPage() {
             </div>
           </div>
         )}
-      </div >
+      {/* Mobile Sticky Footer */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+        {selectedInvoices.length > 0 ? (
+          <button
+            onClick={handleBulkMarkAsPaid}
+            className="btn btn-success btn-md w-full py-3 rounded-xl shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 animate-scaleIn"
+          >
+            <CheckCircle size={18} strokeWidth={2.5} />
+            <span className="font-bold uppercase text-[13px] tracking-tight">Thanh toán ({selectedInvoices.length})</span>
+          </button>
+        ) : (
+          <Link
+            href="/admin/invoices/new"
+            className="btn btn-primary btn-md w-full py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <Plus size={18} />
+            <span className="font-bold uppercase text-[13px] tracking-tight">Tạo hóa đơn</span>
+          </Link>
+        )}
+      </div>
+    </div >
     </div>
   )
 }

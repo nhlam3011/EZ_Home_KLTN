@@ -58,7 +58,7 @@ export default function NewServicePage() {
     const unitSuggestions = ['kWh', 'm3', 'Người', 'Kg', 'Lần', 'Bình', 'Tháng', 'Ngày']
 
     return (
-        <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+        <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 pb-28 sm:pb-0">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -72,7 +72,7 @@ export default function NewServicePage() {
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 !hidden sm:!flex">
                     <Link href="/admin/services" className="btn btn-secondary btn-sm sm:btn-md">
                         <X size={18} />
                         <span>Hủy</span>
@@ -245,6 +245,35 @@ export default function NewServicePage() {
                     )}
                 </div>
             </form>
+            {/* Mobile Sticky Footer */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => router.push('/admin/services')}
+                        className="btn btn-secondary btn-md flex-1 py-3 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                        <X size={18} />
+                        <span className="font-bold uppercase text-[13px] tracking-tight">Hủy</span>
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="btn btn-primary btn-md flex-[2] py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 size={18} className="animate-spin" />
+                                <span className="font-bold text-[13px] tracking-tight">ĐANG TẠO...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Save size={18} strokeWidth={2.5} />
+                                <span className="font-bold uppercase text-[13px] tracking-tight">Lưu dịch vụ</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
         </div>
     )
 }

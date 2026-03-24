@@ -265,7 +265,7 @@ export default function TenantContractsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selectedContract && canRenew(selectedContract) ? 'pb-24 sm:pb-0' : ''}`}>
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">HỢP ĐỒNG CỦA TÔI</h1>
@@ -408,13 +408,13 @@ export default function TenantContractsPage() {
                             </p>
                           )}
                           {selectedContract.status === 'ACTIVE' && canRenew(selectedContract) && (
-                            <button
-                              onClick={handleRenewRequest}
-                              className="mt-2 btn btn-primary btn-sm flex items-center gap-1"
-                            >
-                              <RefreshCw size={14} />
-                              Gia hạn
-                            </button>
+                               <button
+                                onClick={handleRenewRequest}
+                                className="mt-2 btn btn-primary btn-sm hidden sm:flex items-center gap-1"
+                              >
+                                <RefreshCw size={14} />
+                                Gia hạn
+                              </button>
                           )}
                           {selectedContract.status === 'ACTIVE' && !canRenew(selectedContract) && (
                             <div className="mt-2">
@@ -538,6 +538,19 @@ export default function TenantContractsPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Mobile Sticky Footer */}
+      {selectedContract && canRenew(selectedContract) && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
+          <button
+            onClick={handleRenewRequest}
+            className="btn btn-primary btn-md w-full py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <RefreshCw size={18} />
+            <span className="font-bold">GIA HẠN HỢP ĐỒNG</span>
+          </button>
         </div>
       )}
     </div>

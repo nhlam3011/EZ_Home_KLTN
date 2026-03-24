@@ -233,7 +233,7 @@ export default function ResidentsPage() {
   const paginatedResidents = residents.slice(startIndex, endIndex)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-28 sm:pb-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-center sm:text-left w-full">
@@ -243,7 +243,7 @@ export default function ResidentsPage() {
         <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">
           <Link
             href="/admin/residents/new"
-            className="btn btn-primary h-11 px-6 rounded-2xl flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
+            className="btn btn-primary h-11 px-6 rounded-2xl !hidden sm:!flex items-center justify-center gap-2 order-1 lg:order-none shadow-lg shadow-blue-500/20"
           >
             <Plus size={18} />
             <span className="font-bold">Check-in Mới</span>
@@ -688,6 +688,16 @@ export default function ResidentsPage() {
           </div>
         )
       }
-    </div >
+      {/* Mobile Sticky Footer */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+        <Link
+          href="/admin/residents/new"
+          className="btn btn-primary btn-md w-full py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        >
+          <Plus size={18} />
+          <span className="font-bold uppercase text-[13px] tracking-tight">Check-in Mới</span>
+        </Link>
+      </div>
+    </div>
   )
 }

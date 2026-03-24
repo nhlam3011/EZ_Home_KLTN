@@ -219,7 +219,7 @@ export default function BuildingsPage() {
     }
 
     return (
-        <div className="space-y-4 sm:space-y-6 pb-20">
+        <div className="space-y-4 sm:space-y-6 pb-28 sm:pb-0">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="text-center sm:text-left w-full">
                     <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase tracking-tight">CẤU HÌNH TÒA NHÀ</h1>
@@ -228,7 +228,7 @@ export default function BuildingsPage() {
                 <div className="flex items-center justify-center sm:justify-end gap-3 flex-wrap w-full sm:w-auto">
                     <button
                         onClick={() => openModal()}
-                        className="btn btn-primary h-11 px-6 rounded-2xl shadow-lg shadow-blue-500/20 flex items-center gap-2"
+                        className="btn btn-primary h-11 px-6 rounded-2xl shadow-lg shadow-blue-500/20 !hidden sm:!flex items-center gap-2"
                     >
                         <Plus size={18} strokeWidth={2.5} />
                         <span className="font-bold">Thêm tòa nhà mới</span>
@@ -794,6 +794,16 @@ export default function BuildingsPage() {
                     </div>
                 </div>
             )}
+            {/* Mobile Sticky Footer */}
+            <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+                <button
+                    onClick={() => openModal()}
+                    className="btn btn-primary btn-md w-full py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                    <Plus size={18} strokeWidth={2.5} />
+                    <span className="font-bold uppercase text-[13px] tracking-tight">Thêm tòa nhà mới</span>
+                </button>
+            </div>
         </div>
     )
 }

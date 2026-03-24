@@ -58,7 +58,7 @@ export default function NewRoomPage() {
   const handleRoomTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const type = e.target.value
     setFormData(prev => ({ ...prev, roomType: type }))
-    
+
     // Auto-fill logic
     if (buildingDetails?.roomTypePresets) {
       const preset = buildingDetails.roomTypePresets.find((p: RoomTypePreset) => p.type === type)
@@ -79,7 +79,7 @@ export default function NewRoomPage() {
       alert('Vui lòng chọn tòa nhà')
       return
     }
-    
+
     setLoading(true)
     try {
       const response = await fetch('/api/rooms', {
@@ -111,8 +111,8 @@ export default function NewRoomPage() {
   const handleAmenityChange = (amenity: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      amenities: checked 
-        ? [...prev.amenities, amenity] 
+      amenities: checked
+        ? [...prev.amenities, amenity]
         : prev.amenities.filter(a => a !== amenity)
     }))
   }
@@ -122,7 +122,7 @@ export default function NewRoomPage() {
   ]
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0 pb-28 sm:pb-0">
       {/* Standardized Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4 text-left">
@@ -134,14 +134,14 @@ export default function NewRoomPage() {
             <p className="text-xs sm:text-sm text-secondary mt-1">Thiết lập thông tin và tiện ích cho phòng</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto !hidden sm:!flex">
           <Link href="/admin/rooms" className="btn btn-secondary h-11 px-6 flex-1 sm:flex-none font-bold uppercase tracking-wider text-xs">Hủy bỏ</Link>
-          <button 
-            onClick={handleSubmit} 
-            disabled={loading} 
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
             className="btn btn-primary h-11 px-8 shadow-lg shadow-blue-500/20 flex-1 sm:flex-none flex items-center justify-center gap-2"
           >
-            {loading ? <Loading size="sm" /> : <><Save size={18} strokeWidth={2.5} /> <span className="font-bold">Lưu & Tạo phòng</span></>}
+            {loading ? <Loading size="sm" /> : <><Save size={18} strokeWidth={2.5} /> <span className="font-bold">Tạo phòng</span></>}
           </button>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function NewRoomPage() {
               <div className="space-y-2 text-left">
                 <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Toà nhà quản lý *</label>
                 <div className="relative">
-                  <select 
+                  <select
                     name="buildingId"
                     value={formData.buildingId}
                     onChange={handleChange}
@@ -186,7 +186,7 @@ export default function NewRoomPage() {
                   )}
                 </label>
                 <div className="relative">
-                  <select 
+                  <select
                     name="roomType"
                     value={formData.roomType}
                     onChange={handleRoomTypeChange}
@@ -196,23 +196,23 @@ export default function NewRoomPage() {
                     {buildingDetails?.roomTypePresets?.map((p: RoomTypePreset) => (
                       <option key={p.type} value={p.type}>{p.type}</option>
                     )) || (
-                      <>
-                        <option value="Studio">Studio (Khép kín)</option>
-                        <option value="1PN">1 Phòng ngủ</option>
-                        <option value="2PN">2 Phòng ngủ</option>
-                        <option value="Duplex">Duplex (Gác lửng)</option>
-                        <option value="Phòng trọ">Phòng trọ</option>
-                      </>
-                    )}
+                        <>
+                          <option value="Studio">Studio (Khép kín)</option>
+                          <option value="1PN">1 Phòng ngủ</option>
+                          <option value="2PN">2 Phòng ngủ</option>
+                          <option value="Duplex">Duplex (Gác lửng)</option>
+                          <option value="Phòng trọ">Phòng trọ</option>
+                        </>
+                      )}
                   </select>
                   <Wrench size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
                 </div>
               </div>
 
               <div className="space-y-2 text-left">
-                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số phòng / Tên phòng *</label>
+                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số phòng / Tên phòng</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="text" name="name" required value={formData.name} onChange={handleChange}
                     className="input input-with-icon h-11 uppercase"
                     placeholder="Ví dụ: 101, 202..."
@@ -225,10 +225,10 @@ export default function NewRoomPage() {
                 <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Vị trí tầng *</label>
                 {buildingDetails?.floorCount ? (
                   <div className="relative">
-                    <select 
-                      name="floor" 
-                      required 
-                      value={formData.floor} 
+                    <select
+                      name="floor"
+                      required
+                      value={formData.floor}
                       onChange={handleChange}
                       className="input input-with-icon h-11"
                     >
@@ -240,7 +240,7 @@ export default function NewRoomPage() {
                     <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary text-xs font-bold uppercase tracking-widest">F</div>
                   </div>
                 ) : (
-                  <input 
+                  <input
                     type="number" name="floor" required value={formData.floor} onChange={handleChange}
                     className="input h-11"
                     placeholder="Nhập số tầng..."
@@ -265,7 +265,7 @@ export default function NewRoomPage() {
               <div className="space-y-2 text-left">
                 <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Giá thuê (VNĐ/Tháng) *</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="number" name="price" required value={formData.price} onChange={handleChange}
                     className="input input-with-icon h-11 text-blue-600 dark:text-blue-400"
                   />
@@ -275,7 +275,7 @@ export default function NewRoomPage() {
               <div className="space-y-2 text-left">
                 <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Diện tích (m²) *</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="number" name="area" required value={formData.area} onChange={handleChange}
                     className="input input-with-icon h-11"
                   />
@@ -285,7 +285,7 @@ export default function NewRoomPage() {
               <div className="space-y-2 text-left">
                 <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Số người ở tối đa</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="number" name="maxPeople" required value={formData.maxPeople} onChange={handleChange}
                     className="input input-with-icon h-11"
                   />
@@ -296,7 +296,7 @@ export default function NewRoomPage() {
 
             <div className="space-y-2 text-left">
               <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Mô tả phòng</label>
-              <textarea 
+              <textarea
                 name="description" value={formData.description} onChange={handleChange} rows={4}
                 className="input py-3 min-h-[120px]"
                 placeholder="Mô tả các đặc điểm nổi bật: ánh sáng, nội thất, view..."
@@ -321,15 +321,13 @@ export default function NewRoomPage() {
                   key={item}
                   type="button"
                   onClick={() => handleAmenityChange(item, !formData.amenities.includes(item))}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-sm font-medium transition-all text-left ${
-                    formData.amenities.includes(item)
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/10'
-                      : 'bg-tertiary/10 text-secondary border-primary hover:border-blue-200'
-                  }`}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border text-sm font-medium transition-all text-left ${formData.amenities.includes(item)
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/10'
+                    : 'bg-tertiary/10 text-secondary border-primary hover:border-blue-200'
+                    }`}
                 >
-                  <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-colors ${
-                    formData.amenities.includes(item) ? 'bg-white border-transparent' : 'bg-primary border-primary'
-                  }`}>
+                  <div className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center transition-colors ${formData.amenities.includes(item) ? 'bg-white border-transparent' : 'bg-primary border-primary'
+                    }`}>
                     {formData.amenities.includes(item) && <CheckCircle size={10} className="text-blue-600" />}
                   </div>
                   <span className="truncate">{item}</span>
@@ -339,33 +337,59 @@ export default function NewRoomPage() {
           </div>
 
           <div className="card space-y-6">
-             <div className="flex items-center gap-3 border-b border-primary pb-4">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
-                    <ImageIcon size={20} />
-                </div>
-                <h3 className="font-bold text-base text-primary uppercase">Trạng thái & Ảnh</h3>
-             </div>
-             
-             <div className="aspect-video bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-800 flex flex-col items-center justify-center text-blue-400 group cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shadow-inner">
-                <ImageIcon size={28} className="mb-2 group-hover:scale-110 transition-transform" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Tải lên ảnh phòng</span>
-                <span className="text-[9px] mt-1 opacity-60 font-bold uppercase tracking-widest">Dưới 5MB, tối đa 10 ảnh</span>
-             </div>
-             
-             <div className="space-y-2 text-left">
-                <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Trạng thái khi tạo</label>
-                <select 
-                  name="status" value={formData.status} onChange={handleChange}
-                  className="input h-11"
-                >
-                  <option value="AVAILABLE">Phòng trống (CÓ SẴN)</option>
-                  <option value="MAINTENANCE">Đang bảo trì</option>
-                  <option value="RENTED">Đã cho thuê</option>
-                </select>
-             </div>
+            <div className="flex items-center gap-3 border-b border-primary pb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center">
+                <ImageIcon size={20} />
+              </div>
+              <h3 className="font-bold text-base text-primary uppercase">Trạng thái & Ảnh</h3>
+            </div>
+
+            <div className="aspect-video bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-blue-200 dark:border-blue-800 flex flex-col items-center justify-center text-blue-400 group cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shadow-inner">
+              <ImageIcon size={28} className="mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Tải lên ảnh phòng</span>
+              <span className="text-[9px] mt-1 opacity-60 font-bold uppercase tracking-widest">Dưới 5MB, tối đa 10 ảnh</span>
+            </div>
+
+            <div className="space-y-2 text-left">
+              <label className="text-xs font-bold text-tertiary uppercase tracking-widest">Trạng thái khi tạo</label>
+              <select
+                name="status" value={formData.status} onChange={handleChange}
+                className="input h-11"
+              >
+                <option value="AVAILABLE">Phòng trống (CÓ SẴN)</option>
+                <option value="MAINTENANCE">Đang bảo trì</option>
+                <option value="RENTED">Đã cho thuê</option>
+              </select>
+            </div>
           </div>
         </div>
       </form>
+      {/* Mobile Sticky Footer */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+        <div className="flex gap-2">
+          <Link
+            href="/admin/rooms"
+            className="btn btn-secondary btn-md flex-1 py-3 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <X size={18} />
+            <span className="font-bold uppercase text-[13px] tracking-tight">Hủy bỏ</span>
+          </Link>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="btn btn-primary btn-md flex-[2] py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <Loading size="sm" />
+            ) : (
+              <>
+                <Save size={18} strokeWidth={2.5} />
+                <span className="font-bold uppercase text-[13px] tracking-tight">Tạo phòng</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

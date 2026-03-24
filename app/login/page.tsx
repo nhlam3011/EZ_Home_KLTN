@@ -29,14 +29,17 @@ const BackgroundComponent = React.memo(() => {
         .orb-3 { animation: orb-swirl-3 35s ease-in-out infinite; }
         
         .dot-grid {
-          background-image: radial-gradient(#64748b 1.0px, transparent 1.0px);
+          background-image: radial-gradient(circle, #64748b 1.0px, transparent 1.0px);
           background-size: 24px 24px;
         }
         .dot-highlight {
-          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
+          background-image: radial-gradient(circle, #761bffff 1.5px, transparent 1.5px);
           background-size: 24px 24px;
           mask-image: radial-gradient(200px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
           -webkit-mask-image: radial-gradient(200px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
+        }
+        :global(.dark) .dot-highlight {
+          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 1.5px);
         }
 
       `}</style>
@@ -46,13 +49,13 @@ const BackgroundComponent = React.memo(() => {
         <div className="absolute bottom-[-15%] right-[-10%] w-[65%] h-[65%] rounded-full bg-purple-500/22 dark:bg-purple-400/18 orb-2"></div>
         <div className="absolute top-[30%] right-[15%] w-[50%] h-[50%] rounded-full bg-indigo-500/15 dark:bg-indigo-400/12 blur-[120px] orb-3"></div>
         <div className="absolute bottom-[20%] left-[10%] w-[45%] h-[45%] rounded-full bg-pink-500/15 dark:bg-pink-400/12 blur-[100px] orb-1 [animation-delay:-12s]"></div>
-        
+
         <div className="absolute inset-0 opacity-[0.35] dark:opacity-[0.12] dot-grid" />
 
 
 
 
-        <div className="absolute inset-0 opacity-80 dark:opacity-60 dot-highlight" />
+        <div className="absolute inset-0 opacity-100 dark:opacity-80 dot-highlight" />
 
         <div className="absolute inset-0" style={{
           background: 'radial-gradient(450px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), rgba(99, 102, 241, 0.05), transparent 100%)'
@@ -67,9 +70,50 @@ BackgroundComponent.displayName = 'BackgroundComponent'
 export default function LoginPage() {
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
-  
+
+  const [isMobile, setIsMobile] = useState(false)
+  const isInteracting = useRef(false)
+  const lastInteractionTime = useRef(Date.now())
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    let frameId: number
+    let startTime = Date.now()
+
+    const animate = () => {
+      // Only auto-animate if on mobile OR if no interaction for 3 seconds
+      const timeSinceInteraction = Date.now() - lastInteractionTime.current
+      if (isMobile || timeSinceInteraction > 3000) {
+        if (!containerRef.current) return
+
+        const elapsed = (Date.now() - startTime) / 1000
+
+        // Use different frequencies for X and Y to create a "wandering" effect
+        // Range: 10% to 90%
+        const xPercent = 50 + Math.sin(elapsed * 0.4) * 40
+        const yPercent = 50 + Math.cos(elapsed * 0.3) * 40
+
+        containerRef.current.style.setProperty('--mouse-x', `${xPercent}%`)
+        containerRef.current.style.setProperty('--mouse-y', `${yPercent}%`)
+      }
+      frameId = requestAnimationFrame(animate)
+    }
+
+    animate()
+    return () => cancelAnimationFrame(frameId)
+  }, [isMobile])
+
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return
+    lastInteractionTime.current = Date.now()
     const rect = containerRef.current.getBoundingClientRect()
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
@@ -124,7 +168,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-[#0f172a] relative overflow-hidden transition-colors duration-700"
@@ -140,7 +184,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm sm:max-w-md relative z-20">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
+          <div className="inline-flex items-center justify-center">
             <img
               src="/logo_final.png"
               alt="EZ-Home Logo"

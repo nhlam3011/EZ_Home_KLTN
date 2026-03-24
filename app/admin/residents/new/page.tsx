@@ -163,7 +163,7 @@ export default function NewResidentPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+    <div className="space-y-4 sm:space-y-6 sm:px-0 pb-28 sm:pb-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -174,15 +174,15 @@ export default function NewResidentPage() {
             <ArrowLeft size={20} />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-primary uppercase tracking-tight">CHECK-IN CƯ DÂN MỚI</h1>
-            <p className="text-xs sm:text-sm text-secondary mt-1 tracking-wide uppercase font-medium opacity-70">
+            <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase tracking-tight">CHECK-IN CƯ DÂN MỚI</h1>
+            <p className="text-xs sm:text-sm text-secondary mt-1">
               {existingUserId
                 ? `Tạo hợp đồng mới cho cư dân: ${oldUserData?.fullName || 'Đang tải...'}`
                 : 'Nhập thông tin để tạo hợp đồng và tài khoản cho cư dân mới'}
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
+        <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3 flex-wrap w-full sm:w-auto !hidden sm:!flex">
           <Link
             href="/admin/residents"
             className="btn btn-secondary h-11 px-6 rounded-2xl flex items-center justify-center gap-2"
@@ -203,7 +203,7 @@ export default function NewResidentPage() {
             ) : (
               <>
                 <Save size={18} strokeWidth={2.5} />
-                <span className="font-bold uppercase tracking-tight">Lưu và tạo hợp đồng</span>
+                <span className="font-bold uppercase tracking-tight">Tạo hợp đồng</span>
               </>
             )}
           </button>
@@ -577,6 +577,35 @@ export default function NewResidentPage() {
           )}
         </div>
       </form >
+      {/* Mobile Sticky Footer */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary px-3 py-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90 pb-safe">
+        <div className="flex gap-2">
+          <Link
+            href="/admin/residents"
+            className="btn btn-secondary btn-md flex-1 py-3 rounded-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <X size={18} />
+            <span className="font-bold uppercase text-[13px] tracking-tight">Hủy</span>
+          </Link>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="btn btn-primary btn-md flex-[2] py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span className="font-bold text-[13px] tracking-tight">ĐANG TẠO...</span>
+              </>
+            ) : (
+              <>
+                <Save size={18} strokeWidth={2.5} />
+                <span className="font-bold uppercase text-[13px] tracking-tight">Tạo hợp đồng</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div >
   )
 }

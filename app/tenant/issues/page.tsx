@@ -109,7 +109,7 @@ export default function IssuesPage() {
   const paginatedIssues = issues.slice(startIndex, endIndex)
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 pb-24 sm:pb-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
         <div>
@@ -118,7 +118,7 @@ export default function IssuesPage() {
         </div>
         <Link
           href="/tenant/issues/new"
-          className="btn btn-primary h-11 px-6 rounded-2xl w-full sm:w-auto flex items-center justify-center gap-2"
+          className="btn btn-primary h-11 px-6 rounded-2xl hidden sm:flex items-center justify-center gap-2"
         >
           <Plus size={18} />
           <span>Gửi báo cáo mới</span>
@@ -423,6 +423,19 @@ export default function IssuesPage() {
           </div>
         )
       }
+      {/* Add padding to the bottom for mobile to account for the fixed footer */}
+      <div className="sm:hidden h-20 w-full"></div>
+
+      {/* Mobile Sticky Footer */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-primary p-4 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
+        <Link
+          href="/tenant/issues/new"
+          className="btn btn-primary btn-md w-full py-3 rounded-xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        >
+          <Plus size={18} />
+          <span className="font-bold uppercase text-[13px]">Gửi báo cáo mới</span>
+        </Link>
+      </div>
     </div >
   )
 }
