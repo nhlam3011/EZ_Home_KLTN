@@ -6,7 +6,8 @@ import {
   Filter, AlertCircle, FileCheck, Users,
   Clock, ChevronDown, MessageSquareOff,
   Megaphone, MessageSquare, Heart, Bookmark,
-  Image as ImageIcon, Send, X, Plus, Smile, Edit3
+  Image as ImageIcon, Send, X, Plus, Smile, Edit3,
+  Loader2
 } from 'lucide-react'
 import Loading from '@/components/Loading'
 import CommunityPostCard from '@/components/CommunityPostCard'

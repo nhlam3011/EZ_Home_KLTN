@@ -14,7 +14,7 @@ import {
   Users,
   DollarSign,
   AlertCircle,
-  Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowUpRight, Wrench,
+  Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowUpRight, Wrench, X,
   MoreHorizontal
 } from 'lucide-react'
 import { useBuilding } from '@/components/BuildingContext'
