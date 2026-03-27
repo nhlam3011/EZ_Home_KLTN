@@ -51,7 +51,7 @@ export default function TenantLayoutClient({
   const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
-    const userData = localStorage.getItem('user')
+    const userData = sessionStorage.getItem('user') || localStorage.getItem('user')
     if (!userData) {
       router.push('/login')
       return
@@ -152,6 +152,8 @@ export default function TenantLayoutClient({
   const handleLogout = () => {
     localStorage.removeItem('user')
     localStorage.removeItem('token')
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
     router.push('/login')
   }
 

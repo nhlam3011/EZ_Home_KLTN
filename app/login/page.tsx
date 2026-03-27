@@ -133,11 +133,25 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [formData, setFormData] = useState({
     phone: '',
     password: ''
   })
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    // Check for remembered phone number
+    const savedPhone = localStorage.getItem('rememberedPhone')
+    const savedRememberMe = localStorage.getItem('rememberMe') === 'true'
+
+    if (savedPhone && savedRememberMe) {
+      setFormData(prev => ({ ...prev, phone: savedPhone }))
+      setRememberMe(true)
+    } else if (localStorage.getItem('rememberMe') === 'false') {
+      setRememberMe(false)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -156,8 +170,21 @@ export default function LoginPage() {
       const data = await response.json()
 
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token || 'demo-token')
+        const storage = rememberMe ? localStorage : sessionStorage
+
+        storage.setItem('user', JSON.stringify(data.user))
+        storage.setItem('token', data.token || 'demo-token')
+
+        if (rememberMe) {
+          localStorage.setItem('rememberedPhone', formData.phone)
+          localStorage.setItem('rememberMe', 'true')
+        } else {
+          localStorage.removeItem('rememberedPhone')
+          localStorage.setItem('rememberMe', 'false')
+          // Clear any old persistent session
+          localStorage.removeItem('user')
+          localStorage.removeItem('token')
+        }
 
         if (data.user.isFirstLogin) {
           router.push('/change-password')
@@ -257,6 +284,44 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <div className="flex flex-row items-center justify-between px-0 py-2 gap-2">
+              <div
+                className="flex flex-row items-center gap-2.5 cursor-pointer group select-none"
+                onClick={() => setRememberMe(!rememberMe)}
+              >
+                <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 appearance-none"
+                  />
+                  <div className={`w-5 h-5 !rounded-none border-2 transition-all duration-300 flex items-center justify-center shrink-0 ${rememberMe ? 'bg-blue-600 border-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.2)]' : 'bg-transparent border-gray-300 dark:border-gray-600 group-hover:border-blue-400'}`}>
+                    <svg
+                      className={`w-3.5 h-3.5 text-white transition-all transform duration-300 ${rememberMe ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <span className="ml-1 text-[12px] sm:text-sm font-medium text-primary whitespace-nowrap leading-none group-hover:text-blue-600 transition-colors">
+                  Ghi nhớ đăng nhập
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="text-[12px] sm:text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all hover:underline leading-none whitespace-nowrap shrink-0"
+                onClick={() => alert('Vui lòng liên hệ quản trị viên hoặc sử dụng số CCCD nếu là khách mới.')}
+              >
+                Quên mật khẩu?
+              </button>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -286,11 +351,6 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-tertiary mt-6">
-          KLTN - KHMT64 - Nguyen Nhat Lam
-        </p>
       </div>
     </div>
   )
