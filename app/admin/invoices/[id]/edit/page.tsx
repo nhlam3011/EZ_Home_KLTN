@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useState, useEffect, use } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, X, Loader2, FileText, DollarSign } from 'lucide-react'
 
@@ -29,9 +29,9 @@ interface Invoice {
   }
 }
 
-export default function EditInvoicePage() {
+export default function EditInvoicePage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params)
   const router = useRouter()
-  const params = useParams()
   const invoiceId = params?.id as string
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)

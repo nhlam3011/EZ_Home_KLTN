@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Search, ShoppingCart, Clock, CheckCircle, XCircle, AlertCircle, Plus, Minus, X, Loader2, ChevronDown, LayoutGrid, Sparkles, Shirt, Wrench, PackageCheck } from 'lucide-react'
+import { Search, ShoppingCart, Clock, CheckCircle, XCircle, AlertCircle, Plus, Minus, X, LayoutGrid, Sparkles, Shirt, Wrench, PackageCheck, ChevronDown } from 'lucide-react'
+import Loading from '@/components/Loading'
 
 interface Service {
   id: number
@@ -256,12 +257,12 @@ export default function ServicesPage() {
                 <div className="relative w-full sm:w-auto">
                   <button
                     onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showCategoryDropdown
+                    className={`flex items-center gap-2.5 px-4 py-2 rounded-full border transition-all duration-300 group h-11 w-full sm:w-auto ${showCategoryDropdown
                       ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
                       : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
                       }`}
                   >
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${categoryFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${categoryFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
                       categoryFilter === 'Vệ sinh' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' :
                         categoryFilter === 'Giặt ủi' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500' :
                           categoryFilter === 'Sửa chữa' ? 'bg-red-50 dark:bg-red-900/20 text-red-500' :
@@ -274,12 +275,13 @@ export default function ServicesPage() {
                       {categoryFilter === 'Tiện ích' && <PackageCheck size={14} />}
                     </div>
                     <div className="text-left pr-1 flex-1">
-                      <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
-                        DANH MỤC: {categoryFilter === 'all' ? 'TẤT CẢ' : categoryFilter.toUpperCase()}
+                      <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider">
+                        {categoryFilter === 'all' ? 'TẤT CẢ' : categoryFilter.toUpperCase()}
                       </p>
                     </div>
                     <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showCategoryDropdown ? 'rotate-180' : ''}`} />
                   </button>
+
 
                   {showCategoryDropdown && (
                     <>
@@ -310,15 +312,16 @@ export default function ServicesPage() {
               </div>
 
               <div className="relative flex-1 lg:max-w-md w-full">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
                 <input
                   type="text"
                   placeholder="Tìm kiếm dịch vụ..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-primary focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm pl-10"
+                  className="input input-with-icon w-full h-11 bg-white dark:bg-gray-800 rounded-full border-primary focus:ring-2 focus:ring-blue-500/20 transition-all text-primary placeholder:text-tertiary text-sm font-medium"
                 />
               </div>
+
             </div>
           </div>
 
@@ -326,8 +329,7 @@ export default function ServicesPage() {
           {loading ? (
             <div className="card">
               <div className="text-center py-12">
-                <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-                <p className="text-tertiary">Đang tải dịch vụ...</p>
+                <Loading size="lg" text="Đang tải dịch vụ..." />
               </div>
             </div>
           ) : (
@@ -400,8 +402,7 @@ export default function ServicesPage() {
           ordersLoading ? (
             <div className="card">
               <div className="text-center py-12">
-                <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-                <p className="text-tertiary">Đang tải đơn hàng...</p>
+                <Loading size="lg" text="Đang tải đơn hàng..." />
               </div>
             </div>
           ) : orders.length === 0 ? (

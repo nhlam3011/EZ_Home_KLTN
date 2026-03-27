@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')
     const buildingId = searchParams.get('buildingId')
 
+    const userId = searchParams.get('userId')
+
     const where: any = {
       // Filter out invoice notification posts (they start with "[Hóa đơn #")
       NOT: {
@@ -34,46 +36,66 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    if (buildingId) {
-      where.user = {
-        contracts: {
-          some: {
-            room: {
-              buildingId: parseInt(buildingId)
-            },
-            status: 'ACTIVE'
-          }
-        }
-      }
+    if (buildingId && buildingId !== 'all') {
+      where.buildingId = parseInt(buildingId)
     }
 
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const limit = parseInt(searchParams.get('limit') || '15')
     const skip = (page - 1) * limit
 
     const posts = await prisma.post.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        content: true,
+        images: true,
+        category: true,
+        status: true,
+        createdAt: true,
+        buildingId: true,
         user: {
           select: {
             id: true,
             fullName: true,
             avatarUrl: true,
-            phone: true,
-            email: true,
             contracts: {
               where: { status: 'ACTIVE' },
-              include: { room: { select: { name: true } } }
+              select: { room: { select: { name: true } } },
+              take: 1
             }
           }
-        }
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true
+          }
+        },
+        ...(userId ? {
+          likes: {
+            where: { userId: parseInt(userId) },
+            select: { userId: true },
+            take: 1
+          }
+        } : {})
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: skip
     })
 
-    return NextResponse.json(posts)
+    const formattedPosts = posts.map(post => {
+      const { _count, likes, ...rest } = post as any
+      return {
+        ...rest,
+        likes: _count?.likes || 0,
+        comments: _count?.comments || 0,
+        isLiked: likes && likes.length > 0
+      }
+    })
+
+    return NextResponse.json(formattedPosts)
   } catch (error) {
     console.error('Error fetching posts:', error)
     return NextResponse.json(
@@ -86,7 +108,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { content, images, status, userId, category } = body
+    const { content, images, status, userId, category, buildingId } = body
 
     if (!content) {
       return NextResponse.json(
@@ -118,7 +140,8 @@ export async function POST(request: NextRequest) {
         content,
         images: images || [],
         category: category || 'ANNOUNCEMENT',
-        status: status || 'PUBLIC' // Admin posts are automatically public
+        status: status || 'PUBLIC', // Admin posts are automatically public
+        buildingId: buildingId ? parseInt(buildingId) : null
       },
       include: {
         user: {

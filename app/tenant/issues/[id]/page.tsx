@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState, use } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Star, Image as ImageIcon, XCircle } from 'lucide-react'
 
@@ -21,8 +21,8 @@ interface Issue {
   progress?: number
 }
 
-export default function IssueDetailPage() {
-  const params = useParams()
+export default function IssueDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params)
   const router = useRouter()
   const [issue, setIssue] = useState<Issue | null>(null)
   const [loading, setLoading] = useState(true)

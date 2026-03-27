@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState, use } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -89,8 +89,8 @@ interface Resident {
   unpaidInvoicesCount: number
 }
 
-export default function ResidentDetailPage() {
-  const params = useParams()
+export default function ResidentDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params)
   const router = useRouter()
   const residentId = params?.id as string
   const [loading, setLoading] = useState(true)

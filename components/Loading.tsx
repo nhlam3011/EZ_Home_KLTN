@@ -4,7 +4,7 @@ import React from 'react'
 import Image from 'next/image'
 
 // Loading style types
-type LoadingStyle = 'spinner' | 'pulse' | 'dots' | 'wave' | 'progress' | 'bars' | 'dual-ring'
+type LoadingStyle = 'spinner' | 'pulse' | 'dots' | 'wave' | 'progress' | 'bars' | 'dual-ring' | 'premium'
 
 type LoadingColor = 'blue' | 'purple' | 'green' | 'red' | 'orange' | 'gradient'
 
@@ -27,6 +27,7 @@ const sizeMap = {
         progress: 'w-16 h-1',
         bars: 'w-8 h-6',
         dualRing: 'w-6 h-6',
+        premium: 'w-8 h-8',
         textSize: 'text-xs'
     },
     md: {
@@ -37,6 +38,7 @@ const sizeMap = {
         progress: 'w-32 h-1.5',
         bars: 'w-12 h-8',
         dualRing: 'w-10 h-10',
+        premium: 'w-12 h-12',
         textSize: 'text-sm'
     },
     lg: {
@@ -47,6 +49,7 @@ const sizeMap = {
         progress: 'w-48 h-2',
         bars: 'w-16 h-10',
         dualRing: 'w-14 h-14',
+        premium: 'w-20 h-20',
         textSize: 'text-base'
     },
     xl: {
@@ -57,6 +60,7 @@ const sizeMap = {
         progress: 'w-64 h-2.5',
         bars: 'w-20 h-12',
         dualRing: 'w-20 h-20',
+        premium: 'w-28 h-28',
         textSize: 'text-lg'
     },
 }
@@ -253,6 +257,50 @@ function BarsLoader({ size, color }: { size: string; color: LoadingColor }) {
     )
 }
 
+// Premium Unified Loader - The signature look
+function PremiumLoader({ size, color }: { size: string; color: LoadingColor }) {
+    const c = colorMap[color]
+    return (
+        <div className={`${size} relative flex items-center justify-center`}>
+            {/* Outer rotating ring */}
+            <div 
+                className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
+                style={{ 
+                    borderTopColor: c.DEFAULT, 
+                    borderRightColor: c.light,
+                    opacity: 0.6,
+                    animationDuration: '1.5s'
+                }}
+            />
+            {/* Middle counter-rotating ring */}
+            <div 
+                className="absolute inset-2 rounded-full border-2 border-transparent animate-spin-reverse"
+                style={{ 
+                    borderBottomColor: c.DEFAULT, 
+                    borderLeftColor: c.light,
+                    opacity: 0.4,
+                    animationDuration: '2s'
+                }}
+            />
+            {/* Inner pulsing core with glow */}
+            <div 
+                className="w-1/3 h-1/3 rounded-full animate-pulse-soft shadow-lg"
+                style={{ 
+                    backgroundColor: c.DEFAULT,
+                    boxShadow: `0 0 15px ${c.DEFAULT}`
+                }}
+            />
+            {/* Small decorative orbital dots */}
+            <div className="absolute inset-0 animate-spin" style={{ animationDuration: '3s' }}>
+                <div 
+                    className="w-1.5 h-1.5 rounded-full absolute -top-0.5 left-1/2 -translate-x-1/2"
+                    style={{ backgroundColor: c.light }}
+                />
+            </div>
+        </div>
+    )
+}
+
 // Main Loading Component
 export default function Loading({
     size = 'md',
@@ -281,8 +329,10 @@ export default function Loading({
                 return <ProgressLoader size={sizes.progress} color={color} />
             case 'bars':
                 return <BarsLoader size={sizes.bars} color={color} />
+            case 'premium':
+                return <PremiumLoader size={sizes.premium} color={color} />
             default:
-                return <SpinnerLoader size={sizes.spinner} color={color} />
+                return <PremiumLoader size={sizes.premium} color={color} />
         }
     }
 
@@ -352,31 +402,51 @@ export function LoadingWave({ className = '', color = 'blue' }: { className?: st
 // Page loading overlay with gradient colors
 export function PageLoader({ text = 'Đang tải...' }: { text?: string }) {
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-slate-900">
-            <div className="flex flex-col items-center gap-6">
-                {/* Logo with gradient */}
-                <div className="relative">
-                    <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-lg border border-slate-100 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white dark:bg-[#0f172a]">
+            {/* Background decorative glows */}
+            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] animate-pulse" />
+            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+
+            <div className="relative flex flex-col items-center gap-10">
+                {/* Logo and Premium Loader combined */}
+                <div className="relative flex items-center justify-center">
+                    {/* The animated rings */}
+                    <div className="absolute w-32 h-32 rounded-full border-2 border-dashed border-blue-500/20 animate-spin-slow" />
+                    <div className="absolute w-40 h-40 rounded-full border border-purple-500/10 animate-spin-reverse-slow" />
+                    
+                    {/* Logo container with glassmorphism */}
+                    <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-3xl flex items-center justify-center shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden relative z-10 p-4">
                         <Image
                             src="/logo_final.png"
                             alt="Logo"
-                            width={64}
-                            height={64}
+                            width={80}
+                            height={80}
                             className="object-contain"
                             priority
                         />
                     </div>
+                    
+                    {/* Glowing effect under logo */}
+                    <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full" />
                 </div>
 
-                {/* Progress Bar Loading */}
-                <div className="w-48 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full animate-progress-loading" />
-                </div>
+                <div className="flex flex-col items-center gap-4">
+                    {/* Progress Bar Loading */}
+                    <div className="w-48 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/50 dark:border-slate-700/50">
+                        <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full animate-progress-loading" />
+                    </div>
 
-                {/* Text */}
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{text}</p>
+                    {/* Text with gradient */}
+                    <div className="flex flex-col items-center scale-110">
+                        <p className="text-sm font-black uppercase tracking-[0.2em] bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent animate-pulse">
+                            {text}
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-1 opacity-60">
+                            Vui lòng đợi trong giây lát
+                        </p>
+                    </div>
+                </div>
             </div>
-
         </div>
     )
 }

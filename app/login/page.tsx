@@ -41,16 +41,16 @@ const BackgroundComponent = React.memo(() => {
         }
         .grid-highlight {
           background-image: 
-            linear-gradient(to right, rgba(118, 27, 255, 0.2) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(118, 27, 255, 0.2) 1px, transparent 1px);
+            linear-gradient(to right, rgba(27, 73, 255, 0.47) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(27, 73, 255, 0.47) 1px, transparent 1px);
           background-size: 40px 40px;
           mask-image: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
           -webkit-mask-image: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
         }
         :global(.dark) .grid-highlight {
           background-image: 
-            linear-gradient(to right, rgba(0, 255, 255, 0.4) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0, 255, 255, 0.4) 1px, transparent 1px);
+            linear-gradient(to right, rgba(255, 255, 255, 0.76) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.76) 1px, transparent 1px);
         }
 
       `}</style>
@@ -195,7 +195,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center">
             <img
-              src="/logo_final.png"
+              src="/logo_final.png?v=1"
               alt="EZ-Home Logo"
               className="w-28 h-28 sm:w-32 sm:h-32 object-contain"
             />

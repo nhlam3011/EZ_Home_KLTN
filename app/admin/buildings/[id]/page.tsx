@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Badge } from 'flowbite-react'
 import { ArrowLeft, Edit, Trash2, Home, MapPin, Users, Building2, FileText, Plus, X, Calendar, DollarSign, Zap, MoreHorizontal, ArrowUpRight } from 'lucide-react'
 import Loading from '@/components/Loading'
@@ -84,8 +84,8 @@ interface Invoice {
     }
 }
 
-export default function BuildingDetailPage() {
-    const params = useParams()
+export default function BuildingDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = use(props.params)
     const router = useRouter()
     const [building, setBuilding] = useState<Building | null>(null)
     const [loading, setLoading] = useState(true)

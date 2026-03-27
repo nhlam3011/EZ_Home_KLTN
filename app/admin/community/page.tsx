@@ -4,10 +4,11 @@ import { useEffect, useState, useRef } from 'react'
 import {
   Search, CheckCircle, XCircle, Trash2,
   Filter, AlertCircle, FileCheck, Users,
-  Clock, ChevronDown, Loader2, MessageSquareOff,
+  Clock, ChevronDown, MessageSquareOff,
   Megaphone, MessageSquare, Heart, Bookmark,
-  Image as ImageIcon, Send, X, Plus, Smile
+  Image as ImageIcon, Send, X, Plus, Smile, Edit3
 } from 'lucide-react'
+import Loading from '@/components/Loading'
 import CommunityPostCard from '@/components/CommunityPostCard'
 import EmojiPicker, { Theme } from 'emoji-picker-react'
 import { useDarkMode } from '../../contexts/DarkModeContext'
@@ -18,10 +19,10 @@ interface Post {
   content: string
   images: string[]
   category: 'ANNOUNCEMENT' | 'DISCUSSION' | 'FEEDBACK' | 'MARKET'
-  status: string
+  status?: string
   createdAt: Date
   user: {
-    id: number
+    id?: number
     fullName: string
     avatarUrl?: string
     phone?: string
@@ -65,6 +66,10 @@ export default function CommunityPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [isPinned, setIsPinned] = useState(false)
   const [showSuccessAlert, setShowSuccessAlert] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -80,16 +85,8 @@ export default function CommunityPage() {
   const [uploadingImages, setUploadingImages] = useState(false)
   const [posting, setPosting] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const emojiPickerRef = useRef<HTMLDivElement>(null)
+  const [editingPost, setEditingPost] = useState<Post | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  const emojis = [
-    '😊', '😂', '🥰', '😍', '😎', '🤔', '😅', '🙄', '😴', '😋', '😱', '🤩', '🥳', '😭', '🤬',
-    '👍', '👎', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✨', '🔥', '❤️', '🧡', '💛', '💚', '💙',
-    '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟',
-    '🏠', '🏢', '🏨', '🏦', '🏥', '🏤', '🏣', '🏫', '🏪', '🏭', '🏚', '🏘', '🏡', '🌟',
-    '☀️', '☁️', '❄️', '🍀', '🌸', '🥑', '🍕', '🚀', '✔️', '❌', '📅', '🔑', '💰'
-  ]
 
   const onEmojiClick = (emojiData: any) => {
     const emoji = emojiData.emoji
@@ -101,7 +98,6 @@ export default function CommunityPage() {
       const after = text.substring(end)
       setNewPostContent(before + emoji + after)
 
-      // Reset cursor position after state update
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus()
@@ -114,15 +110,46 @@ export default function CommunityPage() {
   }
 
   useEffect(() => {
+    setPage(1)
+    setHasMore(true)
     if (activeTab === 'moderate') {
-      fetchPosts()
+      fetchPosts(false, 1)
     } else {
-      fetchPublicPosts()
+      fetchPublicPosts(false, 1)
     }
-    setShowConfirmModal(false)
-    setShowCreateModal(false)
-    setSelectedPost(null)
   }, [activeTab, statusFilter, categoryFilter, searchQuery, selectedBuildingId])
+
+  // Isolated SSE for real-time updates - strictly background
+  useEffect(() => {
+    const eventSource = new EventSource('/api/community/events')
+
+    eventSource.onmessage = (event) => {
+      try {
+        const { type, data } = JSON.parse(event.data)
+
+        // Refresh appropriate lists for any relevant change
+        if (type === 'POST_CREATED' || type === 'POST_UPDATED' || type === 'POST_DELETED') {
+          if (activeTab === 'moderate') {
+            fetchPosts(true, 1)
+          } else {
+            fetchPublicPosts(true, 1)
+          }
+        }
+
+        // Notify specific components (like CommunityPostCard for comments)
+        window.dispatchEvent(new CustomEvent('community-event', { detail: { type, data } }))
+      } catch (e) {
+        console.error('SSE Error:', e)
+      }
+    }
+
+    eventSource.onerror = () => {
+      console.error('SSE Connection failed.')
+      eventSource.close()
+    }
+
+    return () => eventSource.close()
+  }, [activeTab])
 
   const showAlert = (message: string) => {
     setSuccessMessage(message)
@@ -130,43 +157,98 @@ export default function CommunityPage() {
     setTimeout(() => setShowSuccessAlert(false), 3000)
   }
 
-  const fetchPosts = async () => {
-    setLoading(true)
+  const fetchPosts = async (isSilent = false, pageNum = 1, isLoadMore = false) => {
+    if (isLoadMore) setLoadingMore(true)
+    else if (!isSilent) setLoading(true)
+
     try {
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (categoryFilter !== 'ALL') params.append('category', categoryFilter)
       if (searchQuery) params.append('search', searchQuery)
       if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
+      params.append('page', pageNum.toString())
+      params.append('limit', '15')
 
       const response = await fetch(`/api/admin/posts?${params.toString()}`)
       const data = await response.json()
-      setPosts(Array.isArray(data) ? data : [])
+      
+      const newPosts = Array.isArray(data) ? data : []
+      const pinned = newPosts.filter((post: Post) => post.content.startsWith('📌'))
+      const regular = newPosts.filter((post: Post) => !post.content.startsWith('📌'))
+      const combined = [...pinned, ...regular]
+
+      if (isLoadMore) {
+        setPosts(prev => [...prev, ...combined])
+      } else {
+        setPosts(combined)
+      }
+      
+      if (newPosts.length < 15) setHasMore(false)
+      else setHasMore(true)
+
+      setPage(pageNum)
     } catch (error) {
       console.error('Error fetching posts:', error)
-      setPosts([])
+      if (!isLoadMore) setPosts([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
     }
   }
 
-  const fetchPublicPosts = async () => {
-    setLoading(true)
+  const fetchPublicPosts = async (isSilent = false, pageNum = 1, isLoadMore = false) => {
+    if (isLoadMore) setLoadingMore(true)
+    else if (!isSilent) setLoading(true)
+
     try {
       const params = new URLSearchParams()
       params.append('status', 'PUBLIC')
       if (categoryFilter !== 'ALL') params.append('category', categoryFilter)
       if (searchQuery) params.append('search', searchQuery)
       if (selectedBuildingId) params.append('buildingId', selectedBuildingId.toString())
+      params.append('page', pageNum.toString())
+      params.append('limit', '15')
+
+      const userData = localStorage.getItem('user')
+      if (userData) {
+        const user = JSON.parse(userData)
+        params.append('userId', user.id)
+      }
 
       const response = await fetch(`/api/admin/posts?${params.toString()}`)
       const data = await response.json()
-      setPublicPosts(Array.isArray(data) ? data : [])
+      
+      const newPosts = Array.isArray(data) ? data : []
+      const pinned = newPosts.filter((post: Post) => post.content.startsWith('📌'))
+      const regular = newPosts.filter((post: Post) => !post.content.startsWith('📌'))
+      const combined = [...pinned, ...regular]
+
+      if (isLoadMore) {
+        setPublicPosts(prev => [...prev, ...combined])
+      } else {
+        setPublicPosts(combined)
+      }
+
+      if (newPosts.length < 15) setHasMore(false)
+      else setHasMore(true)
+
+      setPage(pageNum)
     } catch (error) {
       console.error('Error fetching public posts:', error)
-      setPublicPosts([])
+      if (!isLoadMore) setPublicPosts([])
     } finally {
       setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  const handleLoadMore = () => {
+    if (loadingMore || !hasMore) return
+    if (activeTab === 'moderate') {
+      fetchPosts(false, page + 1, true)
+    } else {
+      fetchPublicPosts(false, page + 1, true)
     }
   }
 
@@ -180,7 +262,17 @@ export default function CommunityPage() {
     setShowConfirmModal(true)
   }
 
-  const handleDelete = (postId: number) => {
+  const handleEditPost = (post: Post) => {
+    setEditingPost(post)
+    const pined = post.content.startsWith('📌 ')
+    setIsPinned(pined)
+    setNewPostContent(pined ? post.content.replace('📌 ', '') : post.content)
+    setSelectedImages(post.images)
+    setNewPostCategory(post.category)
+    setShowCreateModal(true)
+  }
+
+  const handleDeletePost = (postId: number) => {
     setConfirmAction({ type: 'delete', postId })
     setShowConfirmModal(true)
   }
@@ -211,27 +303,34 @@ export default function CommunityPage() {
       if (!userData) return
       const user = JSON.parse(userData)
 
-      const response = await fetch('/api/tenant/posts', {
-        method: 'POST',
+      const url = editingPost ? `/api/admin/posts/${editingPost.id}` : '/api/admin/posts'
+      const method = editingPost ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: newPostContent,
+          content: isPinned ? `📌 ${newPostContent.replace(/^📌\s*/, '')}` : newPostContent.replace(/^📌\s*/, ''),
           images: selectedImages,
           category: newPostCategory,
           userId: user.id,
-          status: 'PUBLIC' // Admin posts are automatically public
+          status: 'PUBLIC',
+          buildingId: selectedBuildingId
         })
       })
 
       if (response.ok) {
-        showAlert('Đã đăng bài thành công!')
+        showAlert(editingPost ? 'Đã cập nhật bài viết thành công!' : 'Đã đăng bài thành công!')
         setNewPostContent('')
         setSelectedImages([])
+        setEditingPost(null)
+        setIsPinned(false)
         setShowCreateModal(false)
-        if (activeTab === 'community') fetchPublicPosts()
+        fetchPosts()
+        fetchPublicPosts()
       }
     } catch (error) {
-      console.error('Error creating post:', error)
+      console.error('Error handling post:', error)
     } finally {
       setPosting(false)
     }
@@ -293,7 +392,7 @@ export default function CommunityPage() {
         }
         showAlert(messages[type])
         fetchPosts()
-        if (activeTab === 'community') fetchPublicPosts()
+        fetchPublicPosts()
       }
     } catch (error) {
       console.error('Error performing action:', error)
@@ -307,11 +406,9 @@ export default function CommunityPage() {
   const pendingCount = posts.filter(p => p.status === 'PENDING').length
   const displayPosts = activeTab === 'moderate' ? posts : publicPosts
   const currentStatusFilter = STATUS_FILTERS.find(f => f.id === statusFilter) || STATUS_FILTERS[0]
-  const currentCategoryFilter = CATEGORIES.find(c => c.id === categoryFilter) || CATEGORIES[0]
 
   return (
     <div className="pb-12 min-h-screen space-y-8">
-
       {/* Success Alert */}
       {showSuccessAlert && (
         <div className="fixed top-6 right-6 z-[100] animate-slide-in">
@@ -338,37 +435,20 @@ export default function CommunityPage() {
         </button>
       </div>
 
-      {/* Navigation Tabs - Centered on mobile/tablet */}
+      {/* Tabs */}
       <div className="border-b border-primary relative z-30 overflow-hidden">
         <div className="flex items-center justify-center lg:justify-start gap-4 lg:gap-8 overflow-x-auto no-scrollbar max-w-full lg:max-w-none px-4 lg:px-0">
           <button
-            onClick={() => {
-              setActiveTab('moderate')
-              setStatusFilter('all')
-              setSearchQuery('')
-            }}
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'moderate'
-              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-secondary hover:text-primary'
-              }`}
+            onClick={() => { setActiveTab('moderate'); setStatusFilter('all'); setSearchQuery(''); }}
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'moderate' ? 'border-blue-500 text-blue-600' : 'border-transparent text-secondary hover:text-primary'}`}
           >
             <FileCheck size={18} />
             <span>Duyệt bài</span>
-            {pendingCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] rounded-full">
-                {pendingCount}
-              </span>
-            )}
+            {pendingCount > 0 && <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] rounded-full">{pendingCount}</span>}
           </button>
           <button
-            onClick={() => {
-              setActiveTab('community')
-              setSearchQuery('')
-            }}
-            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'community'
-              ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-secondary hover:text-primary'
-              }`}
+            onClick={() => { setActiveTab('community'); setSearchQuery(''); }}
+            className={`px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'community' ? 'border-blue-500 text-blue-600' : 'border-transparent text-secondary hover:text-primary'}`}
           >
             <Users size={18} />
             <span>Cộng đồng</span>
@@ -376,46 +456,42 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {/* Filters & Search - Single Row on Desktop */}
+      {/* Filters */}
       <div className="flex flex-wrap lg:flex-nowrap items-center gap-3 w-full">
-        <div className="relative w-full lg:w-72 shrink-0">
+        <div className="relative w-full lg:w-72 flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary" size={18} />
           <input
             type="text"
             placeholder="Tìm kiếm..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input input-with-icon w-full h-11 bg-white dark:bg-gray-800 rounded-2xl border-primary focus:ring-2 focus:ring-blue-500/20 transition-all text-primary placeholder:text-tertiary text-sm font-medium"
+            className="input input-with-icon w-full h-11 bg-white dark:bg-gray-800 rounded-full border-primary focus:ring-2 focus:ring-blue-500/20 transition-all text-primary placeholder:text-tertiary text-sm font-medium"
           />
         </div>
 
         <div className="flex items-center gap-3 w-full lg:w-auto shrink-0">
-          {/* Status Dropdown */}
-          <div className="relative w-full lg:w-44">
+          <div className="relative w-full lg:w-48">
             <button
-              onClick={() => {
-                setShowStatusDropdown(!showStatusDropdown)
-                setShowCategoryDropdown(false)
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white dark:bg-primary border border-primary text-sm font-medium text-secondary hover:border-[var(--accent-blue)] transition-all h-11 shadow-sm group"
+              onClick={() => { setShowStatusDropdown(!showStatusDropdown); setShowCategoryDropdown(false); }}
+              className={`w-full flex items-center gap-2.5 px-4 py-2 rounded-full border transition-all h-11 ${showStatusDropdown ? 'bg-tertiary border-blue-500 ring-2 ring-blue-500/10' : 'bg-white dark:bg-primary border-primary'}`}
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-[var(--accent-blue)] group-hover:bg-[var(--accent-blue)] group-hover:text-white transition-colors">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-500">
                 <Filter size={14} />
               </div>
-              <span className="flex-1 text-left uppercase text-[10px] font-bold tracking-wider">{currentStatusFilter.label}</span>
+              <span className="flex-1 text-left uppercase text-sm font-medium tracking-wider text-primary">{currentStatusFilter.label}</span>
               <ChevronDown size={14} className={`text-tertiary transition-transform ${showStatusDropdown ? 'rotate-180' : ''}`} />
             </button>
             {showStatusDropdown && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowStatusDropdown(false)} />
-                <div className="absolute top-full left-0 mt-2 w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50 animate-scaleIn origin-top-left">
+                <div className="absolute top-full left-0 mt-2 w-max min-w-full bg-primary dark:bg-tertiary rounded-2xl shadow-xl border border-primary p-2 z-50">
                   {STATUS_FILTERS.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => { setStatusFilter(item.id); setShowStatusDropdown(false); }}
-                      className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${statusFilter === item.id ? 'bg-[var(--accent-blue)] text-white shadow-lg' : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 text-secondary'}`}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${statusFilter === item.id ? 'bg-blue-600 text-white' : 'hover:bg-tertiary text-secondary'}`}
                     >
-                      {item.label}
+                      <span className="uppercase text-sm font-medium tracking-wider">{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -424,23 +500,18 @@ export default function CommunityPage() {
           </div>
         </div>
 
-        {/* Category Buttons List - Matching Tenant */}
-        <div className="flex items-center justify-center lg:justify-start gap-2 overflow-x-auto pb-1 no-scrollbar flex-1 min-w-0">
+        <div className="flex items-center gap-2 overflow-x-auto py-2 no-scrollbar min-w-0">
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon
             const isSelected = categoryFilter === cat.id
             const theme = CATEGORY_THEMES[cat.id as keyof typeof CATEGORY_THEMES]
-
             return (
               <button
                 key={cat.id}
                 onClick={() => setCategoryFilter(cat.id)}
-                className={`flex items-center gap-2.5 px-5 h-11 rounded-2xl whitespace-nowrap text-[11px] font-bold transition-all border-none shadow-sm active:scale-95 ${isSelected
-                  ? `${theme?.bg} text-white shadow-lg shadow-blue-500/20`
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                  }`}
+                className={`flex items-center gap-2.5 px-5 h-11 rounded-full whitespace-nowrap text-[11px] font-bold transition-all shadow-sm active:scale-95 ${isSelected ? `${theme?.bg} text-white shadow-lg` : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}
               >
-                <Icon size={16} className={isSelected ? 'text-white' : theme?.text || 'text-slate-500'} />
+                <Icon size={16} className={isSelected ? 'text-white' : theme?.text} />
                 <span className="uppercase tracking-wider">{cat.label}</span>
               </button>
             )
@@ -449,78 +520,80 @@ export default function CommunityPage() {
       </div>
 
       {/* Posts List */}
-      <div className={`${activeTab === 'community' ? 'max-w-4xl mx-auto space-y-6 w-full' : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 w-full'}`}>
+      <div className={`${activeTab === 'community' ? 'max-w-4xl mx-auto space-y-6 w-full' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full'}`}>
         {loading ? (
-          <div className={`flex flex-col items-center justify-center py-16 ${activeTab === 'moderate' ? 'col-span-full' : ''}`}>
-            <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mb-3" size={32} />
-            <p className="text-tertiary text-sm">Đang tải...</p>
+          <div className="flex flex-col items-center justify-center py-16 col-span-full">
+            <Loading size="lg" text="Đang tải bài viết..." />
           </div>
         ) : displayPosts.length === 0 ? (
-          <div className={`py-12 text-center bg-tertiary/10 rounded-3xl border-2 border-dashed border-primary ${activeTab === 'moderate' ? 'col-span-full' : ''}`}>
+          <div className="py-12 text-center bg-tertiary/10 rounded-3xl border-2 border-dashed border-primary col-span-full font-medium">
             <MessageSquareOff className="w-12 h-12 text-tertiary mx-auto mb-3 opacity-50" />
-            <p className="text-secondary font-medium">
-              {searchQuery ? 'Không tìm thấy bài viết phù hợp' : 'Không có bài viết nào'}
-            </p>
+            <p className="text-secondary">{searchQuery ? 'Không tìm thấy bài viết' : 'Không có bài viết nào'}</p>
           </div>
         ) : (
           <>
             {displayPosts.map((post) => (
-              <div key={post.id} className="animate-fadeIn">
-                <CommunityPostCard
-                  post={post}
-                  showCategory="text"
-                  showStatus={activeTab === 'moderate'}
-                  variant="admin"
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  onDelete={handleDelete}
-                  onViewDetail={(post) => setSelectedPost(post as any)}
-                  isModeration={activeTab === 'moderate'}
-                />
-              </div>
+              <CommunityPostCard
+                key={post.id}
+                post={post}
+                showCategory="text"
+                showStatus={activeTab === 'moderate'}
+                isModeration={activeTab === 'moderate'}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onDelete={handleDeletePost}
+                onEdit={handleEditPost}
+                onViewDetail={setSelectedPost}
+                variant="admin"
+              />
             ))}
           </>
         )}
       </div>
 
+      {/* Load More Button */}
+      {hasMore && displayPosts.length > 0 && (
+        <div className="flex justify-center py-8">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="flex items-center justify-center gap-2.5 px-8 py-3 bg-white dark:bg-slate-800 border border-primary rounded-2xl text-sm font-bold text-secondary hover:text-blue-500 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:pointer-events-none min-w-[200px] shadow-sm"
+          >
+            {loadingMore ? (
+              <Loading size="sm" />
+            ) : (
+              <>
+                <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
+                  <ChevronDown size={14} />
+                </div>
+                <span className="uppercase tracking-tight">Xem thêm bài viết</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Confirm Modal */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
-          <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md" onClick={() => setShowConfirmModal(false)} />
-          <div className="relative bg-primary dark:bg-tertiary w-full max-w-sm rounded-3xl shadow-2xl p-6 border border-primary animate-scaleIn">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setShowConfirmModal(false)} />
+          <div className="relative bg-primary w-full max-w-sm rounded-3xl shadow-2xl p-6 border border-primary animate-scaleIn">
             <div className="text-center">
-              <div className={`w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${confirmAction?.type === 'approve' ? 'bg-green-100 dark:bg-green-500/20 text-green-500' :
-                confirmAction?.type === 'reject' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-500' : 'bg-red-100 dark:bg-red-500/20 text-red-500'
-                }`}>
-                {confirmAction?.type === 'approve' && <CheckCircle className="w-7 h-7" />}
-                {confirmAction?.type === 'reject' && <XCircle className="w-7 h-7" />}
-                {confirmAction?.type === 'delete' && <Trash2 className="w-7 h-7" />}
+              <div className={`w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center ${confirmAction?.type === 'approve' ? 'bg-green-100 text-green-500' : confirmAction?.type === 'reject' ? 'bg-amber-100 text-amber-500' : 'bg-red-100 text-red-500'}`}>
+                {confirmAction?.type === 'approve' && <CheckCircle size={28} />}
+                {confirmAction?.type === 'reject' && <XCircle size={28} />}
+                {confirmAction?.type === 'delete' && <Trash2 size={28} />}
               </div>
               <h3 className="text-lg font-bold text-primary mb-2">
                 {confirmAction?.type === 'approve' ? 'Duyệt bài viết' : confirmAction?.type === 'reject' ? 'Từ chối bài viết' : 'Xác nhận xóa bài'}
               </h3>
-              <p className="text-secondary text-sm mb-6 px-4">
-                {confirmAction?.type === 'delete'
-                  ? 'Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa bài viết này?'
-                  : confirmAction?.type === 'approve'
-                    ? 'Bài viết sẽ được hiển thị công khai trên bảng tin cộng đồng.'
-                    : 'Bài viết sẽ không được hiển thị cho cư dân khác thấy.'}
+              <p className="text-secondary text-sm mb-6">
+                {confirmAction?.type === 'delete' ? 'Hành động này không thể hoàn tác.' : 'Xác nhận thực hiện hành động này?'}
               </p>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 px-4 py-3 bg-secondary dark:bg-gray-800 text-secondary rounded-2xl text-sm font-bold hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={executeAction}
-                  disabled={actionLoading}
-                  className={`flex-1 px-4 py-3 text-white rounded-2xl text-sm font-bold shadow-lg transition-transform active:scale-95 ${confirmAction?.type === 'approve' ? 'bg-green-500 shadow-green-500/20' :
-                    confirmAction?.type === 'reject' ? 'bg-amber-500 shadow-amber-500/20' : 'bg-red-500 shadow-red-500/20'
-                    } disabled:opacity-50`}
-                >
-                  {actionLoading ? <Loader2 size={18} className="animate-spin mx-auto" /> : 'Xác nhận'}
+                <button onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-3 bg-tertiary rounded-2xl text-sm font-bold">Hủy</button>
+                <button onClick={executeAction} disabled={actionLoading} className={`flex-1 px-4 py-3 text-white rounded-2xl text-sm font-bold flex items-center justify-center min-h-[44px] ${confirmAction?.type === 'approve' ? 'bg-green-500' : confirmAction?.type === 'reject' ? 'bg-amber-500' : 'bg-red-500'}`}>
+                  {actionLoading ? <Loading size="sm" /> : 'Xác nhận'}
                 </button>
               </div>
             </div>
@@ -528,23 +601,25 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Create Post Modal */}
+      {/* Create/Edit Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-          <div className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md" onClick={() => setShowCreateModal(false)} />
-          <div className="relative bg-primary dark:bg-tertiary w-full max-w-2xl rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden h-[95vh] sm:h-auto sm:max-h-[90vh] flex flex-col border-t sm:border border-primary animate-slideUp sm:animate-scaleIn">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-primary">
-              <h2 className="text-xl font-bold text-primary tracking-tight">Tạo bài viết mới</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="w-10 h-10 flex items-center justify-center bg-tertiary text-secondary rounded-xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
-              >
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => { setShowCreateModal(false); setEditingPost(null); setNewPostContent(''); setSelectedImages([]); }} />
+          <div className="relative bg-primary w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-primary animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+            <div className="px-8 py-6 border-b border-primary bg-tertiary/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                  <Plus className={editingPost ? 'rotate-45' : ''} size={22} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-primary uppercase tracking-wider">{editingPost ? 'Chỉnh sửa bài viết' : 'Đăng bài mới'}</h2>
+                  <p className="text-[11px] text-tertiary font-bold uppercase tracking-widest mt-0.5">{editingPost ? 'Cập nhật lại thông tin bài viết' : 'Tạo thông báo hoặc thảo luận mới'}</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowCreateModal(false); setEditingPost(null); setNewPostContent(''); setSelectedImages([]); setIsPinned(false); }} className="w-10 h-10 flex items-center justify-center bg-tertiary rounded-xl hover:text-red-500 transition-all"><X size={20} /></button>
             </div>
 
             <div className="px-6 py-5 space-y-6 overflow-y-auto flex-1 no-scrollbar">
-              {/* Category Selection */}
               <div className="space-y-3">
                 <p className="text-[11px] font-bold text-tertiary uppercase tracking-widest px-1">Chọn thể loại</p>
                 <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -552,17 +627,16 @@ export default function CommunityPage() {
                     const Icon = cat.icon
                     const isSelected = newPostCategory === cat.id
                     const theme = CATEGORY_THEMES[cat.id as keyof typeof CATEGORY_THEMES]
-
                     return (
                       <button
                         key={cat.id}
                         onClick={() => setNewPostCategory(cat.id as any)}
-                        className={`flex items-center justify-center gap-2.5 h-11 px-5 rounded-2xl whitespace-nowrap text-[11px] font-bold transition-all border-none ${isSelected
-                          ? `${theme?.bg} text-white shadow-lg shadow-blue-500/20`
+                        className={`flex items-center gap-2.5 px-5 h-11 rounded-full whitespace-nowrap text-[11px] font-bold transition-all border-none shadow-sm active:scale-95 ${isSelected
+                          ? `${theme.bg} text-white shadow-lg shadow-blue-500/20`
                           : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
                           }`}
                       >
-                        <Icon size={14} className={isSelected ? 'text-white' : theme?.text || 'text-slate-500'} />
+                        <Icon size={16} className={isSelected ? 'text-white' : theme.text} />
                         <span className="uppercase tracking-wider">{cat.label}</span>
                       </button>
                     )
@@ -570,41 +644,49 @@ export default function CommunityPage() {
                 </div>
               </div>
 
+              {/* Pin Toggle */}
+              <div className="flex items-center justify-between p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isPinned ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'bg-white dark:bg-slate-800 text-slate-400'}`}>
+                    <Megaphone size={18} className={isPinned ? 'fill-current' : ''} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-primary italic">Ghim bài viết này lên đầu</h4>
+                    <p className="text-[10px] font-bold text-tertiary uppercase tracking-widest mt-0.5">Bài viết sẽ luôn nằm ở đầu trang bảng tin của cư dân</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsPinned(!isPinned)}
+                  className={`relative w-14 h-7 rounded-full transition-all duration-300 ${isPinned ? 'bg-blue-500 shadow-inner' : 'bg-slate-200 dark:bg-slate-700'}`}
+                >
+                  <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm ${isPinned ? 'translate-x-7' : ''}`} />
+                </button>
+              </div>
+
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <p className="text-[11px] font-bold text-tertiary uppercase tracking-widest">Nội dung</p>
-                  <button
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-[var(--accent-blue)]"
-                  >
-                    <Smile size={18} />
-                  </button>
+                  <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-blue-500 transition-colors"><Smile size={18} /></button>
                 </div>
                 <textarea
                   ref={textareaRef}
                   value={newPostContent}
                   onChange={(e) => setNewPostContent(e.target.value)}
                   onPaste={handlePaste}
-                  placeholder="Chia sẻ điều gì đó với cư dân..."
+                  placeholder="Chia sẻ điều gì đó với hàng xóm..."
                   rows={8}
                   className="w-full resize-none p-5 rounded-[1.5rem] bg-tertiary border-2 border-transparent focus:border-[var(--accent-blue)] transition-all text-sm text-primary placeholder:text-tertiary shadow-inner font-medium leading-relaxed"
                 />
               </div>
 
-              {/* Image Preview */}
               {selectedImages.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-[11px] font-bold text-tertiary uppercase tracking-widest px-1">Hình ảnh ({selectedImages.length})</p>
                   <div className="grid grid-cols-3 gap-3">
                     {selectedImages.map((img, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden bg-tertiary group">
+                      <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group">
                         <img src={img} alt="" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                        <button
-                          onClick={() => setSelectedImages(prev => prev.filter((_, i) => i !== idx))}
-                          className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 backdrop-blur-md rounded-lg flex items-center justify-center text-white hover:bg-red-500 transition-colors shadow-lg"
-                        >
-                          <X size={14} />
-                        </button>
+                        <button onClick={() => setSelectedImages(prev => prev.filter((_, i) => i !== idx))} className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/50 rounded-lg flex items-center justify-center text-white hover:bg-red-500 shadow-lg"><X size={14} /></button>
                       </div>
                     ))}
                   </div>
@@ -612,68 +694,22 @@ export default function CommunityPage() {
               )}
             </div>
 
-            <div className="px-6 py-5 border-t border-primary bg-tertiary/20">
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-[var(--accent-blue)] group-hover:scale-110 transition-transform shadow-sm">
-                    <ImageIcon size={22} />
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageSelect}
-                    disabled={uploadingImages}
-                    className="hidden"
-                  />
-                  {uploadingImages && <Loader2 size={18} className="animate-spin text-[var(--accent-blue)] ml-2" />}
-                </label>
-
-                <button
-                  onClick={handleCreatePost}
-                  disabled={!newPostContent.trim() || posting}
-                  className="btn btn-primary h-12 px-8 rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm"
-                >
-                  {posting ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      <span className="font-bold">Đang đăng...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send size={18} />
-                      <span className="font-bold uppercase tracking-tight">Đăng bài</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="px-6 py-5 border-t border-primary bg-tertiary/20 flex items-center justify-between">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform shadow-sm"><ImageIcon size={22} /></div>
+                <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+                {uploadingImages && <Loader2 size={18} className="animate-spin text-blue-500 ml-2" />}
+              </label>
+              <button onClick={handleCreatePost} disabled={!newPostContent.trim() || posting} className="btn btn-primary h-12 px-8 rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm">
+                {posting ? <><Loader2 size={18} className="animate-spin" /><span className="font-bold">Đang xử lý...</span></> : <><Send size={18} /><span className="font-bold uppercase tracking-tight">{editingPost ? 'Cập nhật' : 'Đăng bài'}</span></>}
+              </button>
             </div>
 
-            {/* Emoji Picker - Rendered outside scrollable area */}
             {showEmojiPicker && (
               <>
                 <div className="fixed inset-0 z-[110]" onClick={() => setShowEmojiPicker(false)} />
-                {/* Desktop */}
-                <div className="hidden sm:block absolute top-[140px] right-6 z-[120] animate-scaleIn shadow-2xl rounded-3xl overflow-hidden">
-                  <EmojiPicker
-                    onEmojiClick={onEmojiClick}
-                    autoFocusSearch={false}
-                    theme={isDark ? Theme.DARK : Theme.LIGHT}
-                    width={350}
-                    height={420}
-                    searchPlaceholder="Tìm kiếm emoji..."
-                  />
-                </div>
-                {/* Mobile: bottom sheet */}
-                <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[120] animate-slideUp rounded-t-3xl overflow-hidden">
-                  <EmojiPicker
-                    onEmojiClick={onEmojiClick}
-                    autoFocusSearch={false}
-                    theme={isDark ? Theme.DARK : Theme.LIGHT}
-                    width="100%"
-                    height={350}
-                    searchPlaceholder="Tìm kiếm emoji..."
-                  />
+                <div className="absolute top-[140px] right-6 z-[120] animate-scaleIn shadow-2xl rounded-3xl overflow-hidden bg-white dark:bg-slate-800">
+                  <EmojiPicker onEmojiClick={onEmojiClick} theme={isDark ? Theme.DARK : Theme.LIGHT} width={350} height={420} />
                 </div>
               </>
             )}
@@ -683,24 +719,23 @@ export default function CommunityPage() {
 
       {/* Post Detail Modal */}
       {selectedPost && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedPost(null)} />
-          <div className="relative w-full max-w-2xl bg-primary rounded-3xl shadow-2xl overflow-hidden animate-scaleIn">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-primary">
-              <h3 className="font-bold text-primary">Chi tiết bài viết</h3>
-              <button
-                onClick={() => setSelectedPost(null)}
-                className="w-8 h-8 flex items-center justify-center rounded-xl bg-tertiary text-secondary hover:bg-red-50 hover:text-red-500 transition-all"
-              >
-                <X size={18} />
-              </button>
+          <div className="relative w-full max-w-3xl bg-primary rounded-[2.5rem] shadow-2xl overflow-hidden animate-scaleIn border border-primary flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-8 py-5 border-b border-primary bg-tertiary/20">
+              <h3 className="font-bold text-primary uppercase tracking-wider">Chi tiết bài viết</h3>
+              <button onClick={() => setSelectedPost(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-tertiary text-secondary hover:text-red-500 transition-all"><X size={20} /></button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[80vh] no-scrollbar">
+            <div className="p-8 overflow-y-auto no-scrollbar">
               <CommunityPostCard
                 post={selectedPost}
                 variant="admin"
                 showCategory="text"
                 showStatus={true}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onDelete={handleDeletePost}
+                onEdit={handleEditPost}
               />
             </div>
           </div>

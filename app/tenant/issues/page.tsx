@@ -133,12 +133,12 @@ export default function IssuesPage() {
             <div className="relative w-full sm:w-auto">
               <button
                 onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300 group h-11 w-full sm:w-auto ${showStatusDropdown
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-full border transition-all duration-300 group h-11 w-full sm:w-auto ${showStatusDropdown
                   ? 'bg-tertiary border-[var(--accent-blue)] ring-2 ring-[var(--accent-blue)]/10 shadow-lg'
                   : 'bg-white dark:bg-primary border-primary hover:border-[var(--accent-blue)] shadow-sm'
                   }`}
               >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${statusFilter === 'all' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
                   statusFilter === 'PENDING' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500' :
                     statusFilter === 'PROCESSING' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' :
                       statusFilter === 'DONE' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' :
@@ -151,8 +151,8 @@ export default function IssuesPage() {
                   {statusFilter === 'CANCELLED' && <Ban size={14} />}
                 </div>
                 <div className="text-left pr-1 flex-1">
-                  <p className="text-md font-medium leading-tight whitespace-nowrap text-primary uppercase">
-                    TRẠNG THÁI: {statusFilter === 'all' ? 'TẤT CẢ' :
+                  <p className="text-sm font-medium leading-tight whitespace-nowrap text-primary uppercase tracking-wider">
+                    {statusFilter === 'all' ? 'TẤT CẢ' :
                       statusFilter === 'PENDING' ? 'CHỜ XỬ LÝ' :
                         statusFilter === 'PROCESSING' ? 'ĐANG SỬA' :
                           statusFilter === 'DONE' ? 'HOÀN THÀNH' : 'ĐÃ HỦY'}
@@ -160,6 +160,7 @@ export default function IssuesPage() {
                 </div>
                 <ChevronDown size={14} className={`transition-transform duration-300 flex-shrink-0 text-tertiary ${showStatusDropdown ? 'rotate-180' : ''}`} />
               </button>
+
 
               {showStatusDropdown && (
                 <>
@@ -190,15 +191,16 @@ export default function IssuesPage() {
           </div>
 
           <div className="relative flex-1 lg:max-w-md w-full">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" size={18} />
             <input
               type="text"
               placeholder="Tìm kiếm theo tiêu đề..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input input-with-icon w-full h-11 bg-white/50 dark:bg-gray-800/50 rounded-2xl border-primary focus:bg-white dark:focus:bg-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm pl-10"
+              className="input input-with-icon w-full h-11 bg-white dark:bg-gray-800 rounded-full border-primary focus:ring-2 focus:ring-blue-500/20 transition-all text-primary placeholder:text-tertiary text-sm font-medium"
             />
           </div>
+
         </div>
       </div>
 

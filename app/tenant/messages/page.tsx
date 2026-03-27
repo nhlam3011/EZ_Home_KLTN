@@ -2,10 +2,13 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, MessageSquare, Send, Image as ImageIcon, X, Trash2, Phone, Video } from 'lucide-react'
+import { ArrowLeft, MessageSquare, Send, Image as ImageIcon, X, Trash2, Phone, Video, Smile } from 'lucide-react'
 import Loading from '@/components/Loading'
 import { pusherClient } from '@/lib/pusher-client'
 import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
+import dynamic from 'next/dynamic'
+
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
 interface Message {
   id: number
@@ -52,6 +55,18 @@ export default function MessagesPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [isMeTyping, setIsMeTyping] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+            setShowEmojiPicker(false)
+        }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
@@ -432,8 +447,8 @@ export default function MessagesPage() {
                   alt=""
                 />
               ) : (
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white font-bold shadow-md">
-                  {admin?.fullName ? admin.fullName.charAt(0).toUpperCase() : 'BQL'}
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white text-sm font-bold shadow-md">
+                  {admin?.fullName ? admin.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'BQ'}
                 </div>
               )}
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-[3px] border-[var(--bg-primary)]" />
@@ -524,7 +539,7 @@ export default function MessagesPage() {
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white text-[10px] font-bold">
-                              {admin?.fullName ? admin.fullName.charAt(0).toUpperCase() : 'BQL'}
+                              {admin?.fullName ? admin.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'BQ'}
                             </div>
                           )}
                         </div>
@@ -588,7 +603,7 @@ export default function MessagesPage() {
         {isTyping && (
           <div className="flex items-end gap-2.5 mb-4 animate-fadeIn">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
-              {admin?.fullName ? admin.fullName.charAt(0).toUpperCase() : 'BQL'}
+              {admin?.fullName ? admin.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'BQ'}
             </div>
             <div className="px-4 py-3 bg-[var(--bg-tertiary)] rounded-[20px] rounded-bl-none shadow-sm flex gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)]/40 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -651,7 +666,7 @@ export default function MessagesPage() {
             </button>
           </div>
 
-          <div className="flex-1 h-[50px] relative bg-[var(--bg-tertiary)] rounded-[24px] overflow-hidden border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center">
+          <div className="flex-1 h-[50px] relative bg-[var(--bg-tertiary)] rounded-[24px] overflow-visible border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center pr-2">
             <textarea
               value={newMessage}
               onChange={(e) => {
@@ -662,12 +677,28 @@ export default function MessagesPage() {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
                   handleSendMessage()
+                  setShowEmojiPicker(false)
                 }
               }}
               placeholder="Aa"
               rows={1}
-              className="w-full px-5 bg-transparent border-none focus:ring-0 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]/70 resize-none max-h-40 py-[14px] custom-scrollbar"
+              className="flex-1 px-5 bg-transparent border-none focus:ring-0 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]/70 resize-none max-h-40 py-[14px] custom-scrollbar"
             />
+            
+            <div className="relative flex items-center" ref={pickerRef}>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setShowEmojiPicker(!showEmojiPicker) }} 
+                    className="p-2 hover:bg-[var(--bg-primary)] hover:text-[var(--accent-blue)] rounded-full transition-colors text-[var(--text-tertiary)]"
+                    title="Chèn biểu tượng"
+                >
+                    <Smile size={20} />
+                </button>
+                <div className="absolute bottom-full right-0 mb-4 z-[100] shadow-2xl rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                    {showEmojiPicker && (
+                        <EmojiPicker onEmojiClick={(e) => setNewMessage(prev => prev + e.emoji)} width={300} height={400} />
+                    )}
+                </div>
+            </div>
           </div>
 
           <button

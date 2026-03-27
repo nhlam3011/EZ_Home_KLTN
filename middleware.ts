@@ -1,48 +1,46 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export async function middleware(request: any) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // Allow static files, api routes, admin routes, and login
-    if (
-        pathname.startsWith('/_next') ||
+    // 1. Skip middleware for static assets, public files and already handled routes
+    // Adding more extensions to skip common assets quickly
+    const isStaticAsset = 
+        pathname.startsWith('/_next') || 
+        pathname.startsWith('/static') || 
+        pathname.includes('.') || 
         pathname.startsWith('/api') ||
-        pathname.startsWith('/admin') ||
-        pathname.startsWith('/login') ||
-        pathname.startsWith('/favicon.ico') ||
         pathname === '/maintenance' ||
         pathname === '/logo_final.png'
-    ) {
+
+    if (isStaticAsset) {
         return NextResponse.next()
     }
 
     try {
-        // Fetch maintenance status from our internal API
         const origin = request.nextUrl.origin
+        
+        // Cực kỳ quan trọng: Thêm timeout cho fetch trong middleware
+        // Nếu API check-maintenance chậm, nó sẽ không kéo sập TTFB của toàn bộ site
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 1000) // 1s timeout
+
         const response = await fetch(`${origin}/api/system/check-maintenance`, {
-            cache: 'no-store'
-        })
+            cache: 'no-store',
+            signal: controller.signal
+        }).catch(() => null)
 
-        // Check if response is OK and is JSON before parsing
-        if (!response.ok) {
-            console.error('Maintenance check API returned non-OK status:', response.status)
-            return NextResponse.next()
-        }
+        clearTimeout(timeoutId)
 
-        const contentType = response.headers.get('content-type')
-        if (!contentType || !contentType.includes('application/json')) {
-            console.error('Maintenance check API returned non-JSON response:', contentType)
-            return NextResponse.next()
-        }
-
-        const data = await response.json()
-
-        if (data && data.enabled) {
-            return NextResponse.redirect(new URL('/maintenance', request.url))
+        if (response && response.ok) {
+            const data = await response.json().catch(() => null)
+            if (data && data.enabled && pathname !== '/maintenance') {
+                return NextResponse.redirect(new URL('/maintenance', request.url))
+            }
         }
     } catch (error) {
-        // Silent fail to avoid breaking the site if API is down
-        console.error('Middleware maintenance check failed:', error)
+        // Silent fail
     }
 
     return NextResponse.next()
@@ -57,6 +55,6 @@ export const config = {
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
          */
-        '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|logo_final.png).*)',
     ],
 }

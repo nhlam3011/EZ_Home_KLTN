@@ -141,7 +141,7 @@ export default function ResidentsPage() {
 
   const handleExport = async () => {
     try {
-      const url = selectedBuildingId 
+      const url = selectedBuildingId
         ? `/api/residents?action=export&buildingId=${selectedBuildingId}`
         : '/api/residents?action=export'
       const response = await fetch(url)
@@ -238,7 +238,7 @@ export default function ResidentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-center sm:text-left w-full">
           <h1 className="text-xl sm:text-2xl font-bold text-primary uppercase">QUẢN LÝ CƯ DÂN</h1>
-          <p className="text-xs sm:text-sm text-secondary mt-1">Quản lý thông tin cư dân và hợp đồng thuê phòng</p>
+          <p className="text-xs sm:text-sm text-secondary mt-1">Thông tin cư dân và hợp đồng thuê phòng</p>
         </div>
         <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 w-full lg:flex lg:flex-row lg:w-auto lg:items-center lg:gap-3">
           <Link

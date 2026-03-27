@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useEffect, useState, use } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X, Building2, Users, DollarSign, Calendar, FileText, CheckCircle, Trash2, Edit, Phone, Mail, MapPin, Upload } from 'lucide-react'
 import Link from 'next/link'
 import Loading from '@/components/Loading'
@@ -30,9 +30,9 @@ interface OwnerContract {
     }
 }
 
-export default function OwnerContractDetailPage() {
+export default function OwnerContractDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = use(props.params)
     const router = useRouter()
-    const params = useParams()
     const contractId = params?.id as string
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)

@@ -24,6 +24,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useBuilding } from '@/components/BuildingContext'
+import Loading from '@/components/Loading'
 
 interface RoomReading {
   id: number
@@ -308,7 +309,7 @@ export default function FinancePage() {
             >
               {saving ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loading size="sm" color="gradient" />
                   <span className="font-bold">Đang lưu...</span>
                 </>
               ) : (
@@ -551,8 +552,7 @@ export default function FinancePage() {
           {/* Table */}
           {loading ? (
             <div className="text-center py-12">
-              <Loader2 className="animate-spin text-blue-500 dark:text-blue-400 mx-auto mb-2" size={32} />
-              <p className="text-tertiary">Đang tải...</p>
+              <Loading size="lg" text="Đang tải dữ liệu..." />
             </div>
           ) : (
             <div className="card overflow-hidden !p-0">

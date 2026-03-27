@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useEffect, useState, useMemo, use } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, X, Building2, Users, DollarSign, Ruler, Home, Wrench, FileText, AlertCircle, ChevronDown, CheckCircle, Trash2, Sparkles, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import { useBuilding } from '@/components/BuildingContext'
@@ -38,9 +38,9 @@ interface Room {
   }>
 }
 
-export default function EditRoomPage() {
+export default function EditRoomPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params)
   const router = useRouter()
-  const params = useParams()
   const roomId = params?.id as string
   const { buildings } = useBuilding()
   const [loading, setLoading] = useState(true)

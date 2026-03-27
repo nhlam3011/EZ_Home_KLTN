@@ -391,7 +391,6 @@ export default function BuildingsPage() {
             {loading ? (
                 <div className="h-96 flex flex-col items-center justify-center">
                     <Loading size="lg" />
-                    <p className="text-tertiary mt-4 animate-pulse">Đang đồng bộ dữ liệu tòa nhà...</p>
                 </div>
             ) : buildings.length === 0 ? (
                 <div className="card flex flex-col items-center justify-center py-20 border-2 border-dashed">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Badge } from 'flowbite-react'
+import Loading from '@/components/Loading'
 import {
   Plus,
   Download,
@@ -12,25 +13,10 @@ import {
   Building2,
   Users,
   DollarSign,
-  X,
-  Home,
-  Ruler,
-  FileText,
-  Calendar,
-  Phone,
-  Mail,
-  MapPin,
-  CheckCircle,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ArrowUpRight,
-  Wrench,
   AlertCircle,
-  Loader2,
+  Home, Ruler, FileText, Calendar, Phone, Mail, MapPin, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowUpRight, Wrench,
   MoreHorizontal
 } from 'lucide-react'
-import Loading from '@/components/Loading'
 import { useBuilding } from '@/components/BuildingContext'
 
 interface Room {
@@ -446,8 +432,7 @@ export default function RoomsPage() {
       {/* Room Grid */}
       {loading ? (
         <div className="h-96 flex flex-col items-center justify-center bg-primary rounded-2xl border border-primary">
-          <Loading size="lg" />
-          <p className="text-tertiary mt-4 text-[10px] font-black uppercase tracking-widest animate-pulse">Đang tải danh sách phòng...</p>
+          <Loading size="lg" text="Đang tải danh sách phòng..." />
         </div>
       ) : rooms.length === 0 ? (
         <div className="card py-20 border-2 border-dashed border-primary flex flex-col items-center justify-center bg-primary">

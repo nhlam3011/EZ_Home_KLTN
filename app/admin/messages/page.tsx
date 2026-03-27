@@ -860,11 +860,11 @@ export default function AdminMessagesPage() {
                           <img
                             src={tenant.avatarUrl}
                             alt={tenant.fullName}
-                            className="w-14 h-14 rounded-2xl object-cover shadow-sm transition-transform group-hover:scale-105"
+                            className="w-12 h-12 rounded-xl object-cover shadow-sm transition-transform group-hover:scale-105"
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white text-xl font-bold shadow-md shadow-blue-500/20">
-                            {tenant.fullName.charAt(0).toUpperCase()}
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white text-base font-bold shadow-md shadow-blue-500/20">
+                            {tenant.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                           </div>
                         )}
                         <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-[3px] border-[var(--bg-primary)] group-hover:scale-110 transition-transform" />
@@ -933,8 +933,8 @@ export default function AdminMessagesPage() {
                       className="w-10 h-10 rounded-xl object-cover shadow-sm transition-all group-hover:ring-2 group-hover:ring-[var(--accent-blue)]"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white font-bold shadow-md">
-                      {selectedTenant.fullName.charAt(0).toUpperCase()}
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-blue)] to-[var(--accent-purple)] flex items-center justify-center text-white text-sm font-bold shadow-md">
+                      {selectedTenant.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                   )}
                   <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
@@ -1028,7 +1028,7 @@ export default function AdminMessagesPage() {
                                   />
                                 ) : (
                                   <div className="w-8 h-8 rounded-full bg-[var(--accent-blue)] flex items-center justify-center text-white text-[10px] font-bold">
-                                    {selectedTenant?.fullName.charAt(0).toUpperCase()}
+                                    {selectedTenant?.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                                   </div>
                                 )}
                               </div>
@@ -1092,7 +1092,7 @@ export default function AdminMessagesPage() {
               {isTyping && (
                 <div className="flex items-end gap-2.5 mb-4 animate-fadeIn">
                   <div className="w-8 h-8 rounded-full bg-[var(--accent-blue)] flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
-                    {selectedTenant?.fullName.charAt(0).toUpperCase()}
+                    {selectedTenant?.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div className="px-4 py-3 bg-[var(--bg-tertiary)] rounded-[20px] rounded-bl-none shadow-sm flex gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)]/40 animate-bounce" style={{ animationDelay: '0ms' }} />

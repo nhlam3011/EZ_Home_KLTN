@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { useSearchParams } from 'next/navigation'
 import {
   DollarSign,
   Building2,
@@ -16,10 +17,13 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  ArrowRight
+  ArrowRight,
+  MapPin,
+  Phone
 } from 'lucide-react'
 import Loading from '@/components/Loading'
 import { useBuilding } from '@/components/BuildingContext'
+import BuildingSelector from '@/components/BuildingSelector'
 
 // Dynamic import for ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
@@ -102,7 +106,7 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     try {
       setLoading(true)
-      const url = selectedBuildingId 
+      const url = selectedBuildingId
         ? `/api/admin/dashboard?buildingId=${selectedBuildingId}`
         : '/api/admin/dashboard'
       const response = await fetch(url)
@@ -174,6 +178,14 @@ export default function DashboardPage() {
     }
   }
 
+  const searchParams = useSearchParams()
+  const viewAllParam = searchParams.get('viewAll')
+
+  // Nếu chưa chọn toà nhà và không có param viewAll, hiển thị trang chọn toà nhà
+  if (!selectedBuildingId && !viewAllParam) {
+    return <BuildingSelector />
+  }
+
   if (loading || !stats) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -194,43 +206,48 @@ export default function DashboardPage() {
 
       {/* Building Info Card */}
       {selectedBuildingId && stats.buildingInfo && (
-        <div className="card bg-white border border-secondary/10 p-4 shadow-sm">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-primary/5 rounded-full flex items-center justify-center text-primary shrink-0">
-                <Building2 size={24} />
+        <div className="rounded-2xl overflow-hidden border border-primary shadow-sm hover:shadow-md transition-shadow duration-300">
+          {/* Header gradient */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-4 sm:px-5 py-3 sm:py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center flex-shrink-0">
+                <Building2 size={20} className="text-white" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-primary">{stats.buildingInfo.name}</h3>
-                <p className="text-sm text-secondary flex items-center gap-1">
-                  <span className="opacity-70">Địa chỉ:</span> {stats.buildingInfo.address}
-                </p>
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-white truncate">{stats.buildingInfo.name}</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <MapPin size={12} className="text-white/70 flex-shrink-0" />
+                  <p className="text-sm sm:text-md text-white/80 truncate">{stats.buildingInfo.address}</p>
+                </div>
               </div>
             </div>
-            
-            {stats.buildingInfo.ownerContracts[0] && (
-              <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-secondary/10 pt-4 md:pt-0 md:pl-6">
-                <div>
-                  <p className="text-xs text-secondary font-medium uppercase tracking-wider mb-1">Chủ nhà</p>
-                  <div className="flex items-center gap-2">
-                    <Users size={16} className="text-primary/60" />
-                    <span className="text-sm font-semibold text-primary">
-                      {stats.buildingInfo.ownerContracts[0].owner.fullName}
-                    </span>
+          </div>
+
+          {/* Owner info */}
+          {stats.buildingInfo.ownerContracts[0] && (
+            <div className="bg-primary px-4 sm:px-5 py-3 sm:py-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                    <Users size={16} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-tertiary font-semibold uppercase tracking-wider">Chủ nhà</p>
+                    <p className="text-sm font-bold text-primary truncate">{stats.buildingInfo.ownerContracts[0].owner.fullName}</p>
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs text-secondary font-medium uppercase tracking-wider mb-1">Liên hệ</p>
-                  <div className="flex items-center gap-2">
-                    <FileText size={16} className="text-primary/60" />
-                    <span className="text-sm font-medium text-primary">
-                      {stats.buildingInfo.ownerContracts[0].owner.phone}
-                    </span>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                    <Phone size={16} className="text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-tertiary font-semibold uppercase tracking-wider">Liên hệ</p>
+                    <p className="text-sm font-bold text-primary truncate">{stats.buildingInfo.ownerContracts[0].owner.phone}</p>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
 

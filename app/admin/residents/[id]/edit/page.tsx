@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useState, useEffect, use } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, X, Loader2, User, Phone, Mail, CreditCard, Calendar, MapPin, Camera, Upload, Plus, Download, FileText, Image as ImageIcon } from 'lucide-react'
 
@@ -31,9 +31,9 @@ interface Document {
   createdAt: Date | string
 }
 
-export default function EditResidentPage() {
+export default function EditResidentPage(props: { params: Promise<{ id: string }> }) {
+  const params = use(props.params)
   const router = useRouter()
-  const params = useParams()
   const residentId = params?.id as string
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

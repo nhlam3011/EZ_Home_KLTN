@@ -8,6 +8,10 @@ interface Building {
   name: string
   address: string
   floorCount: number
+  totalRooms?: number
+  rentedRooms?: number
+  availableRooms?: number
+  thumbnailUrl?: string | null
 }
 
 interface BuildingContextType {
@@ -20,7 +24,13 @@ interface BuildingContextType {
 const BuildingContext = createContext<BuildingContextType | undefined>(undefined)
 
 export function BuildingProvider({ children }: { children: ReactNode }) {
-  const [selectedBuildingId, setSelectedBuildingIdState] = useState<number | null>(null)
+  const [selectedBuildingId, setSelectedBuildingIdState] = useState<number | null>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('selectedBuildingId')
+      return saved ? parseInt(saved) : null
+    }
+    return null
+  })
   const [buildings, setBuildings] = useState<Building[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -34,22 +44,16 @@ export function BuildingProvider({ children }: { children: ReactNode }) {
         const data = await res.json()
         if (data.buildings) {
           setBuildings(data.buildings)
-          
+
           const savedId = localStorage.getItem('selectedBuildingId')
           if (savedId) {
             const id = parseInt(savedId)
-            // Check if saved ID still exists in the list
             if (data.buildings.some((b: Building) => b.id === id)) {
               setSelectedBuildingIdState(id)
-            } else if (data.buildings.length > 0) {
-              const firstId = data.buildings[0].id
-              setSelectedBuildingIdState(firstId)
-              localStorage.setItem('selectedBuildingId', firstId.toString())
+            } else {
+              localStorage.removeItem('selectedBuildingId')
+              setSelectedBuildingIdState(null)
             }
-          } else if (data.buildings.length > 0) {
-            const firstId = data.buildings[0].id
-            setSelectedBuildingIdState(firstId)
-            localStorage.setItem('selectedBuildingId', firstId.toString())
           }
         }
       } catch (err) {
