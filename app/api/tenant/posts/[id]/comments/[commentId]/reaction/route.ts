@@ -38,13 +38,13 @@ export async function POST(
     if (existingReaction) {
       if (existingReaction.type === type) {
         // Toggle off
-        await prisma.commentReaction.delete({
+        await prisma.commentReaction.deleteMany({
           where: { id: existingReaction.id }
         })
         return NextResponse.json({ reacted: false })
       } else {
         // Change reaction type
-        const updated = await prisma.commentReaction.update({
+        const updated = await prisma.commentReaction.updateMany({
           where: { id: existingReaction.id },
           data: { type }
         })

@@ -110,10 +110,16 @@ export default function DashboardPage() {
         ? `/api/admin/dashboard?buildingId=${selectedBuildingId}`
         : '/api/admin/dashboard'
       const response = await fetch(url)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch stats')
+      }
+      
       const data = await response.json()
       setStats(data)
     } catch (error) {
       console.error('Error fetching stats:', error)
+      setStats(null)
     } finally {
       setLoading(false)
     }
@@ -194,8 +200,9 @@ export default function DashboardPage() {
     )
   }
 
-  // Calculate max revenue for chart scaling
-  const maxRevenue = Math.max(...stats.revenueChart.map(d => d.revenue), 1)
+  // Calculate max revenue for chart scaling safely
+  const revenueChartData = stats?.revenueChart || []
+  const maxRevenue = Math.max(...revenueChartData.map(d => d.revenue || 0), 1)
 
   return (
     <div className="space-y-6">
@@ -367,7 +374,7 @@ export default function DashboardPage() {
                   enabled: false
                 },
                 xaxis: {
-                  categories: stats.revenueChart.map(d => d.monthName),
+                  categories: revenueChartData.map(d => d.monthName || ''),
                   labels: {
                     style: {
                       colors: '#6b7280'
@@ -410,7 +417,7 @@ export default function DashboardPage() {
               }}
               series={[{
                 name: 'Doanh thu',
-                data: stats.revenueChart.map(d => d.revenue)
+                data: revenueChartData.map(d => d.revenue || 0)
               }]}
             />
           </div>
@@ -436,7 +443,7 @@ export default function DashboardPage() {
               <div className="w-full bg-tertiary rounded-full h-2">
                 <div
                   className="bg-green-500 dark:bg-green-600 h-2 rounded-full transition-all"
-                  style={{ width: `${(stats.invoiceStatus.paid / stats.invoiceStatus.total) * 100}%` }}
+                  style={{ width: `${stats.invoiceStatus ? (stats.invoiceStatus.paid / (stats.invoiceStatus.total || 1)) * 100 : 0}%` }}
                 ></div>
               </div>
             </div>
@@ -451,7 +458,7 @@ export default function DashboardPage() {
               <div className="w-full bg-tertiary rounded-full h-2">
                 <div
                   className="bg-yellow-500 dark:bg-yellow-600 h-2 rounded-full transition-all"
-                  style={{ width: `${(stats.invoiceStatus.unpaid / stats.invoiceStatus.total) * 100}%` }}
+                  style={{ width: `${stats.invoiceStatus ? (stats.invoiceStatus.unpaid / (stats.invoiceStatus.total || 1)) * 100 : 0}%` }}
                 ></div>
               </div>
             </div>
@@ -466,7 +473,7 @@ export default function DashboardPage() {
               <div className="w-full bg-tertiary rounded-full h-2">
                 <div
                   className="bg-red-500 dark:bg-red-600 h-2 rounded-full transition-all"
-                  style={{ width: `${(stats.invoiceStatus.overdue / stats.invoiceStatus.total) * 100}%` }}
+                  style={{ width: `${stats.invoiceStatus ? (stats.invoiceStatus.overdue / (stats.invoiceStatus.total || 1)) * 100 : 0}%` }}
                 ></div>
               </div>
             </div>
@@ -525,7 +532,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {stats.recentInvoices.length === 0 ? (
+            {!stats.recentInvoices || stats.recentInvoices.length === 0 ? (
               <p className="text-sm text-tertiary text-center py-4 font-medium">Chưa có hóa đơn</p>
             ) : (
               stats.recentInvoices.map((invoice) => (
@@ -552,7 +559,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="space-y-3">
-            {stats.recentIssues.length === 0 ? (
+            {!stats.recentIssues || stats.recentIssues.length === 0 ? (
               <p className="text-sm text-secondary text-center py-4 font-medium">Chưa có sự cố</p>
             ) : (
               stats.recentIssues.map((issue) => (

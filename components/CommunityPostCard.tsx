@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
     Clock, Heart, MessageCircle, Share2, MoreHorizontal,
     CheckCircle, XCircle, Trash2, Image as ImageIcon,
@@ -95,7 +95,7 @@ function CommentItem({
     comment, currentUser, post, onReply, editingCommentId,
     setEditingCommentId, editContent, setEditContent, saveEditComment,
     activeDropdownId, setActiveDropdownId, handleDeleteComment,
-    toggleReaction, hoveringReaction, setHoveringReaction, formatRelativeTime,
+    toggleReaction, formatRelativeTime,
     onImageClick, isReply = false
 }: {
     comment: any, currentUser: any, post: any, onReply: (c: any) => void,
@@ -105,18 +105,29 @@ function CommentItem({
     activeDropdownId: number | null, setActiveDropdownId: (id: number | null) => void,
     handleDeleteComment: (id: number) => void,
     toggleReaction: (id: number, type: string) => void,
-    hoveringReaction: number | null, setHoveringReaction: (id: number | null) => void,
     formatRelativeTime: (d: any) => string,
     onImageClick: (url: string) => void,
     isReply?: boolean
 }) {
+    const [showReactionPicker, setShowReactionPicker] = useState(false)
+    const reactionPickerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target as Node)) {
+                setShowReactionPicker(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
     return (
         <div className={`flex gap-3 group/comment relative ${isReply ? 'mt-3' : ''}`}>
-            <div className={`${isReply ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm`}>
+            <div className={`${isReply ? 'w-5 h-5 sm:w-6 sm:h-6' : 'w-7 h-7 sm:w-8 sm:h-8'} rounded-full bg-blue-500 flex-shrink-0 flex items-center justify-center text-white font-bold overflow-hidden shadow-sm`}>
                 {comment.user.avatarUrl ? (
                     <img src={comment.user.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
-                    <span className={isReply ? 'text-[9px]' : 'text-xs'}>
+                    <span className={isReply ? 'text-[8px] sm:text-[9px]' : 'text-[10px] sm:text-xs'}>
                         {comment.user.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                     </span>
                 )}
@@ -149,7 +160,7 @@ function CommentItem({
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-[14px] text-primary mt-1 whitespace-pre-wrap leading-snug">{comment.content}</p>
+                                <p className="text-[13px] sm:text-[14px] text-primary mt-1 whitespace-pre-wrap break-words leading-snug">{comment.content}</p>
                             </div>
 
                             {comment.imageUrl && (
@@ -172,24 +183,27 @@ function CommentItem({
                                     return (
                                         <div
                                             className="relative"
-                                            onMouseEnter={() => setHoveringReaction(comment.id)}
-                                            onMouseLeave={() => setHoveringReaction(null)}
+                                            ref={reactionPickerRef}
                                         >
                                             <button
-                                                onClick={() => toggleReaction(comment.id, userReaction ? userReaction.type : 'LIKE')}
+                                                onClick={() => setShowReactionPicker(!showReactionPicker)}
                                                 className={`hover:underline transition-colors whitespace-nowrap ${colorClass}`}
                                             >
                                                 {label}
                                             </button>
 
-                                            {hoveringReaction === comment.id && (
-                                                <div className="absolute bottom-full left-0 pb-2 z-[100] animate-in fade-in zoom-in-95 duration-200 origin-bottom-left">
-                                                    <div className="bg-white dark:bg-slate-800 rounded-full shadow-2xl border border-primary/10 px-2 py-1 flex items-center gap-0.5 group/picker">
+                                            {showReactionPicker && (
+                                                <div className="absolute bottom-full left-0 sm:left-1/2 sm:-translate-x-1/2 pb-3 z-[100] animate-in fade-in zoom-in-95 duration-200 origin-bottom-left sm:origin-bottom">
+                                                    <div className="bg-white dark:bg-slate-800 rounded-full shadow-2xl border border-primary/20 px-1 py-1 sm:px-2 sm:py-1 flex items-center gap-0 sm:gap-0.5 group/picker whitespace-nowrap">
                                                         {Object.entries(REACTION_ICONS).map(([type, icon]) => (
                                                             <button
                                                                 key={type}
-                                                                onClick={() => toggleReaction(comment.id, type)}
-                                                                className="transition-all duration-300 origin-bottom p-1 text-[26px] font-emoji leading-none group-hover/picker:scale-75 group-hover/picker:opacity-60 hover:!scale-[1.3] hover:!opacity-100 hover:!z-10 relative"
+                                                                onClick={(e) => { 
+                                                                    e.stopPropagation();
+                                                                    toggleReaction(comment.id, type); 
+                                                                    setShowReactionPicker(false); 
+                                                                }}
+                                                                className="transition-all duration-300 origin-bottom p-1.5 sm:p-1 text-[22px] sm:text-[26px] font-emoji leading-none sm:group-hover/picker:scale-75 sm:group-hover/picker:opacity-60 sm:hover:!scale-[1.3] sm:hover:!opacity-100 hover:scale-110 active:scale-125 relative"
                                                                 title={REACTION_LABELS[type]}
                                                             >
                                                                 {icon}
@@ -229,7 +243,7 @@ function CommentItem({
                     )}
 
                     {(currentUser?.id === comment.userId || currentUser?.id === post.user.id || currentUser?.role === 'ADMIN') && editingCommentId !== comment.id && (
-                        <div className="opacity-0 group-hover/comment:opacity-100 focus-within:opacity-100 transition-opacity ml-1 self-center relative z-20">
+                        <div className="opacity-100 sm:opacity-0 sm:group-hover/comment:opacity-100 focus-within:opacity-100 transition-opacity ml-1 self-center relative z-20">
                             <button
                                 onClick={() => setActiveDropdownId(activeDropdownId === comment.id ? null : comment.id)}
                                 className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-tertiary"
@@ -287,7 +301,6 @@ export default function CommunityPostCard({
 
     // Facebook style features
     const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-    const [hoveringReaction, setHoveringReaction] = useState<number | null>(null)
     const [commentImage, setCommentImage] = useState<File | null>(null)
     const [commentImageUrl, setCommentImageUrl] = useState<string | null>(null)
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
@@ -409,7 +422,6 @@ export default function CommunityPostCard({
 
     const toggleReaction = async (commentId: number, type: string = 'LIKE') => {
         if (!currentUser) return
-        setHoveringReaction(null)
         try {
             const response = await fetch(`/api/tenant/posts/${post.id}/comments/${commentId}/reaction`, {
                 method: 'POST',
@@ -749,8 +761,8 @@ export default function CommunityPostCard({
 
             {/* Comments Section */}
             {showComments && (
-                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 sm:p-5 border-t border-primary">
-                    <div className="space-y-4 mb-4 max-h-[400px] overflow-y-auto no-scrollbar pb-14">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-3 sm:p-5 border-t border-primary">
+                    <div className="space-y-4 mb-4 max-h-[500px] sm:max-h-[600px] overflow-y-auto no-scrollbar pb-14">
                         {loadingComments ? (
                             <div className="text-center py-4 text-tertiary text-sm">Đang tải bình luận...</div>
                         ) : comments.length === 0 ? (
@@ -773,15 +785,13 @@ export default function CommunityPostCard({
                                         setActiveDropdownId={setActiveDropdownId}
                                         handleDeleteComment={handleDeleteComment}
                                         toggleReaction={toggleReaction}
-                                        hoveringReaction={hoveringReaction}
-                                        setHoveringReaction={setHoveringReaction}
                                         formatRelativeTime={formatRelativeTime}
                                         onImageClick={(url) => setSelectedImage(url)}
                                     />
 
                                     {/* Replies */}
                                     {comments.filter(reply => reply.parentId === comment.id).length > 0 && (
-                                        <div className="ml-11 space-y-3 border-l-2 border-slate-200 dark:border-slate-800 pl-4 mt-2">
+                                        <div className="ml-6 sm:ml-9 space-y-3 border-l-2 border-slate-200 dark:border-slate-800 pl-3 sm:pl-4 mt-2">
                                             {comments.filter(reply => reply.parentId === comment.id).map((reply: any) => (
                                                 <CommentItem
                                                     key={reply.id}
@@ -798,8 +808,6 @@ export default function CommunityPostCard({
                                                     setActiveDropdownId={setActiveDropdownId}
                                                     handleDeleteComment={handleDeleteComment}
                                                     toggleReaction={toggleReaction}
-                                                    hoveringReaction={hoveringReaction}
-                                                    setHoveringReaction={setHoveringReaction}
                                                     formatRelativeTime={formatRelativeTime}
                                                     onImageClick={(url) => setSelectedImage(url)}
                                                     isReply={true}
