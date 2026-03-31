@@ -1706,13 +1706,23 @@ a.btn-secondary:hover {
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes spin-reverse-slow {
-  from { transform: rotate(360deg); }
-  to { transform: rotate(0deg); }
+  from {
+    transform: rotate(360deg);
+  }
+
+  to {
+    transform: rotate(0deg);
+  }
 }
 
 .animate-spin-slow {
@@ -1807,46 +1817,83 @@ a.btn-secondary:hover {
       var(--bg-tertiary) 100%);
   background-size: 200% 100%;
 }
+
 /* ============================================
    LOADING ANIMATIONS - STANDARDIZED
    ============================================ */
 
 @keyframes wave {
-    0%, 100% { transform: scaleY(0.5); }
-    50% { transform: scaleY(1); }
+
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 @keyframes pulse-ring {
-    0% { transform: scale(0.8); opacity: 1; }
-    50% { transform: scale(1); opacity: 0.7; }
-    100% { transform: scale(0.8); opacity: 1; }
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
 }
 
 @keyframes equalizer {
-    0%, 100% { height: 20%; }
-    50% { height: 100%; }
+
+  0%,
+  100% {
+    height: 20%;
+  }
+
+  50% {
+    height: 100%;
+  }
 }
 
 .animate-wave {
-    animation: wave 0.6s ease-in-out infinite;
+  animation: wave 0.6s ease-in-out infinite;
 }
 
 .animate-pulse-ring {
-    animation: pulse-ring 1s ease-in-out infinite;
+  animation: pulse-ring 1s ease-in-out infinite;
 }
 
 .animate-equalizer {
-    animation: equalizer 0.8s ease-in-out infinite;
+  animation: equalizer 0.8s ease-in-out infinite;
 }
 
 @keyframes progress-loading {
-    0% { width: 0%; margin-left: 0; }
-    50% { width: 60%; margin-left: 20%; }
-    100% { width: 0%; margin-left: 100%; }
+  0% {
+    width: 0%;
+    margin-left: 0;
+  }
+
+  50% {
+    width: 60%;
+    margin-left: 20%;
+  }
+
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
 }
 
 .animate-progress-loading {
-    animation: progress-loading 1.5s ease-in-out infinite;
+  animation: progress-loading 1.5s ease-in-out infinite;
 }
 
 @keyframes fadeInUp {
@@ -1854,8 +1901,55 @@ a.btn-secondary:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ============================================
+   REACTION PICKER ANIMATIONS
+   ============================================ */
+
+@keyframes reactionPickerIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes reactionEmojiIn {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-8px) scale(1.3);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reaction-popover {
+  animation: reactionPickerIn 1s ease-in-out;
+}
+
+.reaction-emoji {
+  transition: transform 0.2s ease-in-out;
+}
+
+.reaction-emoji:hover {
+  transform: scale(1.2) translateY(-8px);
+  z-index: 10;
 }

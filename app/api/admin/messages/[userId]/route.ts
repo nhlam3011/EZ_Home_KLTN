@@ -127,8 +127,13 @@ export async function GET(
       })
     ])
 
+    const formattedMessages = messages.map(msg => ({
+      ...msg,
+      images: Array.isArray(msg.images) ? msg.images : []
+    }))
+
     return NextResponse.json({
-      messages,
+      messages: formattedMessages,
       tenant: {
         ...tenant,
         room: tenant.contracts[0]?.room || null

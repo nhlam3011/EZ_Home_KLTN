@@ -3,10 +3,14 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, MessageSquare, Send, Image as ImageIcon, X, Trash2, Phone, Video, Smile } from 'lucide-react'
+import { EmojiText } from '@/components/EmojiText'
+import { EmojiInput } from '@/components/EmojiInput'
 import Loading from '@/components/Loading'
 import { pusherClient } from '@/lib/pusher-client'
 import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
 import dynamic from 'next/dynamic'
+import { EmojiStyle, Theme } from 'emoji-picker-react'
+import { useDarkMode } from '../../contexts/DarkModeContext'
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
@@ -37,6 +41,7 @@ interface Admin {
 }
 
 export default function MessagesPage() {
+  const { isDark } = useDarkMode()
   const [messages, setMessages] = useState<Message[]>([])
   const [admin, setAdmin] = useState<Admin | null>(null)
   const [loading, setLoading] = useState(true)
@@ -314,6 +319,44 @@ export default function MessagesPage() {
     }
   }
 
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const files: File[] = []
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile()
+        if (file) files.push(file)
+      }
+    }
+
+    if (files.length > 0) {
+      setSending(true)
+      try {
+        const uploadPromises = files.map(async (file) => {
+          const formData = new FormData()
+          formData.append('file', file)
+          const res = await fetch('/api/messages/upload', {
+            method: 'POST',
+            body: formData
+          })
+          if (res.ok) {
+            const data = await res.json()
+            return data.url
+          }
+          return null
+        })
+        const urls = await Promise.all(uploadPromises)
+        const validUrls = urls.filter(url => url !== null)
+        setSelectedImages(prev => [...prev, ...validUrls])
+      } catch (error) {
+        console.error('Paste upload error:', error)
+      } finally {
+        setSending(false)
+      }
+    }
+  }
+
   const handleSendMessage = async () => {
     if ((!newMessage.trim() && selectedImages.length === 0) || !user || sending) return
 
@@ -577,7 +620,7 @@ export default function MessagesPage() {
 
                       {message.content && (
                         <p className={`text-[15px] leading-snug whitespace-pre-wrap break-words ${message.images?.length > 0 ? 'px-3 py-2' : ''}`}>
-                          {message.content}
+                          <EmojiText text={message.content} />
                         </p>
                       )}
                     </div>
@@ -645,7 +688,7 @@ export default function MessagesPage() {
           </div>
         )}
 
-        <div className="flex gap-2 items-end max-w-5xl mx-auto">
+        <div className="flex gap-1.5 sm:gap-3 items-end max-w-5xl mx-auto px-1 sm:px-0">
           <input
             type="file"
             ref={fileInputRef}
@@ -655,34 +698,32 @@ export default function MessagesPage() {
             className="hidden"
           />
 
-          <div className="flex items-center gap-1 sm:gap-2 mr-1">
+          <div className="flex items-center flex-shrink-0">
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingImages}
-              className="w-[50px] h-[50px] rounded-full flex items-center justify-center bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/20 transition-all shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/20 transition-all shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
               title="Đính kèm ảnh"
             >
               <ImageIcon size={22} fill="currentColor" fillOpacity={0.1} />
             </button>
           </div>
 
-          <div className="flex-1 h-[50px] relative bg-[var(--bg-tertiary)] rounded-[24px] overflow-visible border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center pr-2">
-            <textarea
+          <div className="flex-1 min-w-0 min-h-[40px] sm:min-h-[50px] relative bg-[var(--bg-tertiary)] rounded-[20px] sm:rounded-[24px] overflow-visible border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center pr-1 sm:pr-2 px-1 sm:px-2">
+            <EmojiInput
               value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value)
-                handleTyping(true)
+              onChange={(val) => {
+                setNewMessage(val)
+                handleTyping?.(true)
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSendMessage()
-                  setShowEmojiPicker(false)
-                }
+              onEnter={() => {
+                handleSendMessage()
+                setShowEmojiPicker(false)
               }}
               placeholder="Aa"
-              rows={1}
-              className="flex-1 px-5 bg-transparent border-none focus:ring-0 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]/70 resize-none max-h-40 py-[14px] custom-scrollbar"
+              className="flex-1 text-[14px] sm:text-[15px] text-primary font-medium"
+              maxHeight="150px"
+              onPaste={handlePaste}
             />
             
             <div className="relative flex items-center" ref={pickerRef}>
@@ -693,18 +734,51 @@ export default function MessagesPage() {
                 >
                     <Smile size={20} />
                 </button>
-                <div className="absolute bottom-full right-0 mb-4 z-[100] shadow-2xl rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                    {showEmojiPicker && (
-                        <EmojiPicker onEmojiClick={(e) => setNewMessage(prev => prev + e.emoji)} width={300} height={400} />
-                    )}
-                </div>
+                {showEmojiPicker && (
+                    <>
+                        {/* Backdrop for mobile */}
+                        <div
+                            className="sm:hidden fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[110] animate-in fade-in duration-300"
+                            onClick={() => setShowEmojiPicker(false)}
+                        />
+
+                        {/* Desktop: Popover */}
+                        <div className="hidden sm:block absolute bottom-full right-0 mb-4 z-[120] shadow-2xl rounded-2xl overflow-hidden bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
+                            <EmojiPicker 
+                              onEmojiClick={(e) => setNewMessage(prev => prev + e.emoji)} 
+                              theme={isDark ? Theme.DARK : Theme.LIGHT}
+                              emojiStyle={EmojiStyle.FACEBOOK}
+                              width={320} 
+                              height={420} 
+                              lazyLoadEmojis={true}
+                            />
+                        </div>
+
+                        {/* Mobile: Bottom Sheet */}
+                        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[120] animate-in slide-in-from-bottom-full duration-500 rounded-t-[2.5rem] overflow-hidden bg-white dark:bg-slate-900 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] pb-safe" onClick={(e) => e.stopPropagation()}>
+                          <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto my-3" />
+                          <EmojiPicker 
+                            onEmojiClick={(e) => {
+                                setNewMessage(prev => prev + e.emoji)
+                            }} 
+                            theme={isDark ? Theme.DARK : Theme.LIGHT}
+                            emojiStyle={EmojiStyle.FACEBOOK}
+                            width="100%" 
+                            height={400} 
+                            lazyLoadEmojis={true}
+                            skinTonesDisabled={true}
+                            searchDisabled={false}
+                          />
+                        </div>
+                    </>
+                )}
             </div>
           </div>
 
           <button
             onClick={handleSendMessage}
             disabled={(!newMessage.trim() && selectedImages.length === 0) || sending}
-            className="w-[50px] h-[50px] rounded-full flex items-center justify-center transition-all bg-[var(--accent-blue)] text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-tertiary)] disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed group"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all bg-[var(--accent-blue)] text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-tertiary)] disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed group flex-shrink-0"
           >
             {sending ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

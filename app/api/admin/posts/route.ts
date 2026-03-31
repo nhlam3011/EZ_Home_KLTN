@@ -58,12 +58,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             fullName: true,
-            avatarUrl: true,
-            contracts: {
-              where: { status: 'ACTIVE' },
-              select: { room: { select: { name: true } } },
-              take: 1
-            }
+            avatarUrl: true
           }
         },
         _count: {

@@ -395,29 +395,33 @@ export default function TenantDashboard() {
           </div>
           <div className="space-y-2 sm:space-y-3">
             {data.unpaidInvoices.slice(0, 5).map((invoice: any) => (
-              <div key={invoice.id} className="flex items-center justify-between p-2.5 sm:p-4 bg-tertiary rounded-lg hover:bg-secondary transition-colors border border-primary gap-2 sm:gap-0">
+              <div key={invoice.id} className="flex items-center justify-between p-3.5 sm:p-4 bg-tertiary rounded-xl border border-primary gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5">
-                    <h4 className="text-xs sm:text-base font-semibold text-primary whitespace-nowrap">
+                  <div className="flex items-center gap-2 mb-1 sm:mb-1.5 flex-wrap">
+                    <h4 className="text-sm sm:text-base font-bold text-primary whitespace-nowrap leading-none">
                       T{invoice.month}/{invoice.year}
                     </h4>
-                    <span className={`badge text-[10px] sm:text-xs ${invoice.status === 'OVERDUE' ? 'badge-error' : 'badge-warning'}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${
+                      invoice.status === 'OVERDUE' 
+                        ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' 
+                        : 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400'
+                    }`}>
                       {invoice.status === 'OVERDUE' ? 'Quá hạn' : 'Chờ'}
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-secondary">
-                    <span className="font-semibold text-primary">{formatCurrency(invoice.totalAmount || 0)}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                    <p className="text-sm sm:text-base font-bold text-blue-600 dark:text-blue-400">
+                      {formatCurrency(invoice.totalAmount || 0)}
+                    </p>
                     {invoice.paymentDueDate && (
-                      <span className="hidden sm:inline"> • Hạn {formatDate(invoice.paymentDueDate)}</span>
+                      <p className="text-[11px] sm:text-xs text-secondary flex items-center gap-1">
+                        <Clock size={12} className="opacity-70" />
+                        Hạn: {formatDate(invoice.paymentDueDate)}
+                      </p>
                     )}
-                  </p>
+                  </div>
                 </div>
-                <Link
-                  href={`/tenant/invoices`}
-                  className="btn btn-primary btn-sm flex-shrink-0 text-xs sm:text-sm"
-                >
-                  Thanh toán
-                </Link>
+                <ArrowRight size={16} className="text-secondary opacity-30 flex-shrink-0" />
               </div>
             ))}
           </div>

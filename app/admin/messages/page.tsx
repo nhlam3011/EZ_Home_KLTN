@@ -4,9 +4,16 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { MessageSquare, Send, Search, ArrowLeft, Image as ImageIcon, X, Trash2, Building2, Menu, Phone, Video, Smile } from 'lucide-react'
 import Link from 'next/link'
 import Loading from '@/components/Loading'
+import { EmojiText } from '@/components/EmojiText'
+import { EmojiInput } from '@/components/EmojiInput'
 import { pusherClient } from '@/lib/pusher-client'
 import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
 import { useBuilding } from '@/components/BuildingContext'
+import dynamic from 'next/dynamic'
+import { EmojiStyle, Theme } from 'emoji-picker-react'
+import { useDarkMode } from '../../contexts/DarkModeContext'
+
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false })
 
 interface Message {
   id: number
@@ -37,6 +44,9 @@ interface Tenant {
     id: number
     name: string
     floor: number
+    building?: {
+      name: string
+    }
   } | null
   lastMessage?: {
     content: string
@@ -47,6 +57,7 @@ interface Tenant {
 }
 
 export default function AdminMessagesPage() {
+  const { isDark } = useDarkMode()
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null)
   const [messagesByTenant, setMessagesByTenant] = useState<Record<number, Message[]>>({})
@@ -553,10 +564,9 @@ export default function AdminMessagesPage() {
     } else {
       setNewMessage(prev => prev + emoji)
     }
-    setShowEmojiPicker(false)
+    // Không tắt picker để có thể chọn nhiều emoji liên tục
   }
 
-  const emojis = ['😊', '😂', '🥰', '😍', '😒', '😭', '👍', '❤️', '🔥', '✨', '✔️', '❌', '🏠', '🔑', '💰', '📅']
 
   const handleDeleteHistory = () => {
     if (!selectedTenant || !user) return
@@ -896,9 +906,16 @@ export default function AdminMessagesPage() {
                             </p>
                           )}
                           {tenant.room && (
-                            <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--accent-purple)]">
-                              <Building2 size={10} />
-                              {tenant.room.name}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--accent-purple)]">
+                                <Building2 size={10} />
+                                {tenant.room.name}
+                              </div>
+                              {tenant.room.building?.name && (
+                                <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-[9px] font-bold text-slate-500 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                  {tenant.room.building.name}
+                                </span>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1066,7 +1083,7 @@ export default function AdminMessagesPage() {
                               }}
                             >
                               <p className="text-[15px] leading-snug whitespace-pre-wrap break-words">
-                                {message.content}
+                                <EmojiText text={message.content} />
                               </p>
                             </div>
                           )}
@@ -1134,7 +1151,7 @@ export default function AdminMessagesPage() {
                 </div>
               )}
 
-              <div className="flex gap-2 items-end max-w-5xl mx-auto">
+              <div className="flex gap-1.5 sm:gap-3 items-end max-w-5xl mx-auto px-1 sm:px-0">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -1144,11 +1161,11 @@ export default function AdminMessagesPage() {
                   className="hidden"
                 />
 
-                <div className="flex items-center gap-1 sm:gap-2 mr-1">
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingImages}
-                    className="w-[50px] h-[50px] rounded-full flex items-center justify-center bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/20 transition-all shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-[var(--accent-blue)]/10 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/20 transition-all shadow-sm hover:scale-105 active:scale-95 disabled:opacity-50"
                     title="Đính kèm ảnh"
                   >
                     <ImageIcon size={22} fill="currentColor" fillOpacity={0.1} />
@@ -1157,56 +1174,72 @@ export default function AdminMessagesPage() {
                   <div className="relative">
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="w-[50px] h-[50px] rounded-full flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--accent-blue)] transition-all shadow-sm hover:scale-105 active:scale-95"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--accent-blue)] transition-all shadow-sm hover:scale-105 active:scale-95"
                       title="Emoji"
                     >
                       <Smile size={22} fill="currentColor" fillOpacity={0.1} />
                     </button>
 
                     {showEmojiPicker && (
-                      <div
-                        ref={emojiPickerRef}
-                        className="absolute bottom-16 left-0 p-3 bg-[var(--bg-primary)] rounded-2xl shadow-2xl border border-[var(--border-primary)] grid grid-cols-4 gap-2 z-[60] animate-scaleIn min-w-[180px]"
-                      >
-                        {emojis.map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => insertEmoji(emoji)}
-                            className="text-2xl hover:bg-[var(--bg-tertiary)] p-2 rounded-xl transition-all active:scale-90"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
+                      <>
+                        {/* Backdrop for mobile */}
+                        <div
+                          className="sm:hidden fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[110] animate-in fade-in duration-300"
+                          onClick={() => setShowEmojiPicker(false)}
+                        />
+
+                        {/* Desktop: Popover */}
+                        <div
+                          ref={emojiPickerRef}
+                          className="hidden sm:block absolute bottom-16 left-0 z-[120] animate-scaleIn shadow-2xl rounded-2xl overflow-hidden bg-white dark:bg-slate-900"
+                        >
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) => insertEmoji(emojiData.emoji)}
+                            theme={isDark ? Theme.DARK : Theme.LIGHT}
+                            emojiStyle={EmojiStyle.FACEBOOK}
+                            width={320}
+                            height={420}
+                            lazyLoadEmojis={true}
+                          />
+                        </div>
+
+                        {/* Mobile: Bottom Sheet */}
+                        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[120] animate-in slide-in-from-bottom-full duration-500 rounded-t-[2.5rem] overflow-hidden bg-white dark:bg-slate-900 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] pb-safe">
+                          <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto my-3" />
+                          <EmojiPicker
+                            onEmojiClick={(emojiData) => {
+                              insertEmoji(emojiData.emoji)
+                            }}
+                            width="100%"
+                            height={400}
+                            theme={isDark ? Theme.DARK : Theme.LIGHT}
+                            emojiStyle={EmojiStyle.FACEBOOK}
+                            lazyLoadEmojis={true}
+                            skinTonesDisabled={true}
+                            searchDisabled={false}
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
 
-                <div className="flex-1 h-[50px] relative bg-[var(--bg-tertiary)] rounded-[24px] overflow-hidden border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center">
-                  <textarea
-                    ref={textareaRef}
+                <div className="flex-1 min-w-0 min-h-[40px] sm:min-h-[50px] relative bg-[var(--bg-tertiary)] rounded-[20px] sm:rounded-[24px] overflow-hidden border border-transparent focus-within:border-[var(--accent-blue)]/30 focus-within:ring-4 focus-within:ring-[var(--accent-blue)]/5 transition-all flex items-center px-4 py-2">
+                  <EmojiInput
                     value={newMessage}
+                    onChange={setNewMessage}
+                    placeholder="Nhập tin nhắn..."
+                    className="w-full text-sm sm:text-base text-primary font-medium"
+                    maxHeight="150px"
+                    onEnter={handleSendMessage}
                     onPaste={handlePaste}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value)
-                      handleTyping(true)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSendMessage()
-                      }
-                    }}
-                    placeholder="Aa"
-                    rows={1}
-                    className="w-full px-5 bg-transparent border-none focus:ring-0 text-[15px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]/70 resize-none max-h-40 py-[14px] custom-scrollbar"
                   />
                 </div>
 
                 <button
                   onClick={handleSendMessage}
                   disabled={(!newMessage.trim() && selectedImages.length === 0) || sending}
-                  className="w-[50px] h-[50px] rounded-full flex items-center justify-center transition-all bg-[var(--accent-blue)] text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-tertiary)] disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed group"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all bg-[var(--accent-blue)] text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 disabled:bg-[var(--bg-tertiary)] disabled:text-[var(--text-tertiary)] disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed group flex-shrink-0"
                 >
                   {sending ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

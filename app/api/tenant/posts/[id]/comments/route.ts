@@ -14,6 +14,10 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid post ID' }, { status: 400 })
     }
 
+    const searchParams = request.nextUrl.searchParams
+    const limit = parseInt(searchParams.get('limit') || '50') // Default limit of 50 for now, but usually frontend calls with 20
+    const skip = parseInt(searchParams.get('skip') || '0')
+
     const comments = await prisma.comment.findMany({
       where: { postId },
       include: {
@@ -24,13 +28,29 @@ export async function GET(
             avatarUrl: true,
             contracts: {
               where: { status: 'ACTIVE' },
-              include: { room: { select: { name: true } } }
+              select: {
+                room: {
+                  select: { name: true }
+                }
+              },
+              take: 1
             }
           }
         },
-        reactions: true
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true
+              }
+            }
+          }
+        }
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      skip: skip
     })
 
     return NextResponse.json(comments)

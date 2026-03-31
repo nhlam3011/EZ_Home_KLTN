@@ -27,12 +27,57 @@ export default function BuildingSelector({ onSelect }: BuildingSelectorProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center animate-pulse shadow-xl">
-            <Building2 size={28} className="text-white" />
+      <div className="w-full animate-in fade-in duration-500">
+        {/* Header Skeleton to prevent layout shift */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div>
+            <div className="h-8 w-56 sm:w-72 bg-slate-200 dark:bg-slate-800/80 rounded-xl mb-2.5 animate-pulse"></div>
+            <div className="h-4 w-48 sm:w-96 bg-slate-100 dark:bg-slate-800/50 rounded-lg animate-pulse"></div>
           </div>
-          <p className="text-secondary font-medium text-sm">Đang tải danh sách toà nhà...</p>
+          <div className="w-full md:w-80 h-11 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse"></div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          {/* Skeleton for "TỔNG QUAN" card */}
+          <div className="rounded-xl overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-800/80 p-6 flex flex-col h-[340px] animate-pulse border border-slate-200 dark:border-slate-700 shadow-sm relative">
+            <div className="flex justify-between items-start">
+              <div className="w-12 h-12 rounded-2xl bg-white/40 dark:bg-white/10"></div>
+              <div className="w-24 h-6 rounded-full bg-white/40 dark:bg-white/10"></div>
+            </div>
+            <div className="mt-auto space-y-4">
+              <div className="h-6 w-3/4 bg-white/40 dark:bg-white/10 rounded-lg"></div>
+              <div className="h-3 w-1/2 bg-white/40 dark:bg-white/10 rounded-md mb-4"></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/30 dark:bg-white/5 rounded-xl p-3 h-16"></div>
+                <div className="bg-white/30 dark:bg-white/5 rounded-xl p-3 h-16"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Skeletons for regular building cards */}
+          {[...Array(9)].map((_, i) => (
+            <div key={i} className="rounded-xl overflow-hidden bg-primary border border-primary shadow-sm flex flex-col h-[340px] relative">
+              <div className="h-40 bg-slate-200 dark:bg-slate-800 animate-pulse w-full"></div>
+              
+              <div className="absolute top-4 left-4 z-20 w-8 h-8 rounded-xl bg-white/40 dark:bg-black/20 backdrop-blur-md animate-pulse"></div>
+              
+              <div className="p-5 flex-1 flex flex-col bg-primary">
+                <div className="h-6 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mb-3"></div>
+                <div className="h-4 w-full bg-slate-100 dark:bg-slate-800/50 rounded-md animate-pulse mb-6"></div>
+                
+                <div className="grid grid-cols-3 gap-3 mt-auto mb-5">
+                  <div className="h-16 rounded-xl bg-slate-100 dark:bg-slate-800/50 animate-pulse"></div>
+                  <div className="h-16 rounded-xl bg-slate-100 dark:bg-slate-800/50 animate-pulse"></div>
+                  <div className="h-16 rounded-xl bg-slate-100 dark:bg-slate-800/50 animate-pulse"></div>
+                </div>
+
+                <div className="pt-4 border-t border-primary flex items-center justify-between">
+                  <div className="h-6 w-20 bg-slate-200 dark:bg-slate-800 rounded-md animate-pulse"></div>
+                  <div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded-md animate-pulse"></div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     )

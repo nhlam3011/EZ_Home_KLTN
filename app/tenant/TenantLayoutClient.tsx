@@ -228,8 +228,8 @@ export default function TenantLayoutClient({
               <img
                 src="/logo_final.png?v=1"
                 alt="Logo"
-                width={50}
-                height={50}
+                width={40}
+                height={40}
                 className="object-contain"
               />
             </div>

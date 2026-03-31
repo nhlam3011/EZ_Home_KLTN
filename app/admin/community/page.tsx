@@ -11,9 +11,11 @@ import {
 } from 'lucide-react'
 import Loading from '@/components/Loading'
 import CommunityPostCard from '@/components/CommunityPostCard'
-import EmojiPicker, { Theme } from 'emoji-picker-react'
-import { useDarkMode } from '../../contexts/DarkModeContext'
+import { useDarkMode } from '@/app/contexts/DarkModeContext'
+import { EmojiText } from '@/components/EmojiText'
+import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react'
 import { useBuilding } from '@/components/BuildingContext'
+import { EmojiInput } from '@/components/EmojiInput'
 
 interface Post {
   id: number
@@ -90,24 +92,7 @@ export default function CommunityPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const onEmojiClick = (emojiData: any) => {
-    const emoji = emojiData.emoji
-    if (textareaRef.current) {
-      const start = textareaRef.current.selectionStart
-      const end = textareaRef.current.selectionEnd
-      const text = newPostContent
-      const before = text.substring(0, start)
-      const after = text.substring(end)
-      setNewPostContent(before + emoji + after)
-
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus()
-          textareaRef.current.setSelectionRange(start + emoji.length, start + emoji.length)
-        }
-      }, 0)
-    } else {
-      setNewPostContent(prev => prev + emoji)
-    }
+    setNewPostContent(prev => prev + emojiData.emoji)
   }
 
   useEffect(() => {
@@ -173,7 +158,7 @@ export default function CommunityPage() {
 
       const response = await fetch(`/api/admin/posts?${params.toString()}`)
       const data = await response.json()
-      
+
       const newPosts = Array.isArray(data) ? data : []
       const pinned = newPosts.filter((post: Post) => post.content.startsWith('📌'))
       const regular = newPosts.filter((post: Post) => !post.content.startsWith('📌'))
@@ -184,7 +169,7 @@ export default function CommunityPage() {
       } else {
         setPosts(combined)
       }
-      
+
       if (newPosts.length < 15) setHasMore(false)
       else setHasMore(true)
 
@@ -211,15 +196,19 @@ export default function CommunityPage() {
       params.append('page', pageNum.toString())
       params.append('limit', '15')
 
-      const userData = localStorage.getItem('user')
+      const userData = localStorage.getItem('user') || sessionStorage.getItem('user')
       if (userData) {
-        const user = JSON.parse(userData)
-        params.append('userId', user.id)
+        try {
+          const user = JSON.parse(userData)
+          params.append('userId', user.id)
+        } catch (e) {
+          console.error('Error parsing user data', e)
+        }
       }
 
       const response = await fetch(`/api/admin/posts?${params.toString()}`)
       const data = await response.json()
-      
+
       const newPosts = Array.isArray(data) ? data : []
       const pinned = newPosts.filter((post: Post) => post.content.startsWith('📌'))
       const regular = newPosts.filter((post: Post) => !post.content.startsWith('📌'))
@@ -593,8 +582,30 @@ export default function CommunityPage() {
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowConfirmModal(false)} className="flex-1 px-4 py-3 bg-tertiary rounded-2xl text-sm font-bold">Hủy</button>
-                <button onClick={executeAction} disabled={actionLoading} className={`flex-1 px-4 py-3 text-white rounded-2xl text-sm font-bold flex items-center justify-center min-h-[44px] ${confirmAction?.type === 'approve' ? 'bg-green-500' : confirmAction?.type === 'reject' ? 'bg-amber-500' : 'bg-red-500'}`}>
-                  {actionLoading ? <Loading size="sm" /> : 'Xác nhận'}
+                <button 
+                  onClick={executeAction} 
+                  disabled={actionLoading} 
+                  className={`flex-1 px-4 py-3 text-white rounded-2xl text-sm font-bold flex items-center justify-center min-h-[48px] gap-2 shadow-lg transition-all active:scale-95 disabled:grayscale-50 ${
+                    confirmAction?.type === 'approve' 
+                      ? 'bg-emerald-500 shadow-emerald-500/20' 
+                      : confirmAction?.type === 'reject' 
+                      ? 'bg-amber-500 shadow-amber-500/20' 
+                      : 'bg-rose-500 shadow-rose-500/20'
+                  }`}
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Đang xử lý...</span>
+                    </>
+                  ) : (
+                    <>
+                      {confirmAction?.type === 'approve' && <CheckCircle size={18} />}
+                      {confirmAction?.type === 'reject' && <XCircle size={18} />}
+                      {confirmAction?.type === 'delete' && <Trash2 size={18} />}
+                      <span>Xác nhận</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -613,8 +624,8 @@ export default function CommunityPage() {
                   <Plus className={editingPost ? 'rotate-45' : ''} size={22} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-primary uppercase tracking-wider">{editingPost ? 'Chỉnh sửa bài viết' : 'Đăng bài mới'}</h2>
-                  <p className="text-[11px] text-tertiary font-bold uppercase tracking-widest mt-0.5">{editingPost ? 'Cập nhật lại thông tin bài viết' : 'Tạo thông báo hoặc thảo luận mới'}</p>
+                  <h2 className="text-lg font-bold text-primary uppercase tracking-wider">{editingPost ? 'Chỉnh sửa bài viết' : 'Đăng bài'}</h2>
+                  <p className="text-[11px] text-tertiary font-bold uppercase tracking-widest mt-0.5">{editingPost ? 'Cập nhật lại thông tin bài viết' : ''}</p>
                 </div>
               </div>
               <button onClick={() => { setShowCreateModal(false); setEditingPost(null); setNewPostContent(''); setSelectedImages([]); setIsPinned(false); }} className="w-10 h-10 flex items-center justify-center bg-tertiary rounded-xl hover:text-red-500 transition-all"><X size={20} /></button>
@@ -652,8 +663,7 @@ export default function CommunityPage() {
                     <Megaphone size={18} className={isPinned ? 'fill-current' : ''} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-primary italic">Ghim bài viết này lên đầu</h4>
-                    <p className="text-[10px] font-bold text-tertiary uppercase tracking-widest mt-0.5">Bài viết sẽ luôn nằm ở đầu trang bảng tin của cư dân</p>
+                    <h4 className="text-sm font-bold uppercase text-primary">Ghim bài viết   </h4>
                   </div>
                 </div>
                 <button
@@ -669,14 +679,13 @@ export default function CommunityPage() {
                   <p className="text-[11px] font-bold text-tertiary uppercase tracking-widest">Nội dung</p>
                   <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-blue-500 transition-colors"><Smile size={18} /></button>
                 </div>
-                <textarea
-                  ref={textareaRef}
+                <EmojiInput
                   value={newPostContent}
-                  onChange={(e) => setNewPostContent(e.target.value)}
-                  onPaste={handlePaste}
+                  onChange={setNewPostContent}
                   placeholder="Chia sẻ điều gì đó với hàng xóm..."
-                  rows={8}
-                  className="w-full resize-none p-5 rounded-[1.5rem] bg-tertiary border-2 border-transparent focus:border-[var(--accent-blue)] transition-all text-sm text-primary placeholder:text-tertiary shadow-inner font-medium leading-relaxed"
+                  onPaste={handlePaste}
+                  className="w-full bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-5 text-sm sm:text-base border-none focus:ring-2 focus:ring-blue-500/20 transition-all min-h-[150px] leading-relaxed"
+                  maxHeight="300px"
                 />
               </div>
 
@@ -701,16 +710,53 @@ export default function CommunityPage() {
                 <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
                 {uploadingImages && <Loader2 size={18} className="animate-spin text-blue-500 ml-2" />}
               </label>
-              <button onClick={handleCreatePost} disabled={!newPostContent.trim() || posting} className="btn btn-primary h-12 px-8 rounded-2xl flex items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95 transition-all text-sm">
-                {posting ? <><Loader2 size={18} className="animate-spin" /><span className="font-bold">Đang xử lý...</span></> : <><Send size={18} /><span className="font-bold uppercase tracking-tight">{editingPost ? 'Cập nhật' : 'Đăng bài'}</span></>}
+              <button 
+                onClick={handleCreatePost} 
+                disabled={!newPostContent.trim() || posting} 
+                className="flex items-center gap-2 h-12 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+              >
+                {posting ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span className="uppercase tracking-tight">Đang đăng...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    <span className="uppercase tracking-tight">{editingPost ? 'Cập nhật' : 'Đăng bài'}</span>
+                  </>
+                )}
               </button>
             </div>
 
+            {/* Emoji Picker - fixed inside modal */}
             {showEmojiPicker && (
               <>
                 <div className="fixed inset-0 z-[110]" onClick={() => setShowEmojiPicker(false)} />
-                <div className="absolute top-[140px] right-6 z-[120] animate-scaleIn shadow-2xl rounded-3xl overflow-hidden bg-white dark:bg-slate-800">
-                  <EmojiPicker onEmojiClick={onEmojiClick} theme={isDark ? Theme.DARK : Theme.LIGHT} width={350} height={420} />
+                {/* Desktop: dropdown inside modal */}
+                <div className="hidden sm:block absolute right-4 top-[180px] z-[120] animate-scaleIn shadow-2xl rounded-3xl overflow-hidden bg-white dark:bg-slate-800">
+                  <EmojiPicker
+                    onEmojiClick={onEmojiClick}
+                    autoFocusSearch={false}
+                    theme={isDark ? Theme.DARK : Theme.LIGHT}
+                    emojiStyle={EmojiStyle.FACEBOOK}
+                    width={320}
+                    height={400}
+                    searchPlaceholder="Tìm kiếm emoji..."
+                  />
+                </div>
+                {/* Mobile: bottom sheet */}
+                <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[120] rounded-t-3xl overflow-hidden shadow-2xl bg-white dark:bg-slate-900">
+                  <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto my-3" />
+                  <EmojiPicker
+                    onEmojiClick={onEmojiClick}
+                    autoFocusSearch={false}
+                    theme={isDark ? Theme.DARK : Theme.LIGHT}
+                    emojiStyle={EmojiStyle.FACEBOOK}
+                    width="100%"
+                    height={350}
+                    searchPlaceholder="Tìm kiếm emoji..."
+                  />
                 </div>
               </>
             )}
@@ -727,16 +773,18 @@ export default function CommunityPage() {
               <h3 className="font-bold text-primary uppercase tracking-wider">Chi tiết bài viết</h3>
               <button onClick={() => setSelectedPost(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-tertiary text-secondary hover:text-red-500 transition-all"><X size={20} /></button>
             </div>
-            <div className="p-8 overflow-y-auto no-scrollbar">
+            <div className="p-5 sm:p-8 overflow-y-auto no-scrollbar">
               <CommunityPostCard
                 post={selectedPost}
                 variant="admin"
                 showCategory="text"
                 showStatus={true}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onDelete={handleDeletePost}
-                onEdit={handleEditPost}
+                isModeration={false}
+                onApprove={(id) => handleApprove(id)}
+                onReject={(id) => handleReject(id)}
+                onDelete={(id) => handleDeletePost(id)}
+                onEdit={(post) => handleEditPost(post)}
+                defaultShowComments={true}
               />
             </div>
           </div>

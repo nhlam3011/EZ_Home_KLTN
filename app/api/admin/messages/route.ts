@@ -82,40 +82,55 @@ export async function GET(request: NextRequest) {
       })
     ])
 
-    // OPTIMIZATION: Get last message for each tenant using a simple approach
-    // Get all messages ordered by createdAt desc, then deduplicate by partner
-    const allConversationMessages = await prisma.message.findMany({
+    // OPTIMIZATION: Get all unread counts in a single groupBy query
+    const unreadMessagesData = await prisma.message.groupBy({
+      by: ['senderId'],
+      where: {
+        receiverId: adminUser.id,
+        isRead: false
+      },
+      _count: {
+        id: true
+      }
+    })
+
+    const unreadCounts: Record<number, number> = {}
+    unreadMessagesData.forEach(item => {
+      unreadCounts[item.senderId] = item._count.id
+    })
+
+    // OPTIMIZATION: Get the latest message for each partner more efficiently
+    // Instead of 500 full records, get only the most recent message IDs first if possible
+    // For now, we pull the 300 most recent records with limited fields to find the latest for each conversation
+    const recentMessages = await prisma.message.findMany({
       where: {
         OR: [
           { senderId: adminUser.id },
           { receiverId: adminUser.id }
         ]
       },
-      include: {
+      select: {
+        senderId: true,
+        receiverId: true,
+        content: true,
+        createdAt: true,
+        images: true,
         sender: {
-          select: { id: true, role: true }
+          select: { role: true }
         }
       },
       orderBy: { createdAt: 'desc' },
-      take: 500 // Limit to recent messages for performance
+      take: 300 // Reduced from 500, only pulling necessary fields
     })
 
-    // Build a map of partner ID to last message (first occurrence = latest due to desc order)
-    const lastMessageMap = new Map<number, {
-      content: string
-      createdAt: Date
-      images: string
-      senderRole: string
-    }>()
-
-    allConversationMessages.forEach(msg => {
+    const lastMessageMap = new Map<number, any>()
+    recentMessages.forEach(msg => {
       const partnerId = msg.senderId === adminUser.id ? msg.receiverId : msg.senderId
-      // Only keep the first (latest) message for each partner
       if (!lastMessageMap.has(partnerId)) {
         lastMessageMap.set(partnerId, {
           content: msg.content,
           createdAt: msg.createdAt,
-          images: Array.isArray(msg.images) ? JSON.stringify(msg.images) : '[]',
+          images: msg.images,
           senderRole: msg.sender.role
         })
       }
@@ -123,20 +138,22 @@ export async function GET(request: NextRequest) {
 
     const tenantIdsWithMessages = Array.from(lastMessageMap.keys())
 
+    const buildingIdNum = buildingId ? parseInt(buildingId) : NaN
+    const isBuildingFilterValid = !isNaN(buildingIdNum)
+
     // OPTIMIZATION: Get all tenants in a single query with combined data
     // Fetch tenants that have messages AND tenants without messages in one go
     const [tenantsWithUnread, allTenantsNoMsg] = await Promise.all([
-      // Tenants with messages (get unread count)
       prisma.user.findMany({
         where: {
           id: { in: tenantIdsWithMessages },
           role: 'TENANT',
           isActive: true,
-          ...(buildingId ? {
+          ...(isBuildingFilterValid ? {
             contracts: {
               some: {
                 room: {
-                  buildingId: parseInt(buildingId)
+                  buildingId: buildingIdNum
                 },
                 status: 'ACTIVE'
               }
@@ -155,22 +172,15 @@ export async function GET(request: NextRequest) {
                 select: {
                   id: true,
                   name: true,
-                  floor: true
+                  floor: true,
+                  building: {
+                    select: { name: true }
+                  }
                 }
               }
             },
             take: 1,
             orderBy: { startDate: 'desc' }
-          },
-          _count: {
-            select: {
-              sentMessages: {
-                where: {
-                  receiverId: adminUser.id,
-                  isRead: false
-                }
-              }
-            }
           }
         }
       }),
@@ -179,12 +189,12 @@ export async function GET(request: NextRequest) {
         where: {
           role: 'TENANT',
           isActive: true,
-          id: { notIn: tenantIdsWithMessages },
-          ...(buildingId ? {
+          ...(tenantIdsWithMessages.length > 0 ? { id: { notIn: tenantIdsWithMessages } } : {}),
+          ...(isBuildingFilterValid ? {
             contracts: {
               some: {
                 room: {
-                  buildingId: parseInt(buildingId)
+                  buildingId: buildingIdNum
                 },
                 status: 'ACTIVE'
               }
@@ -203,7 +213,10 @@ export async function GET(request: NextRequest) {
                 select: {
                   id: true,
                   name: true,
-                  floor: true
+                  floor: true,
+                  building: {
+                    select: { name: true }
+                  }
                 }
               }
             },
@@ -225,11 +238,11 @@ export async function GET(request: NextRequest) {
         avatarUrl: tenant.avatarUrl,
         phone: tenant.phone,
         room: tenant.contracts[0]?.room || null,
-        unreadCount: tenant._count.sentMessages,
+        unreadCount: unreadCounts[tenant.id] || 0,
         lastMessage: lastMsg ? {
           content: lastMsg.content,
           createdAt: lastMsg.createdAt,
-          images: JSON.parse(lastMsg.images || '[]'),
+          images: Array.isArray(lastMsg.images) ? lastMsg.images : [],
           senderRole: lastMsg.senderRole
         } : null
       }
@@ -255,12 +268,6 @@ export async function GET(request: NextRequest) {
 
     // Combine both lists - prioritize tenants with messages
     const allFormattedTenants = [...formattedTenants, ...otherTenants]
-
-    // Create unreadCounts object
-    const unreadCounts: Record<number, number> = {}
-    formattedTenants.forEach(tenant => {
-      unreadCounts[tenant.id] = tenant.unreadCount
-    })
 
     return NextResponse.json({
       messages,
