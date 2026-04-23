@@ -93,18 +93,20 @@ export async function POST(request: NextRequest) {
 
       const functionResponses = []
       for (const fc of functionCalls) {
-        console.log(`[AI][${role}] Tool: ${fc.name}`)
+        console.log(`[AI][${role}] Tool: ${fc.name}`, JSON.stringify(fc.args || {}).slice(0, 200))
         try {
           // Tenant tools get userId injected, admin tools don't
           const toolResult = isTenant
             ? await executeTenantTool(fc.name, fc.args || {}, userId)
             : await executeTool(fc.name, fc.args || {}, buildingId ? parseInt(buildingId) : undefined)
+          console.log(`[AI][${role}] Tool ${fc.name} success`)
           functionResponses.push({
             functionResponse: { name: fc.name, response: { result: toolResult } },
           })
         } catch (toolErr: any) {
+          console.error(`[AI][${role}] Tool ${fc.name} FAILED:`, toolErr?.message || toolErr, toolErr?.stack?.split('\n').slice(0, 3).join('\n'))
           functionResponses.push({
-            functionResponse: { name: fc.name, response: { error: toolErr.message } },
+            functionResponse: { name: fc.name, response: { error: `Lỗi khi thực thi ${fc.name}: ${toolErr.message}` } },
           })
         }
       }

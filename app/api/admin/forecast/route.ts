@@ -15,10 +15,9 @@ export async function GET(request: Request) {
     // 1. DỰ ĐOÁN DOANH THU (Revenue Forecast)
     // ============================================
 
-    // Preparation for parallel history
     const historyMonths = []
     for (let i = 11; i >= 0; i--) {
-      const date = new Date(currentYear, currentMonth - 1 - i, 1)
+      const date = new Date(currentYear, currentMonth - 2 - i, 1)
       historyMonths.push({
         month: date.getMonth() + 1,
         year: date.getFullYear(),
@@ -92,7 +91,7 @@ export async function GET(request: Request) {
     let stdDev = n > 1 ? Math.sqrt(revenueHistory.reduce((sum, item) => sum + Math.pow(item.revenue - avgRevenue, 2), 0) / n) : avgRevenue * 0.2
 
     for (let i = 1; i <= 6; i++) {
-      const date = new Date(currentYear, currentMonth - 1 + i, 1)
+      const date = new Date(currentYear, currentMonth - 2 + i, 1)
       const month = date.getMonth() + 1
       const year = date.getFullYear()
       const predictedRevenue = n > 0 ? Math.max(0, slope * (n + i) + intercept) : intercept

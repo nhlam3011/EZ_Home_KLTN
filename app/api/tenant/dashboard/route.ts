@@ -9,6 +9,24 @@ export async function GET(request: NextRequest) {
     const months = parseInt(searchParams.get('months') || '6')
     const userId = searchParams.get('userId')
 
+    // Always check and update overdue invoices when loading dashboard
+    try {
+      const now = new Date()
+      await prisma.invoice.updateMany({
+        where: {
+          status: 'UNPAID',
+          paymentDueDate: {
+            lt: now
+          }
+        },
+        data: {
+          status: 'OVERDUE'
+        }
+      })
+    } catch (updateError) {
+      console.log('Could not update overdue invoices:', updateError)
+    }
+
     // Get current tenant user from session
     const user = await getCurrentUser(request, userId ? parseInt(userId) : undefined)
 

@@ -389,20 +389,52 @@ async function createInvoice(args: {
   if (args.buildingId) {
     whereRoom.buildingId = args.buildingId
   }
-  const room = await prisma.room.findFirst({ where: whereRoom })
-  if (!room) return { error: `Không tìm thấy phòng "${args.roomName}"` }
 
-  const contract = await prisma.contract.findFirst({
-    where: { roomId: room.id, status: 'ACTIVE' },
-    include: { user: { select: { fullName: true } } },
-  })
+  let room: any = null
+  let contract: any = null
+
+  if (args.buildingId) {
+    // If building specified, find room directly
+    room = await prisma.room.findFirst({
+      where: whereRoom,
+      include: { building: true }
+    })
+    if (!room) return { error: `Không tìm thấy phòng "${args.roomName}"` }
+
+    contract = await prisma.contract.findFirst({
+      where: { roomId: room.id, status: 'ACTIVE' },
+      include: { user: { select: { fullName: true } } },
+    })
+  } else {
+    // No building specified - find all rooms with this name and pick the one with an active contract
+    const matchingRooms = await prisma.room.findMany({
+      where: whereRoom,
+      include: {
+        building: true,
+        contracts: {
+          where: { status: 'ACTIVE' },
+          include: { user: { select: { fullName: true } } },
+          take: 1
+        }
+      }
+    })
+
+    if (matchingRooms.length === 0) return { error: `Không tìm thấy phòng "${args.roomName}"` }
+
+    // Prefer a room that has an active contract
+    const roomWithContract = matchingRooms.find((r: any) => r.contracts.length > 0)
+    if (roomWithContract) {
+      room = roomWithContract
+      contract = roomWithContract.contracts[0]
+    } else {
+      // No room has an active contract
+      room = matchingRooms[0]
+    }
+  }
+
   if (!contract) return { error: `Phòng "${args.roomName}" không có hợp đồng đang hoạt động` }
 
-  // Check duplicate
-  const existingInvoice = await prisma.invoice.findFirst({
-    where: { contractId: contract.id, month: args.month, year: args.year },
-  })
-  if (existingInvoice) return { error: `Hoá đơn tháng ${args.month}/${args.year} cho phòng "${args.roomName}" đã tồn tại (ID: ${existingInvoice.id})` }
+  // Cho phép tạo nhiều hóa đơn trong cùng tháng (để bổ sung thiếu sót, sự cố, v.v.)
 
   // Calculation logic
   let amountRoom = args.amountRoom !== undefined ? args.amountRoom : Number(contract.rentPrice)
@@ -442,6 +474,9 @@ async function createInvoice(args: {
       totalAmount,
       status: 'UNPAID',
       paymentDueDate,
+      buildingId: room.buildingId || null,
+      buildingName: room.building?.name || null,
+      buildingAddress: room.building?.address || null,
     },
   })
 

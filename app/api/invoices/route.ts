@@ -15,29 +15,26 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const contractId = searchParams.get('contractId')
     const buildingId = searchParams.get('buildingId')
-    const checkOverdue = searchParams.get('checkOverdue')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '50')
     const skip = (page - 1) * limit
 
-    // Only check and update overdue invoices if explicitly requested (to save performance)
-    if (checkOverdue === 'true') {
-      try {
-        const now = new Date()
-        await prisma.invoice.updateMany({
-          where: {
-            status: 'UNPAID',
-            paymentDueDate: {
-              lt: now
-            }
-          },
-          data: {
-            status: 'OVERDUE'
+    // Always check and update overdue invoices when fetching invoice list
+    try {
+      const now = new Date()
+      await prisma.invoice.updateMany({
+        where: {
+          status: 'UNPAID',
+          paymentDueDate: {
+            lt: now
           }
-        })
-      } catch (updateError) {
-        console.log('Could not update overdue invoices:', updateError)
-      }
+        },
+        data: {
+          status: 'OVERDUE'
+        }
+      })
+    } catch (updateError) {
+      console.log('Could not update overdue invoices:', updateError)
     }
 
     const where: any = {}

@@ -29,28 +29,20 @@ const BackgroundComponent = React.memo(() => {
         .orb-3 { animation: orb-swirl-3 35s ease-in-out infinite; }
         
         .line-grid {
-          background-image: 
-            linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
-          background-size: 40px 40px;
+          background-image: radial-gradient(circle, rgba(99, 102, 241, 0.3) 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
         }
         :global(.dark) .line-grid {
-          background-image: 
-            linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(59, 130, 246, 0.3) 1.5px, transparent 1.5px);
         }
         .grid-highlight {
-          background-image: 
-            linear-gradient(to right, rgba(27, 73, 255, 0.47) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(27, 73, 255, 0.47) 1px, transparent 1px);
-          background-size: 40px 40px;
+          background-image: radial-gradient(circle, rgba(27, 73, 255, 0.6) 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
           mask-image: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
           -webkit-mask-image: radial-gradient(350px circle at var(--mouse-x, -500px) var(--mouse-y, -500px), black 20%, transparent 100%);
         }
         :global(.dark) .grid-highlight {
-          background-image: 
-            linear-gradient(to right, rgba(255, 255, 255, 0.76) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.76) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(255, 255, 255, 0.8) 1.5px, transparent 1.5px);
         }
 
       `}</style>

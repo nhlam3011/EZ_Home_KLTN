@@ -3,6 +3,24 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    // Always check and update overdue invoices when fetching invoice list
+    try {
+      const now = new Date()
+      await prisma.invoice.updateMany({
+        where: {
+          status: 'UNPAID',
+          paymentDueDate: {
+            lt: now
+          }
+        },
+        data: {
+          status: 'OVERDUE'
+        }
+      })
+    } catch (updateError) {
+      console.log('Could not update overdue invoices:', updateError)
+    }
+
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search')
     const userIdParam = searchParams.get('userId')

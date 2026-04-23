@@ -21,6 +21,7 @@ interface Issue {
     email?: string
   }
   room: {
+    id: number
     name: string
     floor?: number
   }
@@ -94,9 +95,9 @@ export default function MaintenancePage() {
       adminNotes: adminNotes
     })
 
-    // Fetch contract for this user
+    // Fetch contract for this room (the invoice should go to the contract holder of the room, not the reporter)
     try {
-      const response = await fetch(`/api/contracts?userId=${issue.user.id}&status=ACTIVE`)
+      const response = await fetch(`/api/contracts?roomId=${issue.room.id}&status=ACTIVE`)
       if (response.ok) {
         const contracts = await response.json()
         const activeContract = contracts.find((c: any) => c.status === 'ACTIVE')

@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify issue exists
+    // Verify issue exists and get room info
     const issue = await prisma.issue.findUnique({
-      where: { id: parseInt(issueId) }
+      where: { id: parseInt(issueId) },
+      include: { room: true }
     })
 
     if (!issue) {
@@ -38,6 +39,56 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       )
     }
+
+    // Verify contract exists and belongs to the same room as the issue
+    let finalContractId = parseInt(contractId)
+    const contract = await prisma.contract.findUnique({
+      where: { id: finalContractId },
+      include: {
+        room: {
+          include: { building: true }
+        }
+      }
+    })
+
+    if (!contract) {
+      return NextResponse.json(
+        { error: 'Contract not found' },
+        { status: 404 }
+      )
+    }
+
+    // If the contract's room doesn't match the issue's room, find the correct contract
+    if (contract.roomId !== issue.roomId) {
+      const correctContract = await prisma.contract.findFirst({
+        where: {
+          roomId: issue.roomId,
+          status: 'ACTIVE'
+        },
+        include: {
+          room: {
+            include: { building: true }
+          }
+        }
+      })
+
+      if (!correctContract) {
+        return NextResponse.json(
+          { error: 'Không tìm thấy hợp đồng hoạt động cho phòng này' },
+          { status: 404 }
+        )
+      }
+
+      finalContractId = correctContract.id
+    }
+
+    // Get the final contract with building info
+    const finalContract = finalContractId !== parseInt(contractId)
+      ? await prisma.contract.findUnique({
+          where: { id: finalContractId },
+          include: { room: { include: { building: true } } }
+        })
+      : contract
 
     // Calculate payment due date (10 days from now)
     const paymentDueDate = new Date()
@@ -50,10 +101,10 @@ export async function POST(request: NextRequest) {
       parseFloat(amountCommonService || 0) +
       parseFloat(amountService || 0)
 
-    // Create invoice
+    // Create invoice with correct contract and building info
     const invoice = await prisma.invoice.create({
       data: {
-        contractId: parseInt(contractId),
+        contractId: finalContractId,
         month: parseInt(month),
         year: parseInt(year),
         amountRoom: parseFloat(amountRoom || 0),
@@ -63,7 +114,10 @@ export async function POST(request: NextRequest) {
         amountService: parseFloat(amountService || 0),
         totalAmount,
         paymentDueDate,
-        status: 'UNPAID'
+        status: 'UNPAID',
+        buildingId: finalContract?.room?.buildingId || null,
+        buildingName: finalContract?.room?.building?.name || null,
+        buildingAddress: finalContract?.room?.building?.address || null
       },
       include: {
         contract: {

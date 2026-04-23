@@ -38,20 +38,35 @@ const TENANT_SUGGESTIONS = [
   { icon: Users, label: 'Liên hệ', prompt: 'Tôi muốn liên hệ admin', color: '#06b6d4' },
 ]
 
-// Parse markdown table
+// Parse markdown table - detect consecutive lines that contain pipes
 const parseTable = (content: string): { before: string; table: string; after: string } | null => {
-  // More lenient regex to catch tables even without perfect separator line
-  // Matches lines with at least 2 pipes, appearing at least twice consecutively
-  const tableRegex = /((?:\|[^|\n]+\|(?:\s*\|[^|\n]+\|)*\s*\n)+)/g
-  const match = tableRegex.exec(content)
-  if (!match) return null
-  const before = content.slice(0, match.index)
-  const table = match[0]
-  const after = content.slice(match.index + match[0].length)
+  const lines = content.split('\n')
+  let tableStart = -1
+  let tableEnd = -1
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    // A table line has at least 2 pipe characters and starts/ends with pipe (or has pipes inside)
+    const pipeCount = (line.match(/\|/g) || []).length
+    if (pipeCount >= 2) {
+      if (tableStart === -1) tableStart = i
+      tableEnd = i
+    } else if (tableStart !== -1) {
+      // Non-table line after table started - stop
+      break
+    }
+  }
+
+  // Need at least 2 table lines (header + separator or header + data)
+  if (tableStart === -1 || tableEnd - tableStart < 1) return null
+
+  const before = lines.slice(0, tableStart).join('\n')
+  const table = lines.slice(tableStart, tableEnd + 1).join('\n')
+  const after = lines.slice(tableEnd + 1).join('\n')
   return { before, table, after }
 }
 
-// Render table
+// Render table with responsive mobile card layout
 const renderTable = (tableContent: string) => {
   const lines = tableContent.trim().split('\n').filter(line => line.trim())
   if (lines.length < 2) return null
@@ -59,46 +74,73 @@ const renderTable = (tableContent: string) => {
   const isSeparator = lines[1].includes('---')
   const dataLines = isSeparator ? lines.slice(2) : lines.slice(1)
 
+  const rows = dataLines.map(line =>
+    line.split('|').filter(cell => cell.trim()).map(cell => cell.trim())
+  ).filter(cells => cells.length > 0)
+
   return (
-    <div className="overflow-x-auto my-3 rounded-xl border text-sm" style={{
-      borderColor: 'var(--border-primary)',
-      backgroundColor: 'var(--bg-primary)',
-    }}>
-      <table className="w-full">
-        <thead>
-          <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
-            {headers.map((header, i) => (
-              <th key={i} className="px-4 py-2.5 text-left font-semibold whitespace-normal sm:whitespace-nowrap min-w-[120px] sm:min-w-0"
-                style={{ color: 'var(--text-primary)' }}>{header}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {dataLines.map((line, rowIndex) => {
-            const cells = line.split('|').filter(cell => cell.trim()).map(cell => cell.trim())
-            if (cells.length === 0) return null
-            return (
+    <>
+      {/* Desktop/Tablet table */}
+      <div className="hidden sm:block overflow-x-auto my-3 rounded-xl border text-sm" style={{
+        borderColor: 'var(--border-primary)',
+        backgroundColor: 'var(--bg-primary)',
+      }}>
+        <table className="w-full">
+          <thead>
+            <tr style={{ backgroundColor: 'var(--bg-tertiary)' }}>
+              {headers.map((header, i) => (
+                <th key={i} className="px-3 md:px-4 py-2.5 text-left font-semibold whitespace-nowrap text-xs md:text-sm"
+                  style={{ color: 'var(--text-primary)' }}>{header}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((cells, rowIndex) => (
               <tr key={rowIndex} style={{
                 backgroundColor: rowIndex % 2 === 0 ? 'var(--bg-primary)' : 'var(--bg-secondary)',
                 borderBottom: '1px solid var(--border-primary)'
               }}>
                 {cells.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2.5 whitespace-normal sm:whitespace-nowrap min-w-[120px] sm:min-w-0"
+                  <td key={cellIndex} className="px-3 md:px-4 py-2 md:py-2.5 whitespace-nowrap text-xs md:text-sm"
                     style={{ color: 'var(--text-secondary)' }}>{cell}</td>
                 ))}
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile card layout */}
+      <div className="sm:hidden my-3 space-y-2">
+        {rows.map((cells, rowIndex) => (
+          <div key={rowIndex} className="rounded-xl border p-3 text-xs" style={{
+            borderColor: 'var(--border-primary)',
+            backgroundColor: rowIndex % 2 === 0 ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+          }}>
+            {cells.map((cell, cellIndex) => (
+              <div key={cellIndex} className="flex justify-between py-1" style={{
+                borderBottom: cellIndex < cells.length - 1 ? '1px solid var(--border-primary)' : 'none'
+              }}>
+                <span className="font-medium mr-2" style={{ color: 'var(--text-tertiary)' }}>
+                  {headers[cellIndex] || `#${cellIndex + 1}`}
+                </span>
+                <span className="text-right" style={{ color: 'var(--text-primary)' }}>{cell}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
+
+const CHAT_STORAGE_KEY_PREFIX = 'ez_ai_chat_'
 
 export default function AiAssistantPage({ role }: AiAssistantPageProps) {
   const { selectedBuildingId } = useBuilding()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [historyLoaded, setHistoryLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [speechSupported, setSpeechSupported] = useState(false)
@@ -161,6 +203,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
 
   const suggestions = role === 'ADMIN' ? ADMIN_SUGGESTIONS : TENANT_SUGGESTIONS
 
+  // Load user data and chat history from localStorage
   useEffect(() => {
     try {
       const userData = localStorage.getItem('user')
@@ -169,7 +212,38 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
         setUserId(user.id)
       }
     } catch { }
+
+    // Load chat history
+    try {
+      const storageKey = `${CHAT_STORAGE_KEY_PREFIX}${role}`
+      const savedChat = localStorage.getItem(storageKey)
+      if (savedChat) {
+        const parsed = JSON.parse(savedChat)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed.map((m: any) => ({
+            ...m,
+            timestamp: new Date(m.timestamp)
+          })))
+        }
+      }
+    } catch { }
+    setHistoryLoaded(true)
   }, [role])
+
+  // Save chat history to localStorage whenever messages change
+  useEffect(() => {
+    if (!historyLoaded) return // Don't save before loading
+    try {
+      const storageKey = `${CHAT_STORAGE_KEY_PREFIX}${role}`
+      if (messages.length > 0) {
+        // Keep last 50 messages to avoid localStorage bloat
+        const toSave = messages.slice(-50)
+        localStorage.setItem(storageKey, JSON.stringify(toSave))
+      } else {
+        localStorage.removeItem(storageKey)
+      }
+    } catch { }
+  }, [messages, role, historyLoaded])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -393,28 +467,20 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
         }
 
         .line-grid {
-          background-image: 
-            linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
-          background-size: 40px 40px;
+          background-image: radial-gradient(circle, rgba(99, 102, 241, 0.3) 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
         }
         :global(.dark) .line-grid {
-          background-image: 
-            linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(59, 130, 246, 0.3) 1.5px, transparent 1.5px);
         }
         .grid-highlight {
-          background-image: 
-            linear-gradient(to right, rgba(118, 27, 255, 0.2) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(118, 27, 255, 0.2) 1px, transparent 1px);
-          background-size: 40px 40px;
+          background-image: radial-gradient(circle, rgba(118, 27, 255, 0.4) 1.5px, transparent 1.5px);
+          background-size: 24px 24px;
           mask-image: radial-gradient(350px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
           -webkit-mask-image: radial-gradient(350px circle at var(--mouse-x, -300px) var(--mouse-y, -300px), black 20%, transparent 100%);
         }
         :global(.dark) .grid-highlight {
-          background-image: 
-            linear-gradient(to right, rgba(0, 255, 255, 0.4) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(0, 255, 255, 0.4) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(0, 255, 255, 0.6) 1.5px, transparent 1.5px);
         }
 
 
@@ -584,10 +650,10 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
       {hasMessages && !isLoading && (
         <div className="shrink-0 relative z-10 px-3 sm:px-6 py-2"
           style={{ borderTop: '1px solid var(--border-primary)' }}>
-          <div className="max-w-3xl mx-auto flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+          <div className="max-w-3xl mx-auto flex sm:grid sm:grid-cols-6 gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-1">
             {suggestions.map((s, i) => (
               <button key={i} onClick={() => sendMessage(s.prompt)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all hover:scale-105 active:scale-95"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all hover:scale-105 active:scale-95 shrink-0 sm:w-full"
                 style={{
                   color: 'var(--text-secondary)',
                   backgroundColor: 'color-mix(in srgb, var(--bg-primary) 80%, transparent)',
