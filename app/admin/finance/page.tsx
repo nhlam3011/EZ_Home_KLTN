@@ -309,7 +309,7 @@ export default function FinancePage() {
             >
               {saving ? (
                 <>
-                  <Loading size="sm" color="gradient" />
+                  <Loader2 className="animate-spin" size={18} />
                   <span className="font-bold">Đang lưu...</span>
                 </>
               ) : (

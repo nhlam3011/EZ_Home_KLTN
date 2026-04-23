@@ -152,6 +152,7 @@
 }
 
 @theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --color-primary: var(--bg-primary);
   --color-secondary: var(--bg-secondary);
   --color-tertiary: var(--bg-tertiary);

@@ -252,7 +252,12 @@ export async function POST(request: NextRequest) {
           const building = roomData?.building
 
           if (existingInvoice) {
-            const newStatus = existingInvoice.status === 'PAID' ? 'PAID' : 'UNPAID'
+            const newTotalAmount = totalAmount + overdueAmount;
+            // Nếu hoá đơn đã thanh toán nhưng số tiền thay đổi (thêm tiền điện nước), chuyển thành CHƯA THANH TOÁN
+            const newStatus = (existingInvoice.status === 'PAID' && Number(existingInvoice.totalAmount) === newTotalAmount) 
+              ? 'PAID' 
+              : 'UNPAID';
+
             invoicesToUpdate.push({
               where: { id: existingInvoice.id },
               data: {
@@ -262,7 +267,7 @@ export async function POST(request: NextRequest) {
                 amountCommonService,
                 overdueAmount,
                 overdueInvoices: JSON.stringify(overdueInvoicesInfo),
-                totalAmount: totalAmount + overdueAmount,
+                totalAmount: newTotalAmount,
                 paymentDueDate,
                 status: newStatus,
                 buildingId: building?.id || null,

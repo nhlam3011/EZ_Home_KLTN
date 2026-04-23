@@ -419,19 +419,19 @@ export default function BuildingsPage() {
                                             }`} />
                                     </div>
 
-                                    {/* Quick Actions Hover Overlay */}
-                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                    {/* Quick Actions - always visible on mobile, hover on desktop */}
+                                    <div className="absolute inset-0 sm:bg-black/20 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-end sm:items-center justify-end sm:justify-center gap-2 p-2 sm:p-0">
                                         <button
                                             onClick={() => openModal(b)}
                                             title="Chỉnh sửa thông tin"
-                                            className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center hover:bg-amber-100 transition-all shadow-sm"
+                                            className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center active:bg-amber-100 hover:bg-amber-100 transition-all shadow-sm"
                                         >
                                             <Edit size={16} />
                                         </button>
                                         <Link
                                             href={`/admin/buildings/${b.id}`}
                                             title="Xem chi tiết tòa nhà"
-                                            className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+                                            className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center active:bg-blue-700 hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
                                         >
                                             <ArrowUpRight size={16} className="text-white" />
                                         </Link>
@@ -529,26 +529,27 @@ export default function BuildingsPage() {
 
             {/* Standardized Add/Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center sm:justify-center">
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-                    <div className="relative bg-primary rounded-xl w-full max-w-5xl shadow-2xl overflow-hidden animate-scaleIn h-[90vh] flex flex-col border border-primary">
+                    <div className="relative bg-primary rounded-t-2xl sm:rounded-xl w-full sm:max-w-5xl shadow-2xl overflow-hidden animate-scaleIn h-[95vh] sm:h-[90vh] sm:mx-4 flex flex-col border border-primary">
                         {/* Modal Header */}
-                        <div className="p-6 border-b border-primary flex items-center justify-between flex-shrink-0 bg-primary">
-                            <div className="flex items-center gap-4 text-left">
-                                <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                                    <Building2 size={24} />
+                        <div className="p-4 sm:p-6 border-b border-primary flex items-center justify-between flex-shrink-0 bg-primary">
+                            <div className="flex items-center gap-3 sm:gap-4 text-left min-w-0">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 flex-shrink-0">
+                                    <Building2 size={20} className="sm:hidden" />
+                                    <Building2 size={24} className="hidden sm:block" />
                                 </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-primary">{selectedBuilding ? 'Chỉnh sửa tòa nhà' : 'Thêm tòa nhà mới'}</h2>
-                                    <p className="text-secondary text-sm">Cập nhật thông tin chi tiết và cấu hình tòa nhà</p>
+                                <div className="min-w-0">
+                                    <h2 className="text-base sm:text-xl font-bold text-primary truncate">{selectedBuilding ? 'Chỉnh sửa tòa nhà' : 'Thêm tòa nhà mới'}</h2>
+                                    <p className="text-secondary text-xs sm:text-sm truncate">Cập nhật thông tin chi tiết và cấu hình</p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="btn btn-ghost btn-icon h-10 w-10">
+                            <button onClick={() => setShowModal(false)} className="btn btn-ghost btn-icon h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 custom-scrollbar bg-secondary/30">
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8 custom-scrollbar bg-secondary/30">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Left Side: Form Details */}
                                 <div className="lg:col-span-2 space-y-8">
@@ -584,18 +585,18 @@ export default function BuildingsPage() {
                                                     className="input h-11" placeholder="Số nhà, tên đường, phường, quận..."
                                                 />
                                             </div>
-                                            <div className="grid grid-cols-3 gap-4 md:col-span-2">
-                                                <div className="space-y-2 text-left">
-                                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Số tầng</label>
-                                                    <input type="number" required value={formData.floorCount} onChange={e => setFormData({ ...formData, floorCount: parseInt(e.target.value) })} className="input h-11" />
+                                            <div className="grid grid-cols-3 gap-3 sm:gap-4 md:col-span-2 items-end">
+                                                <div className="text-left">
+                                                    <label className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-wider sm:tracking-widest ml-1 mb-1.5 sm:mb-2 block">Số tầng</label>
+                                                    <input type="number" required value={formData.floorCount} onChange={e => setFormData({ ...formData, floorCount: parseInt(e.target.value) })} className="input h-10 sm:h-11 text-sm" />
                                                 </div>
-                                                <div className="space-y-2 text-left">
-                                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Tổng số phòng</label>
-                                                    <input type="number" required value={formData.totalRooms} onChange={e => setFormData({ ...formData, totalRooms: parseInt(e.target.value) })} className="input h-11" />
+                                                <div className="text-left">
+                                                    <label className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-wider sm:tracking-widest ml-1 mb-1.5 sm:mb-2 block">Số phòng</label>
+                                                    <input type="number" required value={formData.totalRooms} onChange={e => setFormData({ ...formData, totalRooms: parseInt(e.target.value) })} className="input h-10 sm:h-11 text-sm" />
                                                 </div>
-                                                <div className="space-y-2 text-left">
-                                                    <label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Diện tích (m²)</label>
-                                                    <input value={formData.area} onChange={e => setFormData({ ...formData, area: e.target.value })} className="input h-11" />
+                                                <div className="text-left">
+                                                    <label className="text-[9px] sm:text-[10px] font-black text-primary uppercase tracking-wider sm:tracking-widest ml-1 mb-1.5 sm:mb-2 block">DT (m²)</label>
+                                                    <input value={formData.area} onChange={e => setFormData({ ...formData, area: e.target.value })} className="input h-10 sm:h-11 text-sm" />
                                                 </div>
                                             </div>
                                         </div>
@@ -614,25 +615,25 @@ export default function BuildingsPage() {
                                         </div>
                                         <div className="space-y-4">
                                             {formData.roomTypePresets.map((preset, idx) => (
-                                                <div key={idx} className="p-4 rounded-xl border border-primary bg-tertiary/20 relative group transition-all hover:bg-tertiary/40">
-                                                    <button type="button" onClick={() => removePreset(idx)} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-600 z-10">
+                                                <div key={idx} className="p-3 sm:p-4 rounded-xl border border-primary bg-tertiary/20 relative group transition-all hover:bg-tertiary/40">
+                                                    <button type="button" onClick={() => removePreset(idx)} className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all shadow-lg hover:bg-red-600 z-10">
                                                         <X size={14} />
                                                     </button>
-                                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-x-4 gap-y-3">
-                                                        <div className="md:col-span-3 text-left">
-                                                            <label className="text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Loại phòng</label>
-                                                            <input value={preset.type} onChange={e => updatePreset(idx, 'type', e.target.value)} className="input h-10 text-xs font-bold" placeholder="Studio" />
+                                                    <div className="grid grid-cols-2 md:grid-cols-12 gap-x-3 sm:gap-x-4 gap-y-2.5 sm:gap-y-3">
+                                                        <div className="col-span-1 md:col-span-3 text-left">
+                                                            <label className="text-[9px] sm:text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Loại phòng</label>
+                                                            <input value={preset.type} onChange={e => updatePreset(idx, 'type', e.target.value)} className="input h-9 sm:h-10 text-xs font-bold" placeholder="Studio" />
                                                         </div>
-                                                        <div className="md:col-span-3 text-left">
-                                                            <label className="text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Giá thuê</label>
-                                                            <input type="number" value={preset.price} onChange={e => updatePreset(idx, 'price', parseInt(e.target.value))} className="input h-10 text-xs font-bold text-blue-600" />
+                                                        <div className="col-span-1 md:col-span-3 text-left">
+                                                            <label className="text-[9px] sm:text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Giá thuê</label>
+                                                            <input type="number" value={preset.price} onChange={e => updatePreset(idx, 'price', parseInt(e.target.value))} className="input h-9 sm:h-10 text-xs font-bold text-blue-600" />
                                                         </div>
-                                                        <div className="md:col-span-2 text-left">
-                                                            <label className="text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Diện tích</label>
-                                                            <input type="number" value={preset.area} onChange={e => updatePreset(idx, 'area', parseInt(e.target.value))} className="input h-10 text-xs font-bold" />
+                                                        <div className="col-span-1 md:col-span-2 text-left">
+                                                            <label className="text-[9px] sm:text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Diện tích</label>
+                                                            <input type="number" value={preset.area} onChange={e => updatePreset(idx, 'area', parseInt(e.target.value))} className="input h-9 sm:h-10 text-xs font-bold" />
                                                         </div>
-                                                        <div className="md:col-span-4 text-left">
-                                                            <label className="text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Tiện ích</label>
+                                                        <div className="col-span-1 md:col-span-4 text-left">
+                                                            <label className="text-[9px] sm:text-[10px] font-bold text-tertiary uppercase mb-1 block tracking-wider">Tiện ích</label>
                                                             <input
                                                                 value={preset.amenities.join(', ')}
                                                                 onChange={e => {
@@ -640,7 +641,7 @@ export default function BuildingsPage() {
                                                                     const amenities = val ? val.split(',').map(s => s.trim()).filter(s => s !== '') : []
                                                                     updatePreset(idx, 'amenities', amenities)
                                                                 }}
-                                                                className="input h-10 text-xs font-medium"
+                                                                className="input h-9 sm:h-10 text-xs font-medium"
                                                                 placeholder="Máy lạnh, Tủ..."
                                                             />
                                                         </div>
@@ -757,24 +758,25 @@ export default function BuildingsPage() {
                         </form>
 
                         {/* Modal Footer */}
-                        <div className="p-6 border-t border-primary flex items-center justify-between gap-3 bg-primary flex-shrink-0">
-                            <div>
+                        <div className="p-3 sm:p-6 border-t border-primary flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 bg-primary flex-shrink-0">
+                            <div className="flex gap-2">
                                 {selectedBuilding && (
                                     <button
                                         type="button"
                                         onClick={() => deleteBuilding(selectedBuilding.id)}
-                                        className="btn bg-rose-50 text-rose-600 border border-rose-100 px-6 h-11 font-bold uppercase tracking-wider text-xs hover:bg-rose-100 transition-all"
+                                        className="btn bg-rose-50 text-rose-600 border border-rose-100 px-4 sm:px-6 h-10 sm:h-11 font-bold uppercase tracking-wider text-[10px] sm:text-xs active:bg-rose-100 hover:bg-rose-100 transition-all flex-1 sm:flex-none"
                                     >
-                                        <Trash2 size={18} className="mr-2" /> Xóa
+                                        <Trash2 size={16} className="mr-1.5" /> Xóa
                                     </button>
                                 )}
+                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary px-4 sm:px-8 h-10 sm:h-11 font-bold uppercase tracking-wider text-[10px] sm:text-xs flex-1 sm:flex-none sm:hidden">Hủy</button>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary px-8 h-11 font-bold uppercase tracking-wider text-xs">Hủy bỏ</button>
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary px-8 h-11 font-bold uppercase tracking-wider text-xs hidden sm:flex">Hủy bỏ</button>
                                 <button
                                     onClick={handleSubmit}
                                     disabled={loadingSubmit}
-                                    className="btn btn-primary px-6 h-11 min-w-[160px] shadow-lg shadow-blue-600/20 font-bold uppercase tracking-wider text-xs flex items-center justify-center gap-2"
+                                    className="btn btn-primary px-4 sm:px-6 h-10 sm:h-11 flex-1 sm:min-w-[160px] shadow-lg shadow-blue-600/20 font-bold uppercase tracking-wider text-[10px] sm:text-xs flex items-center justify-center gap-2"
                                 >
                                     {loadingSubmit ? (
                                         <>
