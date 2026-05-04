@@ -182,44 +182,10 @@ export async function GET(request: NextRequest) {
       }))
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10)
 
-    // 5. Final counts - merge overdue invoices with current month
-    // Calculate initial unpaid amount first
-    const totalUnpaidAmount: number = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0)
-
-    // Get overdue invoices and current month invoice
-    const overdueInvoices = unpaidInvoices.filter(inv => inv.status === 'OVERDUE')
-    const currentMonthInvoice = unpaidInvoices.find(inv => inv.month === currentMonth && inv.year === currentYear)
-
-    let mergedUnpaidInvoices = unpaidInvoices
-    let mergedUnpaidAmount: number = totalUnpaidAmount
-    let mergedCurrentInvoice = currentInvoice
-
-    // If there are overdue invoices and current month invoice exists, merge them
-    if (overdueInvoices.length > 0 && currentMonthInvoice) {
-      // Calculate total overdue amount
-      const overdueAmount: Prisma.Decimal = overdueInvoices.reduce(
-        (sum, inv) => sum.plus(new Prisma.Decimal(Number(inv.totalAmount || 0))),
-        new Prisma.Decimal(0)
-      )
-      const currentAmount: Prisma.Decimal = new Prisma.Decimal(Number(currentMonthInvoice.totalAmount || 0))
-      const totalAmount: Prisma.Decimal = overdueAmount.plus(currentAmount)
-
-      // Create merged invoice display
-      mergedCurrentInvoice = {
-        ...currentMonthInvoice,
-        totalAmount: totalAmount,
-        overdueAmount: Number(overdueAmount),
-        overdueInvoices: overdueInvoices.map(inv => ({ month: inv.month, year: inv.year, amount: Number(inv.totalAmount || 0) })),
-        _original: currentMonthInvoice
-      } as unknown as typeof currentInvoice
-
-      // Remove overdue invoices from list, keep only current month (now merged)
-      mergedUnpaidInvoices = [currentMonthInvoice]
-      mergedUnpaidAmount = Number(totalAmount)
-    } else if (overdueInvoices.length > 0 && !currentMonthInvoice) {
-      // No current month invoice but have overdue - show oldest overdue as current
-      mergedCurrentInvoice = overdueInvoices[0]
-      mergedUnpaidInvoices = overdueInvoices
+    // 5. Final counts - Lấy đúng số tiền hóa đơn mới nhất (đã bao gồm nợ cũ)
+    let unpaidAmount = 0;
+    if (unpaidInvoices.length > 0) {
+      unpaidAmount = Number(unpaidInvoices[0].totalAmount || 0);
     }
 
     const unreadMessagesCount = adminUser ? await prisma.message.count({
