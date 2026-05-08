@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { createSessionToken, setSessionCookie } from '@/lib/session'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { phone, password } = body
+    const { phone, password, rememberMe } = body
 
     if (!phone || !password) {
       return NextResponse.json(
@@ -22,7 +23,17 @@ export async function POST(request: NextRequest) {
         where: { phone },
         include: {
           contracts: {
-            where: { status: 'ACTIVE' }
+            where: { 
+              OR: [
+                { status: 'ACTIVE' },
+                { 
+                  status: 'EXPIRED',
+                  endDate: {
+                    gte: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+                  }
+                }
+              ]
+            }
           }
         }
       })
@@ -48,14 +59,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // In production, generate JWT token here
-    const token = `token-${user.id}-${Date.now()}`
+    // Create signed session token
+    const token = await createSessionToken(user.id, user.role, !!rememberMe)
 
-    return NextResponse.json({
+    // Build response with user data
+    const response = NextResponse.json({
       success: true,
       user,
-      token
+      token // kept for backward compat, but cookie is the real auth
     })
+
+    // Set HttpOnly secure cookie
+    setSessionCookie(response, token, !!rememberMe)
+
+    return response
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(

@@ -17,7 +17,17 @@ export async function authenticateUser(phone: string, password: string) {
     where: { phone },
     include: {
       contracts: {
-        where: { status: 'ACTIVE' },
+        where: { 
+          OR: [
+            { status: 'ACTIVE' },
+            { 
+              status: 'EXPIRED',
+              endDate: {
+                gte: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+              }
+            }
+          ]
+        },
         include: {
           room: true
         },
@@ -132,7 +142,17 @@ export async function getCurrentUser(request: NextRequest, bodyUserId?: number) 
     where: { id: userId },
     include: {
       contracts: {
-        where: { status: 'ACTIVE' },
+        where: { 
+          OR: [
+            { status: 'ACTIVE' },
+            { 
+              status: 'EXPIRED',
+              endDate: {
+                gte: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+              }
+            }
+          ]
+        },
         include: {
           room: true
         },

@@ -14,11 +14,12 @@ interface DashboardData {
   contractStatus: {
     isExpired: boolean
     daysUntilExpiry: number | null
+    graceDaysRemaining?: number | null
   }
   walletBalance: number
   rewardPoints: number
   utilityCosts: any[]
-  costStructure: any
+  costStructures: any[]
   recentActivities: any[]
   currentMonth: number
   currentYear: number
@@ -40,6 +41,7 @@ export default function TenantDashboard() {
   const [utilityMonths, setUtilityMonths] = useState(3)
   const [showRenewModal, setShowRenewModal] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [selectedCostMonth, setSelectedCostMonth] = useState<string>('')
 
   useEffect(() => {
     fetchDashboardData()
@@ -69,8 +71,14 @@ export default function TenantDashboard() {
 
       const user = JSON.parse(userData)
       const response = await fetch(`/api/tenant/dashboard?months=${utilityMonths}&userId=${user.id}`)
-      const data = await response.json()
-      setData(data)
+      const dashboardData = await response.json()
+      setData(dashboardData)
+      if (dashboardData.costStructures && dashboardData.costStructures.length > 0) {
+        if (!selectedCostMonth || !dashboardData.costStructures.some((c: any) => c.label === selectedCostMonth)) {
+          const latest = dashboardData.costStructures[dashboardData.costStructures.length - 1]
+          setSelectedCostMonth(latest.label)
+        }
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -280,6 +288,11 @@ export default function TenantDashboard() {
               </span>
               <p className="text-xs text-secondary mt-2 mb-3 sm:mb-4">
                 Hợp đồng của bạn đã hết hạn. Vui lòng liên hệ quản lý để gia hạn.
+                {data.contractStatus?.graceDaysRemaining !== undefined && data.contractStatus?.graceDaysRemaining !== null && data.contractStatus?.graceDaysRemaining > 0 && (
+                  <span className="block mt-1 text-red-600 dark:text-red-400 font-semibold">
+                    Tài khoản sẽ bị khóa sau {data.contractStatus.graceDaysRemaining} ngày nữa.
+                  </span>
+                )}
               </p>
               <div className="mt-auto">
                 <Link
@@ -635,119 +648,164 @@ export default function TenantDashboard() {
         </div>
 
         {/* Cost Structure Chart */}
-        <div className="card">
-          <h3 className="text-base sm:text-lg font-semibold text-primary mb-4">
-            Cơ cấu chi phí tháng {data.currentMonth}/{data.currentYear}
-          </h3>
-          <div className="flex items-center justify-center">
-            <div className="w-full max-w-[280px] sm:max-w-[640px]">
-              <Chart
-                type="bar"
-                height={240}
-                options={{
-                  chart: {
-                    fontFamily: 'var(--font-inter)',
-                    background: 'transparent',
-                    toolbar: { show: false },
-                    animations: {
-                      enabled: true,
-                      speed: 800,
-                      animateGradually: {
-                        enabled: true,
-                        delay: 150
-                      },
-                      dynamicAnimation: {
-                        enabled: true,
-                        speed: 350
-                      }
-                    }
-                  },
-                  colors: isDarkMode ? ['#facc15', '#60a5fa', '#34d399'] : ['#eab308', '#3b82f6', '#10b981'],
-                  plotOptions: {
-                    bar: {
-                      horizontal: true,
-                      borderRadius: 8,
-                      borderRadiusApplication: 'end',
-                      barHeight: '60%',
-                      distributed: true,
-                      dataLabels: {
-                        position: 'top',
-                        maxItems: 100,
-                        hideOverflowingLabels: true
-                      }
-                    }
-                  },
-                  dataLabels: {
-                    enabled: true,
-                    style: {
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      colors: [isDarkMode ? '#1f2937' : '#ffffff']
-                    },
-                    offsetX: 30
-                  },
-                  xaxis: {
-                    categories: ['Tiền phòng', 'Dịch vụ', 'Khác'],
-                    max: 100,
-                    labels: {
-                      style: {
-                        colors: 'var(--text-tertiary)',
-                        fontSize: '12px'
-                      },
-                      formatter: (val: number) => `${val}%`
-                    }
-                  },
-                  yaxis: {
-                    labels: {
-                      style: {
-                        colors: 'var(--text-tertiary)',
-                        fontSize: '12px',
-                        fontWeight: 500
-                      }
-                    }
-                  },
-                  grid: {
-                    borderColor: 'var(--border-primary)',
-                    strokeDashArray: 4,
-                    xaxis: { lines: { show: true } },
-                    yaxis: { lines: { show: false } }
-                  },
-                  legend: {
-                    show: false
-                  },
-                  tooltip: {
-                    enabled: true,
-                    theme: 'light',
-                    style: { fontSize: '13px' },
-                    y: {
-                      formatter: (val: number) => `${val}%`
-                    }
-                  }
-                }}
-                series={[{
-                  data: [data.costStructure?.room || 0, data.costStructure?.services || 0, data.costStructure?.other || 0]
-                }]}
-              />
+        {(() => {
+          const currentCostStructure = data.costStructures?.find((c: any) => c.label === selectedCostMonth) || { room: 0, services: 0, other: 0, roomAmount: 0, servicesAmount: 0, otherAmount: 0, total: 0 }
+          
+          return (
+            <div className="card flex flex-col h-full">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4">
+                <h3 className="text-base sm:text-lg font-semibold text-primary">
+                  Cơ cấu chi phí tháng {selectedCostMonth || `${data.currentMonth}/${data.currentYear}`}
+                </h3>
+                {data.costStructures && data.costStructures.length > 0 && (
+                  <select
+                    value={selectedCostMonth}
+                    onChange={(e) => setSelectedCostMonth(e.target.value)}
+                    className="input text-xs sm:text-sm px-2 sm:px-3 py-1 w-full sm:w-auto"
+                  >
+                    {data.costStructures.map((c: any) => (
+                      <option key={c.label} value={c.label}>Tháng {c.label}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              
+              {currentCostStructure.total > 0 ? (
+                <div className="flex flex-col flex-1 justify-between">
+                  <div className="flex items-center justify-center flex-1 min-h-[240px]">
+                    <div className="w-full max-w-[280px] sm:max-w-[640px]">
+                      <Chart
+                        type="bar"
+                        height={240}
+                        options={{
+                          chart: {
+                            fontFamily: 'var(--font-inter)',
+                            background: 'transparent',
+                            toolbar: { show: false },
+                            animations: {
+                              enabled: true,
+                              speed: 800,
+                              animateGradually: {
+                                enabled: true,
+                                delay: 150
+                              },
+                              dynamicAnimation: {
+                                enabled: true,
+                                speed: 350
+                              }
+                            }
+                          },
+                          colors: isDarkMode ? ['#facc15', '#60a5fa', '#34d399'] : ['#eab308', '#3b82f6', '#10b981'],
+                          plotOptions: {
+                            bar: {
+                              horizontal: true,
+                              borderRadius: 8,
+                              borderRadiusApplication: 'end',
+                              barHeight: '60%',
+                              distributed: true,
+                              dataLabels: {
+                                position: 'top',
+                                maxItems: 100,
+                                hideOverflowingLabels: true
+                              }
+                            }
+                          },
+                          dataLabels: {
+                            enabled: true,
+                            style: {
+                              fontSize: '14px',
+                              fontWeight: 700,
+                              colors: [isDarkMode ? '#1f2937' : '#ffffff']
+                            },
+                            offsetX: 30
+                          },
+                          xaxis: {
+                            categories: ['Tiền phòng', 'Dịch vụ', 'Khác'],
+                            max: 100,
+                            labels: {
+                              style: {
+                                colors: 'var(--text-tertiary)',
+                                fontSize: '12px'
+                              },
+                              formatter: (val: number) => `${val}%`
+                            }
+                          },
+                          yaxis: {
+                            labels: {
+                              style: {
+                                colors: 'var(--text-tertiary)',
+                                fontSize: '12px',
+                                fontWeight: 500
+                              }
+                            }
+                          },
+                          grid: {
+                            borderColor: 'var(--border-primary)',
+                            strokeDashArray: 4,
+                            xaxis: { lines: { show: true } },
+                            yaxis: { lines: { show: false } }
+                          },
+                          legend: {
+                            show: false
+                          },
+                          tooltip: {
+                            enabled: true,
+                            theme: 'light',
+                            style: { fontSize: '13px' },
+                            y: {
+                              formatter: function(val: number, opts: any) {
+                                const index = opts.dataPointIndex;
+                                let amount = 0;
+                                if (index === 0) amount = currentCostStructure.roomAmount || 0;
+                                else if (index === 1) amount = currentCostStructure.servicesAmount || 0;
+                                else if (index === 2) amount = currentCostStructure.otherAmount || 0;
+                                
+                                const formattedAmount = new Intl.NumberFormat('vi-VN', {
+                                  style: 'currency',
+                                  currency: 'VND',
+                                  minimumFractionDigits: 0
+                                }).format(amount);
+                                return `${val}% (${formattedAmount})`;
+                              }
+                            }
+                          }
+                        }}
+                        series={[{
+                          data: [currentCostStructure.room, currentCostStructure.services, currentCostStructure.other]
+                        }]}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-6 grid grid-cols-3 gap-3">
+                    <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-50'}`}>
+                      <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-yellow-400' : 'bg-yellow-500'}`}></div>
+                      <p className="text-xs text-primary font-medium mb-1">Tiền phòng</p>
+                      <p className="text-sm font-bold text-primary mb-1">{currentCostStructure.room}%</p>
+                      <p className="text-[10px] text-secondary font-medium">{formatCurrency(currentCostStructure.roomAmount || 0)}</p>
+                    </div>
+                    <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+                      <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-blue-400' : 'bg-blue-500'}`}></div>
+                      <p className="text-xs text-primary font-medium mb-1">Dịch vụ</p>
+                      <p className="text-sm font-bold text-primary mb-1">{currentCostStructure.services}%</p>
+                      <p className="text-[10px] text-secondary font-medium">{formatCurrency(currentCostStructure.servicesAmount || 0)}</p>
+                    </div>
+                    <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
+                      <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`}></div>
+                      <p className="text-xs text-primary font-medium mb-1">Khác</p>
+                      <p className="text-sm font-bold text-primary mb-1">{currentCostStructure.other}%</p>
+                      <p className="text-[10px] text-secondary font-medium">{formatCurrency(currentCostStructure.otherAmount || 0)}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center min-h-[240px] text-tertiary">
+                  <Receipt className="w-12 h-12 mb-3 opacity-20" />
+                  <p className="text-sm font-medium">Không có dữ liệu chi phí tháng này</p>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-yellow-900/30' : 'bg-yellow-50'}`}>
-              <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-yellow-400' : 'bg-yellow-500'}`}></div>
-              <p className="text-xs text-primary font-medium mb-1">Tiền phòng</p>
-              <p className="text-sm font-bold text-primary">{data.costStructure?.room || 0}%</p>
-            </div>
-            <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
-              <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-blue-400' : 'bg-blue-500'}`}></div>
-              <p className="text-xs text-primary font-medium mb-1">Dịch vụ</p>
-              <p className="text-sm font-bold text-primary">{data.costStructure?.services || 0}%</p>
-            </div>
-            <div className={`text-center p-3 rounded-lg ${isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
-              <div className={`w-3 h-3 mx-auto mb-2 rounded-full ${isDarkMode ? 'bg-emerald-400' : 'bg-emerald-500'}`}></div>
-              <p className="text-xs text-primary font-medium mb-1">Khác</p>
-              <p className="text-sm font-bold text-primary">{data.costStructure?.other || 0}%</p>
-            </div>
-          </div>
-        </div>
+          )
+        })()}
       </div>
 
       {/* Recent Activities */}

@@ -30,6 +30,7 @@ import { DarkModeToggle } from '../components/DarkModeToggle'
 import { pusherClient } from '@/lib/pusher-client'
 import { CHANNELS, EVENTS } from '@/lib/pusher-shared'
 import { BuildingProvider, useBuilding } from '../../components/BuildingContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const menuItems = [
   { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
@@ -164,24 +165,13 @@ function AdminLayoutContent({
   }, [])
 
   useEffect(() => {
+    // Auth is now handled by middleware (server-side)
+    // We just use AuthContext to get user data
     const userData = sessionStorage.getItem('user') || localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
+    if (userData) {
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
     }
-
-    const parsedUser = JSON.parse(userData)
-    if (parsedUser.role !== 'ADMIN') {
-      router.push('/login')
-      return
-    }
-
-    if (parsedUser.isFirstLogin) {
-      router.push('/change-password')
-      return
-    }
-
-    setUser(parsedUser)
 
     fetch('/api/maintenance/count')
       .then(res => res.json())
@@ -193,59 +183,80 @@ function AdminLayoutContent({
       .then(data => setPendingPostsCount(data.length || 0))
       .catch(() => { })
 
-    // Fetch unread messages count
-    if (parsedUser.id) {
-      fetch(`/api/admin/messages?userId=${parsedUser.id}`)
-        .then(res => res.json())
-        .then(data => {
-          const totalUnread = Object.values(data.unreadCounts || {}).reduce((sum: number, count: any) => sum + count, 0)
-          setUnreadMessagesCount(totalUnread)
-        })
-        .catch(() => { })
-
-      // Fetch unread notifications count (new posts in last 7 days)
-      fetch(`/api/admin/notifications?userId=${parsedUser.id}`)
-        .then(res => res.json())
-        .then(data => {
-          const sevenDaysAgo = new Date()
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-          const recentNotifications = data.filter((notif: any) => {
-            const notifDate = new Date(notif.createdAt)
-            return notifDate >= sevenDaysAgo
-          })
-          setUnreadNotificationsCount(recentNotifications.length)
-        })
-        .catch(() => { })
-
-      // Fetch pending renewals count
-      fetch('/api/contracts/renewals?status=PENDING')
-        .then(res => res.json())
-        .then(data => {
-          setPendingRenewalsCount(Array.isArray(data) ? data.length : (data.renewals?.length || 0))
-        })
-        .catch(() => { })
-
-      // Pusher real-time updates for Admin
-      const channel = pusherClient.subscribe(CHANNELS.ADMIN_MESSAGES)
-      channel.bind(EVENTS.NEW_MESSAGE, (data: { message: any }) => {
-        if (data.message.sender.role === 'TENANT') {
-          // Chỉ tăng unread nếu không đang trong route messages của đúng tenant đó
-          // Vì layout không biết selectedTenant cụ thể trong page, 
-          // ta chỉ có thể đơn giản là tăng count nếu không ở trang messages nói chung
-          // hoặc luôn tăng và để page xử lý việc giảm/đánh dấu đã đọc.
-          if (window.location.pathname !== '/admin/messages') {
-            setUnreadMessagesCount(prev => prev + 1)
-          }
+    // Fetch session from server-side cookie
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user)
+          // Sync localStorage
+          localStorage.setItem('user', JSON.stringify(data.user))
+          sessionStorage.setItem('user', JSON.stringify(data.user))
         }
       })
+      .catch(() => { })
 
-      return () => {
-        pusherClient.unsubscribe(CHANNELS.ADMIN_MESSAGES)
+    // Fetch unread messages count
+    const userStr = sessionStorage.getItem('user') || localStorage.getItem('user')
+    if (userStr) {
+      const parsedUser = JSON.parse(userStr)
+      if (parsedUser.id) {
+        fetch(`/api/admin/messages?userId=${parsedUser.id}`)
+          .then(res => res.json())
+          .then(data => {
+            const totalUnread = Object.values(data.unreadCounts || {}).reduce((sum: number, count: any) => sum + count, 0)
+            setUnreadMessagesCount(totalUnread)
+          })
+          .catch(() => { })
+
+        // Fetch unread notifications count (new posts in last 7 days)
+        fetch(`/api/admin/notifications?userId=${parsedUser.id}`)
+          .then(res => res.json())
+          .then(data => {
+            const sevenDaysAgo = new Date()
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+            const recentNotifications = data.filter((notif: any) => {
+              const notifDate = new Date(notif.createdAt)
+              return notifDate >= sevenDaysAgo
+            })
+            setUnreadNotificationsCount(recentNotifications.length)
+          })
+          .catch(() => { })
+
+        // Fetch pending renewals count
+        fetch('/api/contracts/renewals?status=PENDING')
+          .then(res => res.json())
+          .then(data => {
+            setPendingRenewalsCount(Array.isArray(data) ? data.length : (data.renewals?.length || 0))
+          })
+          .catch(() => { })
+
+        // Pusher real-time updates for Admin
+        const channel = pusherClient.subscribe(CHANNELS.ADMIN_MESSAGES)
+        channel.bind(EVENTS.NEW_MESSAGE, (data: { message: any }) => {
+          if (data.message.sender.role === 'TENANT') {
+            if (window.location.pathname !== '/admin/messages') {
+              setUnreadMessagesCount(prev => prev + 1)
+            }
+          }
+        })
+
+        return () => {
+          pusherClient.unsubscribe(CHANNELS.ADMIN_MESSAGES)
+        }
       }
     }
   }, [router])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/session', {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+    } catch (e) {
+      console.error('Logout error:', e)
+    }
     localStorage.removeItem('user')
     localStorage.removeItem('token')
     sessionStorage.removeItem('user')

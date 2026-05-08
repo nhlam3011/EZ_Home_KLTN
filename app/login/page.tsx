@@ -156,14 +156,16 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        credentials: 'include', // ensure cookie is received
+        body: JSON.stringify({ ...formData, rememberMe })
       })
 
       const data = await response.json()
 
       if (response.ok) {
+        // Store user data in localStorage for backward compatibility
+        // Note: Role enforcement is now server-side via HttpOnly cookie
         const storage = rememberMe ? localStorage : sessionStorage
-
         storage.setItem('user', JSON.stringify(data.user))
         storage.setItem('token', data.token || 'demo-token')
 
@@ -194,6 +196,7 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+
 
   return (
     <div

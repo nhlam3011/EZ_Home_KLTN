@@ -3,29 +3,17 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const months = parseInt(searchParams.get('months') || '6')
     const userId = searchParams.get('userId')
 
-    // Always check and update overdue invoices when loading dashboard
-    try {
-      const now = new Date()
-      await prisma.invoice.updateMany({
-        where: {
-          status: 'UNPAID',
-          paymentDueDate: {
-            lt: now
-          }
-        },
-        data: {
-          status: 'OVERDUE'
-        }
-      })
-    } catch (updateError) {
-      console.log('Could not update overdue invoices:', updateError)
-    }
+    // We removed the global invoice.updateMany here because it was a huge performance bottleneck.
+    // Overdue status should be updated by a cron job or background task, not on every dashboard load.
 
     // Get current tenant user from session
     const user = await getCurrentUser(request, userId ? parseInt(userId) : undefined)
@@ -44,31 +32,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get user with contracts
-    const userWithContracts = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        contracts: {
-          where: {
-            status: { in: ['ACTIVE', 'EXPIRED'] }
-          },
-          include: {
-            room: true
-          },
-          take: 1,
-          orderBy: { startDate: 'desc' }
-        }
-      }
-    })
-
-    if (!userWithContracts) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    const contract = userWithContracts.contracts[0]
+    // Use contract from the already fetched user object
+    const contract = user.contracts?.[0]
     const currentMonth = new Date().getMonth() + 1
     const currentYear = new Date().getFullYear()
 
@@ -87,7 +52,7 @@ export async function GET(request: NextRequest) {
       monthInvoices,
       recentInvoices,
       recentIssues,
-      adminUser,
+      unreadMessagesCount,
       unpaidInvoices,
       issueCounts
     ] = await Promise.all([
@@ -127,7 +92,14 @@ export async function GET(request: NextRequest) {
         include: { room: { select: { name: true } } }
       }),
 
-      prisma.user.findFirst({ where: { role: 'ADMIN' } }),
+      // Unread messages from any admin
+      prisma.message.count({
+        where: { 
+          receiverId: user.id, 
+          isRead: false,
+          sender: { role: 'ADMIN' }
+        }
+      }),
 
       // Dashboard summary stats
       contract?.id ? prisma.invoice.findMany({
@@ -153,18 +125,44 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 3. Calculate cost structure
-    let costStructure = { room: 0, services: 0, other: 0, total: 0 }
-    if (monthInvoices.length > 0) {
-      let tr = 0, ts = 0, to = 0, ta = 0
-      monthInvoices.forEach(inv => {
-        const r = Number(inv.amountRoom || 0)
-        const s = Number(inv.amountCommonService || 0) + Number(inv.amountService || 0) + Number(inv.amountElec || 0) + Number(inv.amountWater || 0)
-        const t = Number(inv.totalAmount || 0)
-        tr += r; ts += s; to += (t - r - s); ta += t
-      })
-      if (ta > 0) costStructure = { room: Math.round((tr / ta) * 100), services: Math.round((ts / ta) * 100), other: Math.round((to / ta) * 100), total: ta }
-    }
+    // 3. Calculate cost structures for all history months
+    const costStructures = historyMonths.map(h => {
+      const monthInvs = historyInvoices.filter(i => i.month === h.month && i.year === h.year)
+      let room = 0, services = 0, other = 0, total = 0
+      let roomAmount = 0, servicesAmount = 0, otherAmount = 0
+      if (monthInvs.length > 0) {
+        let tr = 0, ts = 0, to = 0, ta = 0
+        monthInvs.forEach(inv => {
+          const r = Number(inv.amountRoom || 0)
+          const s = Number(inv.amountCommonService || 0) + Number(inv.amountElec || 0) + Number(inv.amountWater || 0)
+          const o = Number(inv.amountService || 0) // Phí xử lý sự cố, yêu cầu dịch vụ
+          // The true total incurred in this month (ignoring overdue carry-over debt)
+          const t = r + s + o
+          tr += r; ts += s; to += o; ta += t
+        })
+        if (ta > 0) {
+          room = Math.round((tr / ta) * 100)
+          services = Math.round((ts / ta) * 100)
+          other = Math.round((to / ta) * 100)
+          total = ta
+          roomAmount = tr
+          servicesAmount = ts
+          otherAmount = to
+        }
+      }
+      return {
+        month: h.month,
+        year: h.year,
+        label: `${h.month}/${h.year}`,
+        room,
+        services,
+        other,
+        roomAmount,
+        servicesAmount,
+        otherAmount,
+        total
+      }
+    }).filter(c => c.total > 0) // Only include months with actual costs
 
     // 4. Combine recent activities
     const recentActivities = [
@@ -182,29 +180,31 @@ export async function GET(request: NextRequest) {
       }))
     ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10)
 
-    // 5. Final counts - Lấy đúng số tiền hóa đơn mới nhất (đã bao gồm nợ cũ)
-    let unpaidAmount = 0;
+    // 5. Final counts - Lấy số tiền từ hoá đơn mới nhất (đã bao gồm nợ cũ)
+    // Hoá đơn mới nhất đã gộp nợ cũ vào totalAmount rồi, không cần cộng thêm
+    let totalUnpaidAmount = 0;
     if (unpaidInvoices.length > 0) {
-      unpaidAmount = Number(unpaidInvoices[0].totalAmount || 0);
+      // unpaidInvoices đã sort theo year desc, month desc
+      // Hoá đơn đầu tiên (mới nhất) đã bao gồm tất cả nợ cũ
+      totalUnpaidAmount = Number(unpaidInvoices[0].totalAmount || 0);
     }
 
-    const unreadMessagesCount = adminUser ? await prisma.message.count({
-      where: { senderId: adminUser.id, receiverId: user.id, isRead: false }
-    }) : 0
-
-    const unpaidInvoicesCount = mergedUnpaidInvoices.length
-    const unpaidAmount = mergedUnpaidAmount
+    const unpaidInvoicesCount = unpaidInvoices.length
 
     const [pendingIssues, processingIssues, doneIssues, cancelledIssues] = issueCounts
 
     // Calculate contract expiry info
     let isExpired = false
     let daysUntilExpiry = null
+    let graceDaysRemaining = null
     if (contract && contract.endDate) {
       const now = new Date()
       const endDate = new Date(contract.endDate)
       if (contract.status === 'EXPIRED' || endDate < now) {
         isExpired = true
+        const graceEndDate = new Date(endDate.getTime() + 10 * 24 * 60 * 60 * 1000)
+        const diffTime = graceEndDate.getTime() - now.getTime()
+        graceDaysRemaining = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
       } else {
         const diffTime = endDate.getTime() - now.getTime()
         daysUntilExpiry = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -212,21 +212,22 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      currentInvoice: mergedCurrentInvoice,
+      currentInvoice,
       contract,
       contractStatus: {
         isExpired,
-        daysUntilExpiry
+        daysUntilExpiry,
+        graceDaysRemaining
       },
       utilityCosts,
-      costStructure,
+      costStructures,
       recentActivities,
       currentMonth,
       currentYear,
       unreadMessagesCount,
-      unpaidInvoices: mergedUnpaidInvoices,
+      unpaidInvoices,
       unpaidInvoicesCount,
-      unpaidAmount,
+      unpaidAmount: totalUnpaidAmount,
       issues: {
         pending: pendingIssues,
         processing: processingIssues,

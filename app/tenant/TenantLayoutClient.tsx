@@ -51,53 +51,58 @@ export default function TenantLayoutClient({
   const [currentTime, setCurrentTime] = useState(new Date())
 
   useEffect(() => {
+    // Auth is now handled by middleware (server-side)
+    // We use localStorage for initial hydration, then sync from server
     const userData = sessionStorage.getItem('user') || localStorage.getItem('user')
-    if (!userData) {
-      router.push('/login')
-      return
+    if (userData) {
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
     }
 
-    const parsedUser = JSON.parse(userData)
-    if (parsedUser.role !== 'TENANT') {
-      router.push('/login')
-      return
-    }
-
-    if (parsedUser.isFirstLogin) {
-      router.push('/change-password')
-      return
-    }
-
-    setUser(parsedUser)
+    // Fetch authoritative session from server-side cookie
+    fetch('/api/auth/session', { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser(data.user)
+          // Sync localStorage with server-verified data
+          localStorage.setItem('user', JSON.stringify(data.user))
+          sessionStorage.setItem('user', JSON.stringify(data.user))
+        }
+      })
+      .catch(() => { })
 
     // Fetch unread messages count
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await fetch(`/api/messages/unread-count?userId=${parsedUser.id}`)
-        const data = await response.json()
-        setUnreadMessages(data.count || 0)
-      } catch (error) {
-        console.error('Error fetching unread count:', error)
-      }
-    }
+    const userStr = sessionStorage.getItem('user') || localStorage.getItem('user')
+    if (userStr) {
+      const parsedUser = JSON.parse(userStr)
 
-    fetchUnreadCount()
-
-    // Pusher real-time unread count updates
-    const channel = pusherClient.subscribe(CHANNELS.TENANT_MESSAGES)
-    channel.bind(EVENTS.NEW_MESSAGE, (data: { message: any, tenantId: number }) => {
-      if (data.tenantId === parsedUser.id && data.message.sender.role === 'ADMIN') {
-        // Increment unread count if not on the messages page
-        if (window.location.pathname !== '/tenant/messages') {
-          setUnreadMessages(prev => prev + 1)
+      const fetchUnreadCount = async () => {
+        try {
+          const response = await fetch(`/api/messages/unread-count?userId=${parsedUser.id}`)
+          const data = await response.json()
+          setUnreadMessages(data.count || 0)
+        } catch (error) {
+          console.error('Error fetching unread count:', error)
         }
       }
-    })
 
-    // Lắng nghe sự kiện đánh dấu đã đọc (nếu có) hoặc đơn giản là fetch lại khi cần
+      fetchUnreadCount()
 
-    return () => {
-      pusherClient.unsubscribe(CHANNELS.TENANT_MESSAGES)
+      // Pusher real-time unread count updates
+      const channel = pusherClient.subscribe(CHANNELS.TENANT_MESSAGES)
+      channel.bind(EVENTS.NEW_MESSAGE, (data: { message: any, tenantId: number }) => {
+        if (data.tenantId === parsedUser.id && data.message.sender.role === 'ADMIN') {
+          // Increment unread count if not on the messages page
+          if (window.location.pathname !== '/tenant/messages') {
+            setUnreadMessages(prev => prev + 1)
+          }
+        }
+      })
+
+      return () => {
+        pusherClient.unsubscribe(CHANNELS.TENANT_MESSAGES)
+      }
     }
   }, [router])
 
@@ -149,13 +154,22 @@ export default function TenantLayoutClient({
     return `${dayName}, ${date}/${month}/${year} • ${hours}:${minutes}`
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/session', {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+    } catch (e) {
+      console.error('Logout error:', e)
+    }
     localStorage.removeItem('user')
     localStorage.removeItem('token')
     sessionStorage.removeItem('user')
     sessionStorage.removeItem('token')
     router.push('/login')
   }
+
 
   const getPageTitle = () => {
     const titleMap: Record<string, string> = {
