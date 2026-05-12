@@ -725,7 +725,7 @@ export default function AiAssistantPage({ role }: AiAssistantPageProps) {
                 ? '🎙️ Đang nghe...'
                 : role === 'ADMIN'
                   ? 'Nhập nội dung...'
-                  : 'HNhập nội dung...'}
+                  : 'Nhập nội dung...'}
               rows={1}
               className="flex-1 bg-transparent outline-none border-none focus:ring-0 text-sm py-2 sm:py-2.5 px-1 leading-relaxed resize-none no-scrollbar"
               style={{ color: 'var(--text-primary)', maxHeight: '120px' }}

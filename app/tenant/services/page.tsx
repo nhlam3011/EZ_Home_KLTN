@@ -158,7 +158,21 @@ export default function ServicesPage() {
     if (nameLower.includes('bbq') || nameLower.includes('tiệc')) return '🍖'
     if (nameLower.includes('côn trùng') || nameLower.includes('diệt')) return '🐛'
     if (nameLower.includes('internet') || nameLower.includes('wifi')) return '📶'
+    if (nameLower.includes('ga') || nameLower.includes('gas')) return '🔥'
     return '📋'
+  }
+
+  const getServiceImage = (name: string) => {
+    const nameLower = name.toLowerCase()
+    if (nameLower.includes('dọn') || nameLower.includes('vệ sinh')) return 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('giặt')) return 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('máy lạnh') || nameLower.includes('điều hòa')) return 'https://images.unsplash.com/photo-1527689638836-411945a2b57c?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('nước')) return 'https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('bbq') || nameLower.includes('tiệc')) return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('côn trùng') || nameLower.includes('diệt')) return 'https://images.unsplash.com/photo-1587840131460-2da6d6fb6013?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('internet') || nameLower.includes('wifi')) return 'https://images.unsplash.com/photo-1614064641913-6b714041d8e5?auto=format&fit=crop&w=800&q=80'
+    if (nameLower.includes('ga') || nameLower.includes('gas')) return 'https://images.unsplash.com/photo-1598046937895-2fe939bb4cb0?auto=format&fit=crop&w=800&q=80'
+    return 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=800&q=80'
   }
 
   const getServiceCategory = (name: string) => {
@@ -341,12 +355,20 @@ export default function ServicesPage() {
                 return (
                   <div
                     key={service.id}
-                    className="card rounded-xl overflow-hidden hover:shadow-lg transition-all duration-200"
+                    className="card rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 group"
                   >
-                    <div className="aspect-video bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative">
-                      <span className="text-6xl">{getServiceIcon(service.name)}</span>
+                    <div className="aspect-video relative overflow-hidden bg-gray-100">
+                      <img 
+                        src={getServiceImage(service.name)} 
+                        alt={service.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="absolute top-3 left-3 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-xl shadow-lg z-10 transition-transform group-hover:scale-110">
+                        {getServiceIcon(service.name)}
+                      </div>
                       {category === 'Vệ sinh' && (
-                        <span className="absolute top-3 right-3 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-md">
+                        <span className="absolute top-3 right-3 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-md z-10">
                           Hot
                         </span>
                       )}
@@ -431,8 +453,12 @@ export default function ServicesPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-2xl">
-                            {getServiceIcon(order.service.name)}
+                          <div className="w-12 h-12 rounded-lg overflow-hidden shadow-sm shrink-0">
+                            <img 
+                              src={getServiceImage(order.service.name)} 
+                              alt={order.service.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                           <div className="flex-1">
                             <h3 className="text-lg font-bold text-primary">{order.service.name}</h3>
@@ -509,8 +535,12 @@ export default function ServicesPage() {
 
                 <div className="mb-6">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-3xl">
-                      {getServiceIcon(selectedService.name)}
+                    <div className="w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0">
+                      <img 
+                        src={getServiceImage(selectedService.name)} 
+                        alt={selectedService.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-primary">{selectedService.name}</h3>

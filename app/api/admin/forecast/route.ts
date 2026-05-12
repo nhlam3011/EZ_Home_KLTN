@@ -60,13 +60,14 @@ export async function GET(request: Request) {
       }
     })
 
-    // Calculate Trend using Linear Regression
+    // Calculate Trend using Linear Regression (only on months with data)
+    const validHistory = revenueHistory.filter(item => item.revenue > 0)
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0
-    const n = revenueHistory.length
+    const n = validHistory.length
     let slope = 0, intercept = 0
 
-    if (n > 0) {
-      revenueHistory.forEach((item, index) => {
+    if (n > 1) {
+      validHistory.forEach((item, index) => {
         const x = index + 1
         const y = item.revenue
         sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x
@@ -79,6 +80,9 @@ export async function GET(request: Request) {
       } else {
         intercept = sumY / n
       }
+    } else if (n === 1) {
+      intercept = validHistory[0].revenue
+      slope = 0
     } else {
       const estimatedMonthlyRevenue = activeContracts.reduce((sum, c) => sum + Number(c.rentPrice || 0), 0)
       intercept = estimatedMonthlyRevenue * 1.3
@@ -88,7 +92,7 @@ export async function GET(request: Request) {
     // Revenue Forecast (next 6 months)
     const revenueForecast = []
     const avgRevenue = n > 0 ? sumY / n : intercept
-    let stdDev = n > 1 ? Math.sqrt(revenueHistory.reduce((sum, item) => sum + Math.pow(item.revenue - avgRevenue, 2), 0) / n) : avgRevenue * 0.2
+    let stdDev = n > 1 ? Math.sqrt(validHistory.reduce((sum, item) => sum + Math.pow(item.revenue - avgRevenue, 2), 0) / n) : avgRevenue * 0.2
 
     for (let i = 1; i <= 6; i++) {
       const date = new Date(currentYear, currentMonth - 2 + i, 1)
@@ -137,7 +141,7 @@ export async function GET(request: Request) {
 
       const endDate = new Date(contract.endDate)
       const daysUntilExpiry = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-      const monthsRented = Math.floor(Math.ceil((endDate.getTime() - new Date(contract.startDate).getTime()) / (1000 * 60 * 60 * 24)) / 30)
+      const monthsRented = Math.floor(Math.max(0, now.getTime() - new Date(contract.startDate).getTime()) / (1000 * 60 * 60 * 24 * 30))
       const overdueInvoices = overdueMap.get(contract.id) || 0
 
       let riskScore = 0
@@ -209,7 +213,7 @@ export async function GET(request: Request) {
           rentedRooms,
           highRiskCount,
           mediumRiskCount,
-          lowRiskCount: vacancyRisks.filter(r => r.riskLevel === 'LOW').length,
+          lowRiskCount: rentedRooms - highRiskCount - mediumRiskCount,
           highRiskRevenue,
           mediumRiskRevenue,
           totalAtRiskRevenue: highRiskRevenue + mediumRiskRevenue

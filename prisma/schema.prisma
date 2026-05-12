@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,23 +8,424 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// --- ENUMS (Danh sách chọn cố định) ---
+model User {
+  id                      Int                      @id @default(autoincrement())
+  phone                   String                   @unique
+  password                String
+  fullName                String
+  email                   String?                  @unique
+  avatarUrl               String?
+  cccdNumber              String?                  @unique
+  cccdDate                DateTime?
+  cccdPlace               String?
+  dob                     DateTime?
+  gender                  String?
+  address                 String?
+  job                     String?
+  licensePlate            String?
+  role                    Role                     @default(TENANT)
+  isActive                Boolean                  @default(true)
+  isFirstLogin            Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  comments                Comment[]
+  commentReactions        CommentReaction[]
+  contracts               Contract[]
+  contractRenewalRequests ContractRenewalRequest[]
+  documents               Document[]
+  issues                  Issue[]
+  receivedMessages        Message[]                @relation("MessageReceiver")
+  sentMessages            Message[]                @relation("MessageSender")
+  ownerContracts          OwnerContract[]
+  posts                   Post[]
+  postLikes               PostLike[]
+  serviceOrders           ServiceOrder[]
+}
+
+model Building {
+  id               Int             @id @default(autoincrement())
+  name             String
+  address          String
+  buildingType     String
+  floorCount       Int             @default(1)
+  totalRooms       Int             @default(0)
+  area             Float?
+  description      String?
+  images           String[]
+  thumbnailUrl     String?
+  status           String          @default("ACTIVE")
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  electricityPrice Decimal         @default(3500) @db.Decimal(10, 2)
+  servicePrice     Decimal         @default(50000) @db.Decimal(10, 2)
+  waterPrice       Decimal         @default(25000) @db.Decimal(10, 2)
+  roomTypePresets  Json?
+  invoices         Invoice[]
+  ownerContracts   OwnerContract[]
+  posts            Post[]
+  rooms            Room[]
+
+  @@index([name])
+  @@index([status])
+}
+
+model Room {
+  id          Int            @id @default(autoincrement())
+  name        String
+  floor       Int
+  price       Decimal        @db.Decimal(10, 2)
+  area        Float?
+  maxPeople   Int            @default(1)
+  status      RoomStatus     @default(AVAILABLE)
+  roomType    String?
+  description String?
+  amenities   String[]
+  buildingId  Int?
+  assets      Asset[]
+  contracts   Contract[]
+  issues      Issue[]
+  meters      MeterReading[]
+  building    Building?      @relation(fields: [buildingId], references: [id])
+
+  @@index([name])
+  @@index([buildingId])
+}
+
+model Asset {
+  id           Int         @id @default(autoincrement())
+  roomId       Int
+  name         String
+  category     String?
+  status       AssetStatus @default(GOOD)
+  purchaseDate DateTime?
+  value        Decimal?    @db.Decimal(10, 2)
+  notes        String?
+  createdAt    DateTime    @default(now())
+  room         Room        @relation(fields: [roomId], references: [id])
+
+  @@index([roomId])
+}
+
+model Contract {
+  id              Int                      @id @default(autoincrement())
+  userId          Int
+  roomId          Int
+  startDate       DateTime
+  endDate         DateTime?
+  deposit         Decimal                  @db.Decimal(10, 2)
+  rentPrice       Decimal                  @db.Decimal(10, 2)
+  status          String                   @default("ACTIVE")
+  room            Room                     @relation(fields: [roomId], references: [id])
+  user            User                     @relation(fields: [userId], references: [id])
+  occupants       ContractOccupant[]
+  renewalRequests ContractRenewalRequest[]
+  documents       Document[]
+  invoices        Invoice[]
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
+}
+
+model OwnerContract {
+  id           Int       @id @default(autoincrement())
+  ownerId      Int
+  buildingId   Int
+  contractType String    @default("THUÊ_TOÀN_BỘ")
+  monthlyRent  Decimal   @db.Decimal(12, 2)
+  deposit      Decimal   @db.Decimal(12, 2)
+  commission   Decimal   @default(10) @db.Decimal(5, 2)
+  startDate    DateTime
+  endDate      DateTime?
+  status       String    @default("ACTIVE")
+  contractUrl  String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  building     Building  @relation(fields: [buildingId], references: [id])
+  owner        User      @relation(fields: [ownerId], references: [id])
+
+  @@index([ownerId])
+  @@index([buildingId])
+  @@index([status])
+}
+
+model ContractRenewalRequest {
+  id          Int           @id @default(autoincrement())
+  contractId  Int
+  userId      Int
+  requestDate DateTime      @default(now())
+  newEndDate  DateTime
+  status      RenewalStatus @default(PENDING)
+  adminNote   String?
+  processedBy Int?
+  processedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  contract    Contract      @relation(fields: [contractId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+
+  @@index([contractId])
+  @@index([userId])
+}
+
+model MeterReading {
+  id           Int      @id @default(autoincrement())
+  roomId       Int
+  month        Int
+  year         Int
+  elecOld      Float
+  elecNew      Float
+  waterOld     Float
+  waterNew     Float
+  recordedDate DateTime @default(now())
+  room         Room     @relation(fields: [roomId], references: [id])
+
+  @@index([roomId, month, year])
+}
+
+model Invoice {
+  id                  Int           @id @default(autoincrement())
+  contractId          Int
+  month               Int
+  year                Int
+  amountRoom          Decimal       @db.Decimal(10, 2)
+  amountElec          Decimal       @db.Decimal(10, 2)
+  amountWater         Decimal       @db.Decimal(10, 2)
+  amountCommonService Decimal       @default(0) @db.Decimal(10, 2)
+  amountService       Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount         Decimal       @db.Decimal(10, 2)
+  status              InvoiceStatus @default(UNPAID)
+  paymentDueDate      DateTime
+  paidAt              DateTime?
+  createdAt           DateTime      @default(now())
+  overdueAmount       Decimal       @default(0) @db.Decimal(10, 2)
+  overdueInvoices     String?
+  buildingAddress     String?
+  buildingId          Int?
+  buildingName        String?
+  building            Building?     @relation(fields: [buildingId], references: [id])
+  contract            Contract      @relation(fields: [contractId], references: [id])
+  payments            Payment[]
+
+  @@index([contractId])
+  @@index([status])
+  @@index([month, year])
+  @@index([buildingId])
+}
+
+model Service {
+  id        Int            @id @default(autoincrement())
+  name      String
+  unitPrice Decimal        @db.Decimal(10, 2)
+  unit      String
+  isActive  Boolean        @default(true)
+  orders    ServiceOrder[]
+}
+
+model ServiceOrder {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  serviceId Int
+  quantity  Int
+  total     Decimal       @db.Decimal(10, 2)
+  note      String?
+  orderDate DateTime      @default(now())
+  status    RequestStatus @default(PENDING)
+  service   Service       @relation(fields: [serviceId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([serviceId])
+}
+
+model Issue {
+  id          Int           @id @default(autoincrement())
+  userId      Int
+  roomId      Int
+  title       String
+  description String
+  images      String[]
+  repairCost  Decimal?      @db.Decimal(10, 2)
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  room        Room          @relation(fields: [roomId], references: [id])
+  user        User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([roomId])
+  @@index([status])
+}
+
+model Post {
+  id         Int          @id @default(autoincrement())
+  userId     Int
+  content    String
+  images     String[]
+  status     String       @default("PENDING")
+  createdAt  DateTime     @default(now())
+  category   PostCategory @default(DISCUSSION)
+  buildingId Int?
+  comments   Comment[]
+  building   Building?    @relation(fields: [buildingId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+  likes      PostLike[]
+
+  @@index([userId])
+  @@index([buildingId])
+  @@index([status])
+  @@index([category])
+}
+
+model PostLike {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        Int               @id @default(autoincrement())
+  content   String
+  postId    Int
+  userId    Int
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  imageUrl  String?
+  parentId  Int?
+  parent    Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]         @relation("CommentReplies")
+  post      Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions CommentReaction[]
+
+  @@index([postId])
+  @@index([userId])
+  @@index([parentId])
+}
+
+model CommentReaction {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  type      String   @default("LIKE")
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+model AiForecast {
+  id               Int      @id @default(autoincrement())
+  month            Int
+  year             Int
+  predictedRevenue Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now())
+
+  @@index([month, year])
+}
+
+model Document {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  contractId  Int?
+  fileName    String
+  fileUrl     String
+  fileSize    Int?
+  fileType    String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  contract    Contract? @relation(fields: [contractId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([contractId])
+}
+
+model ContractOccupant {
+  id           Int       @id @default(autoincrement())
+  contractId   Int
+  fullName     String
+  cccdNumber   String?
+  phone        String?
+  dob          DateTime?
+  relationship String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  contract     Contract  @relation(fields: [contractId], references: [id])
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  invoiceId       Int
+  amount          Decimal       @db.Decimal(10, 2)
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?
+  qrCode          String?
+  qrString        String?
+  gatewayResponse String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  invoice         Invoice       @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([transactionId])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String
+  images     String[]
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@index([senderId, receiverId, createdAt])
+  @@index([receiverId, isRead])
+  @@index([createdAt])
+}
+
+model Settings {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
 enum Role {
   ADMIN
   TENANT
 }
 
 enum RoomStatus {
-  AVAILABLE   // Trống
-  RENTED      // Đang thuê
-  MAINTENANCE // Đang sửa
+  AVAILABLE
+  RENTED
+  MAINTENANCE
 }
 
 enum AssetStatus {
   GOOD
   BROKEN
   MAINTENANCE
-  LIQUIDATED // Đã thanh lý
+  LIQUIDATED
 }
 
 enum InvoiceStatus {
@@ -56,301 +455,10 @@ enum PaymentStatus {
   CANCELLED
 }
 
-// --- MODELS (Bảng dữ liệu) ---
-
-model User {
-  id            Int       @id @default(autoincrement())
-  phone         String    @unique // Tên đăng nhập
-  password      String
-  fullName      String
-  email         String?   @unique
-  avatarUrl     String?
-  
-  // Thông tin nhân khẩu & Định danh chi tiết
-  cccdNumber    String?   @unique
-  cccdDate      DateTime?
-  cccdPlace     String?
-  dob           DateTime?
-  gender        String?   // NAM, NU, KHAC
-  address       String?   // Quê quán / Thường trú
-  job           String?
-  licensePlate  String?   // Biển số xe
-  
-  role          Role      @default(TENANT)
-  isActive      Boolean   @default(true)
-  isFirstLogin  Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Quan hệ
-  contracts             Contract[]
-  issues                Issue[]
-  serviceOrders         ServiceOrder[]
-  posts                 Post[]
-  postLikes             PostLike[]
-  comments              Comment[]
-  commentReactions      CommentReaction[]
-  documents             Document[]
-  sentMessages          Message[] @relation("MessageSender")
-  receivedMessages      Message[] @relation("MessageReceiver")
-  contractRenewalRequests ContractRenewalRequest[]
-  
-  // Quan hệ với chủ nhà (Owner)
-  ownerContracts        OwnerContract[]
-}
-
-model Building {
-  id           Int       @id @default(autoincrement())
-  name         String    // VD: "Nhà 123 Nguyễn Trãi", "Căn hộ ABC"
-  address      String    // Địa chỉ đầy đủ
-  buildingType String    // CĂN_HỘ, NHÀ_PHỐ, BIỆT_THỰ, PHÒNG_TRỌ
-  floorCount   Int       @default(1) // Số tầng
-  totalRooms   Int       @default(0) // Tổng số phòng
-  area         Float?    // Diện tích đất (m2)
-  description  String?   // Mô tả thêm
-  images       String[]  // Danh sách ảnh
-  thumbnailUrl String?   // Ảnh đại diện
-  
-  // Cấu giá dịch vụ cho căn nhà
-  electricityPrice Decimal @db.Decimal(10, 2) @default(3500)   // Giá điện/kWh
-  waterPrice       Decimal @db.Decimal(10, 2) @default(25000)  // Giá nước/m3
-  servicePrice     Decimal @db.Decimal(10, 2) @default(50000)   // Phí dịch vụ chung/phòng
-  
-  // Trạng thái
-  status       String    @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE
-  isActive     Boolean   @default(true)
-  roomTypePresets Json? // Cấu hình loại phòng mẫu: [{type, price, area, amenities}]
-  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Quan hệ
-  rooms          Room[]
-  ownerContracts OwnerContract[]
-  invoices       Invoice[]
-  posts          Post[]
-
-  @@index([name])
-  @@index([status])
-}
-
-model Room {
-  id          Int        @id @default(autoincrement())
-  buildingId  Int?       // Căn nhà/phòng trọ mà phòng này thuộc về (nullable để tương thích dữ liệu cũ)
-  building    Building?  @relation(fields: [buildingId], references: [id])
-  
-  name        String     // VD: P.101, Phòng 101
-  floor       Int
-  price       Decimal    @db.Decimal(10, 2)
-  area        Float?
-  maxPeople   Int        @default(1)
-  status      RoomStatus @default(AVAILABLE)
-  roomType    String?    // Studio, 1N1K, 2N1K
-  description String?    // Mô tả chi tiết về phòng
-  amenities   String[]   // Danh sách tiện ích: ["Điều hòa", "Nóng lạnh", ...]
-  
-  // Quan hệ
-  assets    Asset[]
-  contracts Contract[]
-  meters    MeterReading[]
-  issues    Issue[]
-
-  @@index([name])
-  @@index([buildingId])
-}
-
-model Asset {
-  id           Int         @id @default(autoincrement())
-  roomId       Int
-  room         Room        @relation(fields: [roomId], references: [id])
-  name         String      // VD: Điều hòa Daikin
-  category     String?     // Điện máy, Nội thất
-  status       AssetStatus @default(GOOD)
-  purchaseDate DateTime?
-  value        Decimal?    @db.Decimal(10, 2)
-  notes        String?
-  createdAt    DateTime    @default(now())
-
-  @@index([roomId])
-}
-
-model Contract {
-  id         Int       @id @default(autoincrement())
-  userId     Int
-  user       User      @relation(fields: [userId], references: [id])
-  roomId     Int
-  room       Room      @relation(fields: [roomId], references: [id])
-  startDate  DateTime
-  endDate    DateTime?
-  deposit    Decimal   @db.Decimal(10, 2) // Tiền cọc
-  rentPrice  Decimal   @db.Decimal(10, 2) // Giá thuê chốt tại thời điểm ký
-  status     String    @default("ACTIVE") // ACTIVE, TERMINATED
-  
-  invoices   Invoice[]
-  documents  Document[]
-  occupants  ContractOccupant[] // Người ở trong hợp đồng (ngoài người chủ hợp đồng)
-  renewalRequests ContractRenewalRequest[]
-
-  @@index([userId])
-  @@index([roomId])
-  @@index([status])
-}
-
-// Hợp đồng với chủ nhà (Owner Contract)
-model OwnerContract {
-  id              Int       @id @default(autoincrement())
-  
-  // Chủ nhà (liên kết với User)
-  ownerId         Int
-  owner           User      @relation(fields: [ownerId], references: [id])
-  
-  // Căn nhà được thuê
-  buildingId      Int
-  building        Building  @relation(fields: [buildingId], references: [id])
-  
-  // Loại hợp đồng
-  contractType    String    @default("THUÊ_TOÀN_BỘ") // THUÊ_TOÀN_BỘ, THUÊ_TỪNG_PHÒNG
-  
-  // Điều khoản tài chính
-  monthlyRent     Decimal   @db.Decimal(12, 2)  // Tiền thuê hàng tháng phải trả cho chủ nhà
-  deposit         Decimal   @db.Decimal(12, 2)  // Tiền đặt cọc trả cho chủ nhà
-  commission      Decimal   @db.Decimal(5, 2)   @default(10) // % hoa hồng cho công ty (vd: 10%)
-  
-  // Thời hạn
-  startDate       DateTime
-  endDate         DateTime?
-  
-  // Trạng thái
-  status          String    @default("ACTIVE") // ACTIVE, EXPIRED, TERMINATED
-  
-  // Thông tin bổ sung
-  contractUrl     String?   // Link file hợp đồng scan
-  notes           String?   // Ghi chú
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([ownerId])
-  @@index([buildingId])
-  @@index([status])
-}
-
 enum RenewalStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model ContractRenewalRequest {
-  id          Int           @id @default(autoincrement())
-  contractId  Int
-  contract    Contract      @relation(fields: [contractId], references: [id])
-  userId      Int
-  user        User          @relation(fields: [userId], references: [id])
-  requestDate DateTime      @default(now())
-  newEndDate  DateTime      // Ngày kết thúc mới mong muốn
-  status      RenewalStatus @default(PENDING)
-  adminNote   String?       // Ghi chú của admin khi duyệt/từ chối
-  processedBy Int?          // Admin ID duyệt
-  processedAt DateTime?      // Ngày duyệt
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@index([contractId])
-  @@index([userId])
-}
-
-model MeterReading {
-  id          Int      @id @default(autoincrement())
-  roomId      Int
-  room        Room     @relation(fields: [roomId], references: [id])
-  month       Int
-  year        Int
-  elecOld     Float
-  elecNew     Float
-  waterOld    Float
-  waterNew    Float
-  recordedDate DateTime @default(now())
-
-  @@index([roomId, month, year])
-}
-
-model Invoice {
-  id                 Int           @id @default(autoincrement())
-  contractId         Int
-  contract           Contract      @relation(fields: [contractId], references: [id])
-  month              Int
-  year               Int
-  amountRoom         Decimal       @db.Decimal(10, 2)
-  amountElec         Decimal       @db.Decimal(10, 2)
-  amountWater        Decimal       @db.Decimal(10, 2)
-  amountCommonService Decimal      @default(0) @db.Decimal(10, 2) // Phí dịch vụ chung (quản lý, vệ sinh, bảo vệ)
-  amountService      Decimal       @default(0) @db.Decimal(10, 2) // Phí xử lý sự cố và dịch vụ khác
-  totalAmount        Decimal       @db.Decimal(10, 2)
-  status             InvoiceStatus @default(UNPAID)
-  paymentDueDate     DateTime      // Hạn thanh toán
-  paidAt             DateTime?
-  payments           Payment[]     // Danh sách các giao dịch thanh toán
-  createdAt          DateTime      @default(now())
-  
-  // Thông tin hoá đơn quá hạn từ tháng trước
-  overdueAmount      Decimal       @default(0) @db.Decimal(10, 2) // Tổng số tiền quá hạn
-  overdueInvoices    String?       @db.Text // JSON array of overdue invoice info
-
-  // Thông tin Building (để hiển thị trên invoice, không phụ thuộc vào relationship)
-  buildingId         Int?
-  building           Building?    @relation(fields: [buildingId], references: [id])
-  buildingName       String?       // Copy tên building để không phụ thuộc
-  buildingAddress    String?       // Copy địa chỉ để không phụ thuộc
-
-  @@index([contractId])
-  @@index([status])
-  @@index([month, year])
-  @@index([buildingId])
-}
-
-model Service {
-  id        Int     @id @default(autoincrement())
-  name      String
-  unitPrice Decimal @db.Decimal(10, 2)
-  unit      String  // Lần, Kg, Bình
-  isActive  Boolean @default(true)
-  
-  orders    ServiceOrder[]
-}
-
-model ServiceOrder {
-  id        Int           @id @default(autoincrement())
-  userId    Int
-  user      User          @relation(fields: [userId], references: [id])
-  serviceId Int
-  service   Service       @relation(fields: [serviceId], references: [id])
-  quantity  Int
-  total     Decimal       @db.Decimal(10, 2)
-  note      String?
-  orderDate DateTime      @default(now())
-  status    RequestStatus @default(PENDING)
-
-  @@index([userId])
-  @@index([serviceId])
-}
-
-model Issue {
-  id          Int           @id @default(autoincrement())
-  userId      Int
-  user        User          @relation(fields: [userId], references: [id])
-  roomId      Int
-  room        Room          @relation(fields: [roomId], references: [id])
-  title       String
-  description String
-  images      String[]      // Mảng link ảnh
-  repairCost  Decimal?      @db.Decimal(10, 2)
-  status      RequestStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-
-  @@index([userId])
-  @@index([roomId])
-  @@index([status])
 }
 
 enum PostCategory {
@@ -358,159 +466,4 @@ enum PostCategory {
   DISCUSSION
   FEEDBACK
   MARKET
-}
-
-model Post {
-  id        Int          @id @default(autoincrement())
-  userId    Int
-  user      User         @relation(fields: [userId], references: [id])
-  content   String
-  images    String[]
-  category  PostCategory @default(DISCUSSION)
-  status    String       @default("PENDING") // PENDING, PUBLIC
-  buildingId Int?
-  building   Building?    @relation(fields: [buildingId], references: [id], onDelete: SetNull)
-  createdAt DateTime     @default(now())
-
-  likes     PostLike[]
-  comments  Comment[]
-
-  @@index([userId])
-  @@index([buildingId])
-  @@index([status])
-  @@index([category])
-}
-
-model PostLike {
-  id        Int      @id @default(autoincrement())
-  postId    Int
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([postId, userId])
-  @@index([postId])
-  @@index([userId])
-}
-
-model Comment {
-  id        Int      @id @default(autoincrement())
-  content   String
-  imageUrl  String?
-  postId    Int
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parentId  Int?
-  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   Comment[] @relation("CommentReplies")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  reactions CommentReaction[]
-
-  @@index([postId])
-  @@index([userId])
-  @@index([parentId])
-}
-
-model CommentReaction {
-  id        Int      @id @default(autoincrement())
-  commentId Int
-  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   @default("LIKE")
-  createdAt DateTime @default(now())
-
-  @@unique([commentId, userId])
-  @@index([commentId])
-  @@index([userId])
-}
-
-model AiForecast {
-  id               Int      @id @default(autoincrement())
-  month            Int
-  year             Int
-  predictedRevenue Decimal  @db.Decimal(10, 2)
-  createdAt        DateTime @default(now())
-
-  @@index([month, year])
-}
-
-model Document {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id])
-  contractId  Int?
-  contract    Contract? @relation(fields: [contractId], references: [id])
-  fileName    String
-  fileUrl     String
-  fileSize    Int?      // Size in bytes
-  fileType    String?   // MIME type
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([contractId])
-}
-
-model ContractOccupant {
-  id         Int       @id @default(autoincrement())
-  contractId Int
-  contract   Contract  @relation(fields: [contractId], references: [id])
-  fullName   String    // Tên người ở
-  cccdNumber String?   // Số CCCD/CMND
-  phone      String?   // Số điện thoại
-  dob        DateTime? // Ngày sinh
-  relationship String? // Quan hệ với người chủ hợp đồng (Vợ/Chồng, Con, Bạn, ...)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-}
-
-model Payment {
-  id            Int           @id @default(autoincrement())
-  invoiceId     Int
-  invoice       Invoice       @relation(fields: [invoiceId], references: [id])
-  amount        Decimal       @db.Decimal(10, 2)
-  method        PaymentMethod
-  status        PaymentStatus @default(PENDING)
-  transactionId String?       // Transaction ID from payment gateway
-  qrCode        String?       // QR code image URL (from VietQR API)
-  qrString      String?       // QR code string for scanning
-  gatewayResponse String?     // Full gateway response (JSON string)
-  paidAt        DateTime?     // When payment was completed
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([invoiceId])
-  @@index([status])
-  @@index([transactionId])
-}
-
-model Message {
-  id          Int      @id @default(autoincrement())
-  senderId    Int
-  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
-  receiverId  Int
-  receiver    User     @relation("MessageReceiver", fields: [receiverId], references: [id])
-  content     String
-  images      String[] // Mảng link ảnh
-  isRead      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  
-  @@index([senderId, receiverId, createdAt])
-  @@index([receiverId, isRead])
-  @@index([createdAt])
-}
-
-// Cấu hình hệ thống
-model Settings {
-  id          Int     @id @default(autoincrement())
-  key         String  @unique // VD: "maxFloors", "buildingName", ...
-  value       String  // Giá trị cấu hình
-  description String? // Mô tả cấu hình
-  updatedAt   DateTime @updatedAt
 }
