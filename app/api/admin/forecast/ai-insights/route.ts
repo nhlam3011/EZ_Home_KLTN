@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       }),
       prisma.invoice.findMany({
         where: { 
-          status: 'OVERDUE',
+          status: { in: ['UNPAID', 'OVERDUE'] },
           ...(buildingIdInt ? { buildingId: buildingIdInt } : {})
         },
         include: {
@@ -97,7 +97,10 @@ export async function POST(request: Request) {
             }
           }
         },
-        orderBy: { paymentDueDate: 'asc' }
+        orderBy: [
+          { year: 'desc' },
+          { month: 'desc' }
+        ]
       }),
       prisma.contract.findMany({
         where: {
@@ -147,8 +150,20 @@ export async function POST(request: Request) {
     // Occupancy rate
     const occupancyRate = totalRooms > 0 ? ((totalRooms - availableRooms) / totalRooms * 100) : 0
 
+    // Lọc lấy hóa đơn mới nhất cho mỗi hợp đồng (vì nợ cũ đã cộng dồn vào hóa đơn mới)
+    const latestInvoicesMap = new Map<number, any>()
+    for (const inv of overdueInvoicesData) {
+      if (!latestInvoicesMap.has(inv.contractId)) {
+        latestInvoicesMap.set(inv.contractId, inv)
+      }
+    }
+
+    const filteredDebtors = Array.from(latestInvoicesMap.values()).filter(inv => 
+      inv.status === 'OVERDUE' || Number(inv.overdueAmount || 0) > 0
+    )
+
     // Process overdue invoices
-    const overdueInvoices = overdueInvoicesData.map(inv => {
+    const overdueInvoices = filteredDebtors.map(inv => {
       const dueDate = new Date(inv.paymentDueDate)
       const daysOverdue = Math.ceil((currentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
       return {
@@ -156,11 +171,11 @@ export async function POST(request: Request) {
         roomName: inv.contract?.room?.name || 'N/A',
         tenantName: inv.contract?.user?.fullName || 'N/A',
         amount: Number(inv.totalAmount),
-        overdueDays: daysOverdue
+        overdueDays: Math.max(0, daysOverdue)
       }
     })
 
-    const totalDebt = overdueInvoices.reduce((sum, inv) => sum + inv.amount, 0)
+    const totalDebt = filteredDebtors.reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
 
     // Process expiring contracts
     const expiringContracts = expiringContractsData.map(contract => {

@@ -79,13 +79,13 @@ export async function GET(request: Request) {
           contracts: buildingId ? { some: { room: { buildingId } } } : undefined
         } 
       }),
-      // Unpaid amount sum
-      prisma.invoice.aggregate({
+      // Fetch all uncollected invoices to filter by latest per contract
+      prisma.invoice.findMany({
         where: { 
-          status: 'UNPAID',
+          status: { in: ['UNPAID', 'OVERDUE'] },
           ...(buildingId ? { buildingId } : {})
         },
-        _sum: { totalAmount: true }
+        select: { contractId: true, totalAmount: true, month: true, year: true, status: true }
       })
     ])
 
@@ -142,12 +142,29 @@ export async function GET(request: Request) {
     const doneIssues = getIssueCount('DONE')
     const cancelledIssues = getIssueCount('CANCELLED')
 
-    // Process Invoice Stats
+    // Process Invoice Stats - Optimized to avoid double counting accumulated debt
+    // Lọc lấy hóa đơn mới nhất cho mỗi hợp đồng (vì nợ cũ đã cộng dồn vào hóa đơn mới)
+    const latestUncollectedMap = new Map<number, any>()
+    const allUncollectedInvoices = unpaidAmountSum as any[]
+    
+    for (const inv of allUncollectedInvoices) {
+      const existing = latestUncollectedMap.get(inv.contractId)
+      if (!existing || (inv.year > existing.year) || (inv.year === existing.year && inv.month > existing.month)) {
+        latestUncollectedMap.set(inv.contractId, inv)
+      }
+    }
+
+    const unpaidAmount = Array.from(latestUncollectedMap.values()).reduce((sum, inv) => sum + Number(inv.totalAmount), 0)
+    const unpaidInvoicesCount = latestUncollectedMap.size
+
     const getInvoiceCount = (status: string) => invoiceStatusCounts.find(i => i.status === status)?._count || 0
     const paidInvoices = getInvoiceCount('PAID')
-    const unpaidInvoices = getInvoiceCount('UNPAID')
-    const overdueInvoices = getInvoiceCount('OVERDUE')
     const totalInvoices = invoiceStatusCounts.reduce((sum, item) => sum + item._count, 0)
+    
+    // For specific counts, we still use the raw counts from database if they want total records
+    // but the dashboard cards usually display the filtered "actual" debt count
+    const unpaidInvoices = Array.from(latestUncollectedMap.values()).filter(inv => inv.status === 'UNPAID').length
+    const overdueInvoices = Array.from(latestUncollectedMap.values()).filter(inv => inv.status === 'OVERDUE').length
 
     // Process Revenue Stats (from in-memory revenueSummaries)
     const monthlyRevenueSum = revenueSummaries.find(s => s.month === currentMonth && s.year === currentYear)?._sum.totalAmount || 0
@@ -193,8 +210,8 @@ export async function GET(request: Request) {
       processingIssues,
       doneIssues,
       cancelledIssues,
-      unpaidInvoices,
-      unpaidAmount: Number(unpaidAmountSum._sum.totalAmount || 0),
+      unpaidInvoices: unpaidInvoicesCount, // Use the unique contract count
+      unpaidAmount: Number(unpaidAmount),
 
       revenueChart: revenueData,
       invoiceStatus: {

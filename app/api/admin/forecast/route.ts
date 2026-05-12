@@ -149,7 +149,7 @@ export async function GET(request: Request) {
       else if (daysUntilExpiry <= 60) riskScore += 30
       else if (daysUntilExpiry <= 90) riskScore += 15
 
-      if (overdueInvoices > 0) riskScore += Math.min(30, overdueInvoices * 10)
+      if (overdueInvoices > 0) riskScore += Math.min(60, overdueInvoices * 20)
       if (monthsRented >= 12) riskScore = Math.max(0, riskScore - 20)
       else if (monthsRented >= 6) riskScore = Math.max(0, riskScore - 10)
 
@@ -237,9 +237,9 @@ export async function GET(request: Request) {
           description: 'Tính điểm rủi ro dựa trên nhiều yếu tố để xác định khả năng phòng sẽ trống',
           factors: [
             'Thời gian còn lại của hợp đồng (0-50 điểm)',
-            'Lịch sử thanh toán quá hạn (0-30 điểm)',
+            'Lịch sử thanh toán quá hạn (0-60 điểm)',
             'Thời gian thuê (giảm 0-20 điểm nếu thuê lâu)',
-            'Tổng điểm: 0-100 (HIGH: ≥50, MEDIUM: 25-49, LOW: <25)'
+            'Tổng điểm: 0-100+ (HIGH: ≥50, MEDIUM: 25-49, LOW: <25)'
           ]
         }
       }
